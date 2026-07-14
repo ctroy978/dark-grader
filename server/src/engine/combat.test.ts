@@ -112,4 +112,23 @@ describe("combat loop", () => {
     placeMagnet(team, 1); // living ok
     expect(team.magnetPosition).toBe(1);
   });
+
+  it("builds short presentation cues with bubbles on commit", () => {
+    const team = readyTeam();
+    placeMagnet(team, 1);
+    commitRound(team);
+    expect(team.playback.length).toBeGreaterThan(0);
+    expect(team.playback.some((b) => b.kind === "drop")).toBe(true);
+    if (team.lastClaims.length > 0) {
+      const claims = team.playback.filter((b) => b.kind === "claim");
+      expect(claims.length).toBe(team.lastClaims.length);
+      expect(claims.every((c) => c.bubble?.text && c.bubble.text.length < 40)).toBe(
+        true,
+      );
+      expect(team.playback.some((b) => b.kind === "action" && b.bubble)).toBe(
+        true,
+      );
+    }
+    expect(team.lastClaims.every((c) => c.soldierId && c.token)).toBe(true);
+  });
 });

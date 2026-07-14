@@ -1,7 +1,10 @@
 /**
  * Classroom-friendly audio catalog for Dungeon Grades.
  * SFX use ElevenLabs text-to-sound; VO uses text-to-speech.
+ * Boss-specific clips are merged from content/bosses/*.toml at load time.
  */
+import { allBossAudioClips } from "../seed/bossLoader.js";
+
 export type AudioKind = "sfx" | "vo";
 
 export interface AudioClipDef {
@@ -15,7 +18,7 @@ export interface AudioClipDef {
   volume?: number;
 }
 
-export const AUDIO_CATALOG: AudioClipDef[] = [
+const CORE_CATALOG: AudioClipDef[] = [
   // --- Core UI / magnet ---
   {
     id: "ui_click",
@@ -144,8 +147,45 @@ export const AUDIO_CATALOG: AudioClipDef[] = [
     text: "The party has fallen.",
     volume: 0.7,
   },
+  // Occasional claim yells (token holders)
+  { id: "vo_claim_a", kind: "vo", text: "A! Mine!", volume: 0.75 },
+  { id: "vo_claim_b", kind: "vo", text: "B, got it!", volume: 0.75 },
+  { id: "vo_claim_c", kind: "vo", text: "C token!", volume: 0.75 },
+  { id: "vo_claim_d", kind: "vo", text: "Uh, D?", volume: 0.75 },
+  { id: "vo_claim_f", kind: "vo", text: "F? Oh no!", volume: 0.75 },
+  // Occasional action yells
+  { id: "vo_act_a", kind: "vo", text: "Here we go!", volume: 0.7 },
+  { id: "vo_act_b", kind: "vo", text: "Hit them!", volume: 0.7 },
+  { id: "vo_act_c", kind: "vo", text: "Now!", volume: 0.7 },
+  { id: "vo_act_d", kind: "vo", text: "Careful…", volume: 0.7 },
+  { id: "vo_act_f", kind: "vo", text: "This is bad!", volume: 0.75 },
+  // Hurt reactions
+  { id: "vo_hurt_1", kind: "vo", text: "Ow!", volume: 0.7 },
+  { id: "vo_hurt_2", kind: "vo", text: "I'm hit!", volume: 0.7 },
+  { id: "vo_hurt_3", kind: "vo", text: "Hold on!", volume: 0.7 },
 ];
+
+function mergeCatalog(): AudioClipDef[] {
+  const seen = new Set(CORE_CATALOG.map((c) => c.id));
+  const bossClips = allBossAudioClips().filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
+  return [...CORE_CATALOG, ...bossClips];
+}
+
+/** Full catalog including boss TOML audio packs. */
+export const AUDIO_CATALOG: AudioClipDef[] = mergeCatalog();
 
 export function getClip(id: string): AudioClipDef | undefined {
   return AUDIO_CATALOG.find((c) => c.id === id);
+}
+
+/** Rebuild after hot-reload of boss content (tests / dev). */
+export function refreshAudioCatalogFromBosses(): AudioClipDef[] {
+  const merged = mergeCatalog();
+  AUDIO_CATALOG.length = 0;
+  AUDIO_CATALOG.push(...merged);
+  return AUDIO_CATALOG;
 }

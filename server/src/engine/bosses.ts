@@ -2,24 +2,37 @@ import { type Minion, type TeamState } from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
 import { applyPartyDamage, livingParty, soldierAt } from "./damage.js";
 import { applyDot } from "./dots.js";
+import {
+  attackDef,
+  getBossTemplate,
+  pickFromPool,
+  type BossTemplate,
+} from "../seed/bossLoader.js";
 
 export type LogFn = (text: string) => void;
 
-/** Prefer lethal pressure; summon weights high when the field is empty. */
-const ATTACK_WEIGHTS: Record<string, number> = {
-  FrontSlam: 3,
-  LineAttack: 2,
-  Cascade: 4, // front-loaded — Vanguards earn their place
-  CrushMagnet: 3,
-  PoisonCloud: 3,
-  SummonBoneArchers: 3,
-  Regenerate: 1,
-  default: 2,
-};
+export interface BossAttackPresent {
+  attackId: string;
+  victimIds: string[];
+  bubbleText?: string;
+  sfxId?: string;
+  fx?: string[];
+}
+
+export interface MinionAttackPresent {
+  minionId: string;
+  minionName: string;
+  targetId: string;
+}
+
+export interface BossPresentHooks {
+  onBossAttack?: (info: BossAttackPresent) => void;
+  onMinionAttack?: (info: MinionAttackPresent) => void;
+}
 
 /** Front (1) heavy → back (6) light. Shield/block still apply. */
 const CASCADE_BASE: Record<number, number> = {
-  1: 16, // was 20 — still hurts; Vanguard/Maiden can hold
+  1: 16,
   2: 13,
   3: 10,
   4: 7,
@@ -51,22 +64,22 @@ function magnetBiasedTarget(team: TeamState, random: () => number) {
 }
 
 function pickWeightedAttack(
-  attackIds: string[],
+  template: BossTemplate,
   random: () => number,
   team: TeamState,
 ): string {
+  const attackIds = template.attackIds;
   const noMinions = livingMinionCount(team) === 0;
   const hasSummon = attackIds.includes("SummonBoneArchers");
 
-  // Guarantee minion pressure: if this boss can summon and the gap is empty,
-  // force a summon often (always after round 2, 70% before that).
   if (hasSummon && noMinions) {
     const force = team.round >= 2 || random() < 0.7;
     if (force) return "SummonBoneArchers";
   }
 
   const weights = attackIds.map((id) => {
-    let w = ATTACK_WEIGHTS[id] ?? ATTACK_WEIGHTS.default;
+    const def = attackDef(template, id);
+    let w = def?.weight ?? 2;
     if (id === "SummonBoneArchers" && noMinions) w *= 4;
     if (id === "SummonBoneArchers" && livingMinionCount(team) >= 2) w = 0.5;
     return w;
@@ -80,21 +93,57 @@ function pickWeightedAttack(
   return attackIds[attackIds.length - 1] ?? "LineAttack";
 }
 
-/** Below 40% HP the boss hits harder — punishes slow/careless fights. */
-function enrageMult(team: TeamState): number {
+function enrageMult(team: TeamState, template: BossTemplate | undefined): number {
   const boss = team.boss;
   if (!boss || boss.maxHp <= 0) return 1;
-  if (boss.currentHp / boss.maxHp <= 0.4) return 1.3;
+  const pct = template?.enrageHpPct ?? 0.4;
+  const mult = template?.enrageDamageMult ?? 1.3;
+  if (boss.currentHp / boss.maxHp <= pct) return mult;
   return 1;
+}
+
+function pickBubble(lines: string[], random: () => number): string | undefined {
+  if (!lines.length) return undefined;
+  return lines[Math.floor(random() * lines.length)];
+}
+
+function resolveBossAudio(
+  template: BossTemplate | undefined,
+  attackId: string,
+  random: () => number,
+): { sfxId?: string; bubbleText?: string } {
+  if (!template) return { sfxId: "boss_attack" };
+  const def = attackDef(template, attackId);
+  let sfxId = def?.sfx ?? template.telegraphSfx ?? "boss_attack";
+  // Layer grunt/laugh as primary flavor when no specific sfx — prefer attack sfx,
+  // but if use_grunt/laugh, client plays attack sfx; we can swap to grunt occasionally
+  if (def?.use_laugh && random() < 0.35) {
+    sfxId = pickFromPool(template.laughPool, random) ?? sfxId;
+  } else if (def?.use_grunt && random() < 0.45) {
+    // Play grunt *instead* of generic hit sometimes; attack sfx still preferred if set
+    // Actually: play attack sfx always when set; grunt is alternate for variety
+    if (!def.sfx) {
+      sfxId = pickFromPool(template.gruntPool, random) ?? sfxId;
+    } else if (random() < 0.4) {
+      sfxId = pickFromPool(template.gruntPool, random) ?? def.sfx;
+    }
+  }
+  return {
+    sfxId,
+    bubbleText: pickBubble(def?.bubble_lines ?? [], random),
+  };
 }
 
 export function resolveBossPhase(
   team: TeamState,
   random: () => number,
   log: LogFn,
+  present?: BossPresentHooks,
 ): void {
   const boss = team.boss;
   if (!boss || boss.currentHp <= 0) return;
+
+  const template = getBossTemplate(boss.id);
 
   if (boss.curseRoundsLeft > 0) {
     boss.curseRoundsLeft -= 1;
@@ -105,7 +154,7 @@ export function resolveBossPhase(
     if (boss.outgoingBuffRoundsLeft <= 0) boss.outgoingDamageMult = 1;
   }
 
-  const rage = enrageMult(team);
+  const rage = enrageMult(team, template);
   if (rage > 1) {
     log(`${boss.name} is enraged! (below 40% HP — attacks hit harder)`);
   }
@@ -113,13 +162,51 @@ export function resolveBossPhase(
   if (boss.stunRoundsLeft > 0) {
     boss.stunRoundsLeft -= 1;
     log(`${boss.name} is stunned and skips its turn!`);
+    present?.onBossAttack?.({
+      attackId: "StunSkip",
+      victimIds: [],
+      bubbleText: "…",
+      sfxId: pickFromPool(template?.gruntPool ?? [], random) ?? "boss_attack",
+      fx: ["stunned"],
+    });
   } else {
     const attackId =
       boss.sequenceIndex >= 0
         ? boss.attackIds[boss.sequenceIndex % boss.attackIds.length]
-        : pickWeightedAttack(boss.attackIds, random, team);
+        : pickWeightedAttack(
+            template ?? {
+              id: boss.id,
+              name: boss.name,
+              maxHp: boss.maxHp,
+              traits: boss.traits,
+              attackIds: boss.attackIds,
+              difficulty: "",
+              summary: "",
+              recommendedRounds: "",
+              enrageHpPct: 0.4,
+              enrageDamageMult: 1.3,
+              gruntPool: [],
+              laughPool: [],
+              attacks: boss.attackIds.map((id) => ({
+                id,
+                weight: 2,
+                bubble_lines: [],
+              })),
+              audio: [],
+            },
+            random,
+            team,
+          );
     if (boss.sequenceIndex >= 0) boss.sequenceIndex += 1;
-    performAttack(team, attackId, random, log, rage);
+    const victims = performAttack(team, attackId, random, log, rage);
+    const audio = resolveBossAudio(template, attackId, random);
+    present?.onBossAttack?.({
+      attackId,
+      victimIds: victims,
+      bubbleText: audio.bubbleText,
+      sfxId: audio.sfxId,
+      fx: rage > 1 ? ["enraged"] : [],
+    });
   }
 
   // Adds always act after boss
@@ -132,22 +219,34 @@ export function resolveBossPhase(
     );
     const { hpLost } = applyPartyDamage(target, dmg, team.partyShield);
     log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
+    present?.onMinionAttack?.({
+      minionId: minion.id,
+      minionName: minion.name,
+      targetId: target.id,
+    });
   }
 }
 
+/** Returns party soldier ids that took HP damage this attack. */
 function performAttack(
   team: TeamState,
   attackId: string,
   random: () => number,
   log: LogFn,
   rage: number,
-): void {
+): string[] {
   const boss = team.boss!;
   const mult = (boss.outgoingDamageMult || 1) * rage;
   const bonus = boss.nextAttackBonus || 0;
   boss.nextAttackBonus = 0;
+  const victims = new Set<string>();
 
   const dmg = (base: number) => Math.floor((base + bonus) * mult);
+  const hit = (s: { id: string }, amount: number) => {
+    const { hpLost } = applyPartyDamage(s as never, amount, team.partyShield);
+    if (hpLost > 0) victims.add(s.id);
+    return hpLost;
+  };
 
   switch (attackId) {
     case "FrontSlam": {
@@ -156,7 +255,7 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
-        const { hpLost } = applyPartyDamage(s, dmg(base), team.partyShield);
+        const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;
@@ -164,7 +263,7 @@ function performAttack(
     case "LineAttack": {
       log(`${boss.name} uses Line Attack!`);
       for (const s of livingParty(team)) {
-        const { hpLost } = applyPartyDamage(s, dmg(7), team.partyShield);
+        const hpLost = hit(s, dmg(7));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;
@@ -180,6 +279,7 @@ function performAttack(
           dmg(base),
           team.partyShield,
         );
+        if (hpLost > 0) victims.add(s.id);
         const extra: string[] = [];
         if (shieldAbsorbed) extra.push(`${shieldAbsorbed} shield`);
         if (blockAbsorbed) extra.push(`${blockAbsorbed} block`);
@@ -199,7 +299,7 @@ function performAttack(
       for (const { pos, base } of targets) {
         const s = soldierAt(team, pos);
         if (!s) continue;
-        const { hpLost } = applyPartyDamage(s, dmg(base), team.partyShield);
+        const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;
@@ -210,7 +310,7 @@ function performAttack(
       log(`${boss.name} regenerates ${heal} HP (${boss.currentHp}/${boss.maxHp})`);
       const victim = magnetBiasedTarget(team, random);
       if (victim) {
-        const { hpLost } = applyPartyDamage(victim, dmg(5), team.partyShield);
+        const hpLost = hit(victim, dmg(5));
         log(`  Regenerative pulse hits ${victim.name} for ${hpLost}`);
       }
       break;
@@ -236,11 +336,7 @@ function performAttack(
           if (minion.currentHp <= 0) continue;
           const target = magnetBiasedTarget(team, random);
           if (!target) break;
-          const { hpLost } = applyPartyDamage(
-            target,
-            dmg(minion.damage),
-            team.partyShield,
-          );
+          const hpLost = hit(target, dmg(minion.damage));
           log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
         }
       }
@@ -252,16 +348,19 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (s) {
           applyDot(s, "Poison", 1);
+          victims.add(s.id);
           log(`  ${s.name} is poisoned`);
         }
       }
       break;
     }
-    default:
+    default: {
       log(`${boss.name} uses ${attackId}!`);
       for (const s of livingParty(team)) {
-        const { hpLost } = applyPartyDamage(s, dmg(8), team.partyShield);
+        const hpLost = hit(s, dmg(8));
         log(`  ${s.name} takes ${hpLost}`);
       }
+    }
   }
+  return [...victims];
 }

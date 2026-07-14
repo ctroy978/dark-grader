@@ -1,0 +1,125 @@
+id = "ash_wraith"
+name = "Ash Wraith"
+max_hp = 260
+traits = ["Volatile"]
+difficulty = "Standard"
+summary = "No summons. Cascade punishes soft fronts; poison and crush still hurt."
+recommended_rounds = "8–12"
+enrage_hp_pct = 0.4
+enrage_damage_mult = 1.25
+
+grunt_pool = ["boss_ash_hiss_1", "boss_ash_hiss_2"]
+laugh_pool = ["boss_ash_laugh"]
+telegraph_sfx = "boss_ash_telegraph"
+
+[[audio]]
+id = "boss_ash_hiss_1"
+kind = "sfx"
+text = "ash spirit short hiss whoosh, ember crackle, dark fantasy, no words"
+duration_seconds = 0.65
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_hiss_2"
+kind = "sfx"
+text = "smoky wraith growl short, cinders, restrained, no words"
+duration_seconds = 0.7
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_laugh"
+kind = "sfx"
+text = "short smoky ethereal chuckle, ash wraith, not scary for classroom, no words"
+duration_seconds = 0.85
+volume = 0.5
+
+[[audio]]
+id = "boss_ash_telegraph"
+kind = "sfx"
+text = "embers swirl wind-up for a spirit attack, short tension, no voice"
+duration_seconds = 0.8
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_line"
+kind = "sfx"
+text = "line of ash and cinder blast short whoosh, no voice"
+duration_seconds = 0.75
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_slam"
+kind = "sfx"
+text = "fiery ash slam impact short, spirit fist of cinders, no voice"
+duration_seconds = 0.75
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_cascade"
+kind = "sfx"
+text = "cascading ash impacts front to back, short dramatic, no voice"
+duration_seconds = 0.95
+volume = 0.6
+
+[[audio]]
+id = "boss_ash_crush"
+kind = "sfx"
+text = "ash crush focused impact on glowing target, short, no voice"
+duration_seconds = 0.75
+volume = 0.55
+
+[[audio]]
+id = "boss_ash_poison"
+kind = "sfx"
+text = "toxic ash cloud release short whoosh, no voice"
+duration_seconds = 0.8
+volume = 0.5
+
+[[audio]]
+id = "boss_ash_regen"
+kind = "sfx"
+text = "embers reforming regenerate soft whoosh, short, no voice"
+duration_seconds = 0.75
+volume = 0.45
+
+[[attacks]]
+id = "LineAttack"
+weight = 2
+sfx = "boss_ash_line"
+bubble_lines = ["Burn!", "Ash wave!"]
+use_grunt = true
+
+[[attacks]]
+id = "FrontSlam"
+weight = 3
+sfx = "boss_ash_slam"
+bubble_lines = ["Front falls!", "Cinder smash!"]
+use_grunt = true
+
+[[attacks]]
+id = "Cascade"
+weight = 4
+sfx = "boss_ash_cascade"
+bubble_lines = ["Cascade of ash!", "Front first!"]
+use_grunt = true
+
+[[attacks]]
+id = "CrushMagnet"
+weight = 3
+sfx = "boss_ash_crush"
+bubble_lines = ["The light dies!", "Magnet!"]
+use_grunt = true
+
+[[attacks]]
+id = "PoisonCloud"
+weight = 3
+sfx = "boss_ash_poison"
+bubble_lines = ["Breathe ash…", "Toxin mist!"]
+use_laugh = true
+
+[[attacks]]
+id = "Regenerate"
+weight = 1
+sfx = "boss_ash_regen"
+bubble_lines = ["Embers reform…"]
+use_grunt = true

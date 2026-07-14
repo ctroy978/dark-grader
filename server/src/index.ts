@@ -18,7 +18,7 @@ import {
   listCachedClips,
   probePermissions,
 } from "./audio/elevenlabs.js";
-import { BOSS_TEMPLATES } from "./seed/bosses.js";
+import { listBossTemplatesForApi, loadBossTemplates } from "./seed/bosses.js";
 import {
   commitFullRound,
   commitRound,
@@ -65,7 +65,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
   const campaignLength = c.campaignLength;
   const roomNum = currentRoomNumber(roomsCleared);
   const nextBossId = store.bossForRoom(roomsCleared);
-  const nextBoss = BOSS_TEMPLATES.find((b) => b.id === nextBossId);
+  const nextBoss = loadBossTemplates().find((b) => b.id === nextBossId);
   return {
     ...team,
     cloud: cloudPreview(team),
@@ -90,7 +90,7 @@ function overview() {
     bossTemplateId: c.bossTemplateId,
     campaignLength: c.campaignLength,
     roomBossIds: c.roomBossIds,
-    bosses: BOSS_TEMPLATES,
+    bosses: listBossTemplatesForApi(),
     teams: store.listTeams().map((t) => ({
       teamId: t.teamId,
       name: t.name,
@@ -200,7 +200,7 @@ app.post<{ Body: { pin: string; bossTemplateId: string } }>(
   async (req) => {
     requireTeacher(req.body.pin);
     const id = req.body.bossTemplateId;
-    if (!BOSS_TEMPLATES.some((b) => b.id === id)) {
+    if (!loadBossTemplates().some((b) => b.id === id)) {
       const err = new Error("Unknown boss") as Error & { statusCode: number };
       err.statusCode = 400;
       throw err;
@@ -217,7 +217,7 @@ app.post<{
   requireTeacher(req.body.pin);
   if (req.body.roomBossIds) {
     for (const id of req.body.roomBossIds) {
-      if (!BOSS_TEMPLATES.some((b) => b.id === id)) {
+      if (!loadBossTemplates().some((b) => b.id === id)) {
         const err = new Error(`Unknown boss: ${id}`) as Error & {
           statusCode: number;
         };

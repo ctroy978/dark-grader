@@ -28,6 +28,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+export type PresentationCue = {
+  id: string;
+  kind: string;
+  focusIds?: string[];
+  bubble?: {
+    speakerId?: string;
+    speakerName?: string;
+    side: "party" | "boss" | "minion";
+    text: string;
+  };
+  grade?: Grade;
+  fx?: string[];
+  sfxId?: string;
+  voId?: string;
+  playVo?: boolean;
+  durationMs?: number;
+};
+
+/** @deprecated use PresentationCue */
+export type CombatBeat = PresentationCue;
+
 export type EnrichedTeam = {
   teamId: string;
   inviteCode: string;
@@ -39,14 +60,34 @@ export type EnrichedTeam = {
   phase: string;
   round: number;
   log: { round: number; text: string; tags?: string[] }[];
+  playback?: CombatBeat[];
+  lastClaims?: {
+    token: Grade;
+    soldierId: string;
+    effectiveGrade: Grade;
+  }[];
   roomIndex: number;
   lastClearedBossName?: string | null;
   boss: {
+    id?: string;
     name: string;
     currentHp: number;
     maxHp: number;
+    traits?: string[];
+    curseDamageTakenMult?: number;
+    curseRoundsLeft?: number;
+    outgoingDamageMult?: number;
+    outgoingBuffRoundsLeft?: number;
+    stunRoundsLeft?: number;
+    nextAttackBonus?: number;
   } | null;
-  minions: { id: string; name: string; currentHp: number; maxHp: number }[];
+  minions: {
+    id: string;
+    name: string;
+    currentHp: number;
+    maxHp: number;
+    damage?: number;
+  }[];
   cloud: Grade[];
   pendingTokens?: Grade[];
   tokensRemaining: number;

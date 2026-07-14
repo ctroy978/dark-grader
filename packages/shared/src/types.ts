@@ -1,3 +1,5 @@
+import type { PresentationCue } from "./presentation.js";
+
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
 export type Archetype =
@@ -135,6 +137,13 @@ export interface TeamState {
   phase: FightPhase;
   round: number;
   log: RoundLogEntry[];
+  /**
+   * Short presentation cues (bubbles, FX, SFX/VO) for the client.
+   * Replaced each resolve step — keep timings snappy.
+   */
+  playback: PresentationCue[];
+  /** Claims from the last drop — grade badges on cards until next magnet phase. */
+  lastClaims: ClaimResult[];
   /**
    * Rooms already cleared. Current fight is room (roomsCleared + 1).
    * Kept as roomIndex for save compatibility (same meaning).

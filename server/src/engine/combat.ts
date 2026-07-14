@@ -10,6 +10,7 @@ import {
   type TeamState,
 } from "@dungeon-grades/shared";
 import { instantiateBoss } from "../seed/bosses.js";
+import { getBossTemplate } from "../seed/bossLoader.js";
 import { createCampaignRoster } from "../seed/roster.js";
 import { resolveBossPhase } from "./bosses.js";
 import { resolveClaims, setMagnet } from "./claims.js";
@@ -19,6 +20,12 @@ import {
   livingParty,
 } from "./damage.js";
 import { tickDots } from "./dots.js";
+import {
+  cueAction,
+  cueClaim,
+  cueHurtMaybe,
+  pushCue,
+} from "./presentation.js";
 import { resolveSpecialistAction, triggerDoomcallerDeath } from "./specialists.js";
 import {
   consumePendingTokens,
@@ -54,6 +61,8 @@ export function createTeam(
     phase: "lobby",
     round: 0,
     log: [],
+    playback: [],
+    lastClaims: [],
     roomIndex: 0,
     partyDamageBonus: 0,
     slimeSlowNextRound: false,
@@ -216,6 +225,7 @@ export function commitRound(team: TeamState): TeamState {
   }
 
   team.phase = "resolving";
+  team.playback = [];
   const random = createRng(team.rngSeed + team.round * 10007 + team.magnetPosition * 13);
 
   team.partyDamageBonus = 0;
@@ -227,7 +237,6 @@ export function commitRound(team: TeamState): TeamState {
 
   // Drop exactly the telegraphed pending tokens (already drawn when phase began)
   if (!team.pendingTokens?.length) {
-    // Safety for old saves / mid-fight upgrades
     preparePendingForRound(team);
   }
   const drawn = consumePendingTokens(team);
@@ -236,8 +245,15 @@ export function commitRound(team: TeamState): TeamState {
     `Tokens drop: ${drawn.join(", ") || "(none — pool empty)"} (magnet at ${team.magnetPosition})`,
     ["tokens"],
   );
+  pushCue(team, {
+    kind: "drop",
+    fx: ["token-drop"],
+    sfxId: "token_drop",
+    durationMs: 650,
+  });
 
   const claims = resolveClaims(team, drawn, random);
+  team.lastClaims = claims.map((c) => ({ ...c }));
   for (const c of claims) {
     const s = team.roster.find((x) => x.id === c.soldierId);
     if (s) {
@@ -246,10 +262,12 @@ export function commitRound(team: TeamState): TeamState {
         `${s.name} claims ${c.token}${c.effectiveGrade !== c.token ? ` (Ice→${c.effectiveGrade})` : ""}`,
         ["claim"],
       );
+      // All token holders get a short comic bubble (+ occasional VO)
+      cueClaim(team, s.id, s.name, c.token, random);
     }
   }
 
-  // Party actions front (1) → back (6)
+  // Party actions front (1) → back (6) — short attack bubbles, not essays
   const claimBySoldier = new Map(claims.map((c) => [c.soldierId, c]));
   for (const soldier of livingParty(team)) {
     const claim = claimBySoldier.get(soldier.id);
@@ -257,30 +275,85 @@ export function commitRound(team: TeamState): TeamState {
     resolveSpecialistAction(team, soldier, claim, random, (text, tags) =>
       pushLog(team, text, tags ?? ["party"]),
     );
+    const fx: string[] = [];
+    if (soldier.archetype === "Healer") fx.push("heal-glow");
+    if (soldier.archetype === "FireMage") fx.push("fire-flash");
+    if (claim.effectiveGrade === "F") fx.push("backfire");
+    cueAction(
+      team,
+      soldier.id,
+      soldier.name,
+      soldier.archetype,
+      claim.effectiveGrade,
+      random,
+      fx,
+    );
   }
 
-  tickDots(team, (text) => pushLog(team, text, ["dot"]));
+  // One compact DoT beat (visuals on chips, not a speech parade)
+  let sawDot = false;
+  tickDots(team, (text) => {
+    pushLog(team, text, ["dot"]);
+    if (!sawDot && !text.includes("— DoT") && !text.includes("— End")) {
+      sawDot = true;
+      pushCue(team, {
+        kind: "dot",
+        focusIds: livingParty(team)
+          .filter((s) => s.statuses.some((st) => st.kind === "Dot"))
+          .map((s) => s.id),
+        fx: ["dot-tick", "poison-tint"],
+        sfxId: "dot_tick",
+        durationMs: 700,
+      });
+    }
+  });
   processDeaths(team);
 
   if (livingParty(team).length === 0) {
     team.phase = "defeat";
     pushLog(team, "The party has fallen…", ["system"]);
+    pushCue(team, {
+      kind: "system",
+      sfxId: "defeat",
+      durationMs: 900,
+    });
     return team;
   }
   if (team.boss && team.boss.currentHp <= 0) {
     team.phase = "victory";
     team.minions = [];
     pushLog(team, `${team.boss.name} is defeated!`, ["system"]);
+    pushCue(team, {
+      kind: "system",
+      focusIds: ["boss"],
+      sfxId: "victory",
+      durationMs: 900,
+    });
     return team;
   }
 
-  // Hand off to boss beat
   team.phase = "boss_telegraph";
   pushLog(
     team,
     `${team.boss!.name} gathers power…`,
     ["boss", "telegraph"],
   );
+  {
+    const tpl = getBossTemplate(team.boss!.id);
+    pushCue(team, {
+      kind: "telegraph",
+      focusIds: ["boss"],
+      bubble: {
+        speakerId: "boss",
+        speakerName: team.boss!.name,
+        side: "boss",
+        text: "…",
+      },
+      fx: ["boss-windup"],
+      sfxId: tpl?.telegraphSfx ?? "boss_attack",
+      durationMs: 1100,
+    });
+  }
   return team;
 }
 
@@ -294,12 +367,51 @@ export function resolveBoss(team: TeamState): TeamState {
   }
   if (!team.boss) throw new Error("No active fight");
 
+  team.playback = [];
   const random = createRng(
     team.rngSeed + team.round * 10007 + team.magnetPosition * 13 + 777,
   );
 
+  const hurtVictims: string[] = [];
   if (team.boss.currentHp > 0 && livingParty(team).length > 0) {
-    resolveBossPhase(team, random, (text) => pushLog(team, text, ["boss"]));
+    resolveBossPhase(team, random, (text) => pushLog(team, text, ["boss"]), {
+      onBossAttack: (info) => {
+        pushCue(team, {
+          kind: "boss",
+          focusIds: ["boss", ...info.victimIds],
+          bubble: info.bubbleText
+            ? {
+                speakerId: "boss",
+                speakerName: team.boss!.name,
+                side: "boss",
+                text: info.bubbleText,
+              }
+            : undefined,
+          fx: ["boss-attack", ...(info.fx ?? [])],
+          sfxId: info.sfxId,
+          durationMs: 1300,
+        });
+        hurtVictims.push(...info.victimIds);
+      },
+      onMinionAttack: (info) => {
+        pushCue(team, {
+          kind: "minion",
+          focusIds: [info.minionId, info.targetId],
+          bubble: {
+            speakerId: info.minionId,
+            speakerName: info.minionName,
+            side: "minion",
+            text: "Loose!",
+          },
+          fx: ["minion-shot"],
+          sfxId: "minion_shot",
+          durationMs: 750,
+        });
+        hurtVictims.push(info.targetId);
+      },
+    });
+    // One party member reacts when attacked (bubble + rare VO)
+    cueHurtMaybe(team, [...new Set(hurtVictims)], random);
   }
 
   processDeaths(team);
@@ -307,20 +419,27 @@ export function resolveBoss(team: TeamState): TeamState {
   if (livingParty(team).length === 0) {
     team.phase = "defeat";
     pushLog(team, "The party has fallen…", ["system"]);
+    pushCue(team, { kind: "system", sfxId: "defeat", durationMs: 900 });
     return team;
   }
   if (team.boss && team.boss.currentHp <= 0) {
     team.phase = "victory";
     team.minions = [];
     pushLog(team, `${team.boss.name} is defeated!`, ["system"]);
+    pushCue(team, {
+      kind: "system",
+      focusIds: ["boss"],
+      sfxId: "victory",
+      durationMs: 900,
+    });
     return team;
   }
 
   team.round += 1;
   team.phase = "awaiting_magnet";
   team.partyDamageBonus = 0;
+  team.lastClaims = [];
   ensureMagnetOnLiving(team);
-  // Telegraph next drop: token count = floor(living/2) (min 1); slime may reduce further
   const prep = preparePendingForRound(team);
   const slimeNote = prep.slimeReduced ? " (Slime reduced the drop!)" : "";
   pushLog(
@@ -328,6 +447,7 @@ export function resolveBoss(team: TeamState): TeamState {
     `Round ${team.round}: ${prep.living} living → ${prep.tokens.length} token(s)${slimeNote}. Incoming: ${prep.tokens.join(", ") || "(none)"} — set magnet, then Drop Tokens.`,
     ["system", "tokens"],
   );
+  // No long system speech — magnet playbook + tokens are enough
   return team;
 }
 
@@ -349,8 +469,29 @@ function processDeaths(team: TeamState): void {
     ext.alive = false;
     ext.deathLogged = true;
     pushLog(team, `${s.name} has fallen!`, ["death"]);
+    pushCue(team, {
+      kind: "death",
+      focusIds: [s.id],
+      bubble: {
+        speakerId: s.id,
+        speakerName: s.name,
+        side: "party",
+        text: "…!",
+      },
+      fx: ["death"],
+      durationMs: 1000,
+    });
     if (s.archetype === "Doomcaller") {
-      triggerDoomcallerDeath(team, s, (text) => pushLog(team, text, ["death"]));
+      triggerDoomcallerDeath(team, s, (text) => {
+        pushLog(team, text, ["death"]);
+        pushCue(team, {
+          kind: "death",
+          focusIds: [s.id, "boss"],
+          fx: ["curse-burst"],
+          sfxId: "hit_heavy",
+          durationMs: 1000,
+        });
+      });
     }
   }
 }

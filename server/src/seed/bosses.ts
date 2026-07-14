@@ -1,58 +1,33 @@
 import type { BossState } from "@dungeon-grades/shared";
+import {
+  getBossTemplate,
+  loadBossTemplates,
+  type BossTemplate,
+} from "./bossLoader.js";
 
-export interface BossTemplate {
-  id: string;
-  name: string;
-  maxHp: number;
-  traits: string[];
-  attackIds: string[];
-  difficulty: string;
-  summary: string;
-  recommendedRounds: string;
+export type { BossTemplate } from "./bossLoader.js";
+
+/** Teacher dashboard + API list (from TOML content packs). */
+export function BOSS_TEMPLATES(): BossTemplate[] {
+  return loadBossTemplates();
 }
 
-export const BOSS_TEMPLATES: BossTemplate[] = [
-  {
-    id: "bone_colossus",
-    name: "Bone Colossus",
-    maxHp: 360,
-    traits: ["Undead", "Enrage"],
-    attackIds: [
-      "FrontSlam",
-      "LineAttack",
-      "Cascade",
-      "CrushMagnet",
-      "SummonBoneArchers",
-      "PoisonCloud",
-      "Regenerate",
-    ],
-    difficulty: "Hard",
-    summary:
-      "Cascade (front hard → back soft), Bone Archers, poison, magnet crush. Enrages below 40% HP.",
-    recommendedRounds: "10–16",
-  },
-  {
-    id: "ash_wraith",
-    name: "Ash Wraith",
-    maxHp: 260,
-    traits: ["Volatile"],
-    attackIds: [
-      "LineAttack",
-      "FrontSlam",
-      "Cascade",
-      "CrushMagnet",
-      "PoisonCloud",
-      "Regenerate",
-    ],
-    difficulty: "Standard",
-    summary:
-      "No summons. Cascade punishes soft fronts; poison and crush still hurt.",
-    recommendedRounds: "8–12",
-  },
-];
+/** @deprecated use BOSS_TEMPLATES() — kept for call-site convenience */
+export { loadBossTemplates };
+
+export function listBossTemplatesForApi() {
+  return loadBossTemplates().map((t) => ({
+    id: t.id,
+    name: t.name,
+    maxHp: t.maxHp,
+    difficulty: t.difficulty,
+    summary: t.summary,
+    recommendedRounds: t.recommendedRounds,
+  }));
+}
 
 export function instantiateBoss(templateId: string): BossState {
-  const t = BOSS_TEMPLATES.find((b) => b.id === templateId);
+  const t = getBossTemplate(templateId);
   if (!t) throw new Error(`Unknown boss: ${templateId}`);
   return {
     id: t.id,

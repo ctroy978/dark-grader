@@ -72,6 +72,10 @@ export class GameStore {
         const state = JSON.parse(
           fs.readFileSync(path.join(TEAMS_DIR, file), "utf8"),
         ) as TeamState;
+        // Backfill fields added after early saves
+        if (!Array.isArray(state.playback)) state.playback = [];
+        if (!Array.isArray(state.lastClaims)) state.lastClaims = [];
+        if (!Array.isArray(state.pendingTokens)) state.pendingTokens = [];
         this.teams.set(state.teamId, state);
       } catch {
         /* skip corrupt */

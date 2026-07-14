@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ARCHETYPE_ICONS,
   GRADE_COLORS,
+  describeGradeEffect,
+  gradeRiskNote,
   type Grade,
 } from "@dungeon-grades/shared";
-import { api, getSocket, type EnrichedTeam } from "../api";
+import { api, getSocket, type PresentationCue, type EnrichedTeam } from "../api";
 import {
   isMuted,
   isVoEnabled,
@@ -17,6 +19,9 @@ import {
   setMuted,
   setVoEnabled,
 } from "../audio";
+import { CombatActor } from "../combat/CombatActor";
+import { StageBubble } from "../combat/SpeechBubble";
+import { BossStatusRow } from "../combat/StatusChips";
 
 const GRADE_CLASS: Record<Grade, string> = {
   A: "text-grade-a border-grade-a/50",
@@ -25,6 +30,47 @@ const GRADE_CLASS: Record<Grade, string> = {
   D: "text-grade-d border-grade-d/50",
   F: "text-grade-f border-grade-f/50",
 };
+
+/**
+ * Cue timings — readable for classroom (pose + bubble), still not story-mode.
+ * Server durationMs is a hint; client clamps and applies a slight slowdown.
+ */
+function cueDurationMs(cue: PresentationCue): number {
+  const base = (() => {
+    if (cue.durationMs) return cue.durationMs;
+    switch (cue.kind) {
+      case "action":
+        return 1100;
+      case "claim":
+        return 900;
+      case "boss":
+        return 1300;
+      case "minion":
+        return 750;
+      case "hurt":
+        return 850;
+      case "dot":
+        return 700;
+      case "death":
+        return 1000;
+      case "telegraph":
+        return 1100;
+      case "drop":
+        return 650;
+      default:
+        return 800;
+    }
+  })();
+  // Soft floor/ceiling so VO + bubble can land
+  return Math.min(1800, Math.max(500, Math.round(base * 1.15)));
+}
+
+function playCueAudio(cue: PresentationCue): void {
+  if (cue.sfxId) play(cue.sfxId);
+  if (cue.playVo && cue.voId) play(cue.voId);
+}
+
+const BOSS_TELEGRAPH_AFTER_PLAYBACK_MS = 1100;
 
 function FightSummary({ team }: { team: EnrichedTeam }) {
   const party = team.activePartyIds
@@ -80,9 +126,6 @@ function FightSummary({ team }: { team: EnrichedTeam }) {
   );
 }
 
-/** Pause after party acts before boss resolves (ms). */
-const BOSS_TELEGRAPH_MS = 2200;
-
 export default function CombatScreen({
   team,
   onTeamUpdate,
@@ -102,6 +145,21 @@ export default function CombatScreen({
   const bossResolveLock = useRef(false);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Sequential story playback (party drop + boss phase)
+  const [playQueue, setPlayQueue] = useState<PresentationCue[]>([]);
+  const [playIndex, setPlayIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const playedSigRef = useRef<string>("");
+  const partyPlaybackDoneRef = useRef(false);
+
+  const activeBeat = playing && playQueue[playIndex] ? playQueue[playIndex] : null;
+  const focusSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const id of activeBeat?.focusIds ?? []) set.add(id);
+    if (activeBeat?.bubble?.speakerId) set.add(activeBeat.bubble.speakerId);
+    return set;
+  }, [activeBeat]);
+
   useEffect(() => {
     loadAudioPrefs();
     setMuteState(isMuted());
@@ -119,8 +177,49 @@ export default function CombatScreen({
     };
   }, [team.teamId, onTeamUpdate]);
 
-  // Play SFX for new log lines / phase changes; keep log scrolled to latest
+  // Start playback when server sends a new beat list
   useEffect(() => {
+    const beats = team.playback ?? [];
+    if (!beats.length) return;
+    const sig = `${team.phase}|${team.round}|${beats.map((b) => b.id).join(",")}`;
+    if (sig === playedSigRef.current) return;
+    playedSigRef.current = sig;
+    partyPlaybackDoneRef.current = false;
+    setPlayQueue(beats);
+    setPlayIndex(0);
+    setPlaying(true);
+  }, [team.playback, team.phase, team.round]);
+
+  // Advance beats on a timer
+  useEffect(() => {
+    if (!playing || !playQueue.length) return;
+    if (playIndex >= playQueue.length) {
+      setPlaying(false);
+      partyPlaybackDoneRef.current = true;
+      return;
+    }
+    const beat = playQueue[playIndex];
+    playCueAudio(beat);
+    const t = window.setTimeout(() => {
+      setPlayIndex((i) => i + 1);
+    }, cueDurationMs(beat));
+    return () => window.clearTimeout(t);
+  }, [playing, playQueue, playIndex]);
+
+  // When queue finishes
+  useEffect(() => {
+    if (playing && playIndex >= playQueue.length && playQueue.length > 0) {
+      setPlaying(false);
+      partyPlaybackDoneRef.current = true;
+    }
+  }, [playing, playIndex, playQueue.length]);
+
+  // Log audio for lines when not in structured playback (fallback)
+  useEffect(() => {
+    if (playing) {
+      logLenRef.current = team.log.length;
+      return;
+    }
     if (team.log.length > logLenRef.current) {
       const newLines = team.log.slice(logLenRef.current);
       logLenRef.current = team.log.length;
@@ -141,41 +240,62 @@ export default function CombatScreen({
     }
     const el = logEndRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [team.log, team.phase, team.round]);
+  }, [team.log, team.phase, team.round, playing]);
 
-  /**
-   * Party display: position 1 (front) is closest to the boss (right).
-   * Visual left→right = positions 6 … 1.
-   */
   const partyVisual = useMemo(() => {
     const list = team.activePartyIds
       .map((id) => team.roster.find((r) => r.id === id))
       .filter(Boolean) as EnrichedTeam["roster"];
-    return [...list].sort(
-      (a, b) => (b.position ?? 0) - (a.position ?? 0),
-    );
+    return [...list].sort((a, b) => (b.position ?? 0) - (a.position ?? 0));
   }, [team]);
 
-  // Number pad mirrors visual order (6 on left … 1 on right, nearest boss)
   const magnetButtons = [6, 5, 4, 3, 2, 1] as const;
 
   const livingPositions = useMemo(() => {
     const set = new Set<number>();
     for (const s of team.roster) {
-      if (
-        s.alive &&
-        s.position &&
-        team.activePartyIds.includes(s.id)
-      ) {
+      if (s.alive && s.position && team.activePartyIds.includes(s.id)) {
         set.add(s.position);
       }
     }
     return set;
   }, [team]);
 
+  const claimBySoldier = useMemo(() => {
+    const m = new Map<string, { token: Grade; effectiveGrade: Grade }>();
+    for (const c of team.lastClaims ?? []) {
+      m.set(c.soldierId, {
+        token: c.token,
+        effectiveGrade: c.effectiveGrade,
+      });
+    }
+    return m;
+  }, [team.lastClaims]);
+
+  const magnetSoldier = useMemo(() => {
+    return (
+      team.roster.find(
+        (s) =>
+          s.alive &&
+          s.position === team.magnetPosition &&
+          team.activePartyIds.includes(s.id),
+      ) ?? null
+    );
+  }, [team]);
+
+  const pendingGrades = useMemo(() => {
+    const list =
+      team.pendingTokens?.length
+        ? team.pendingTokens
+        : team.cloud?.length
+          ? team.cloud
+          : [];
+    return list as Grade[];
+  }, [team.pendingTokens, team.cloud]);
+
   const setMagnet = useCallback(
     async (pos: number) => {
-      if (team.phase !== "awaiting_magnet") return;
+      if (team.phase !== "awaiting_magnet" || playing) return;
       if (!livingPositions.has(pos)) {
         setError("Cannot place the magnet under a fallen soldier");
         return;
@@ -189,7 +309,7 @@ export default function CombatScreen({
         setError(err instanceof Error ? err.message : "Magnet failed");
       }
     },
-    [team.phase, team.teamId, onTeamUpdate, livingPositions],
+    [team.phase, team.teamId, onTeamUpdate, livingPositions, playing],
   );
 
   const runBossResolve = useCallback(async () => {
@@ -208,24 +328,30 @@ export default function CombatScreen({
     }
   }, [team.teamId, onTeamUpdate]);
 
-  // After party phase: pause, telegraph, then resolve boss
+  // Boss resolve only after party playback finishes (+ short wind-up)
   useEffect(() => {
     if (team.phase !== "boss_telegraph") {
       bossResolveLock.current = false;
       return;
     }
+    if (playing) return;
+    // Wait until we've consumed the party playback for this telegraph
+    if ((team.playback?.length ?? 0) > 0 && !partyPlaybackDoneRef.current) {
+      return;
+    }
     const timer = window.setTimeout(() => {
       void runBossResolve();
-    }, BOSS_TELEGRAPH_MS);
+    }, BOSS_TELEGRAPH_AFTER_PLAYBACK_MS);
     return () => window.clearTimeout(timer);
-  }, [team.phase, team.round, runBossResolve]);
+  }, [team.phase, team.round, team.playback, playing, runBossResolve]);
 
   async function dropTokens() {
-    if (team.phase !== "awaiting_magnet" || busy) return;
+    if (team.phase !== "awaiting_magnet" || busy || playing) return;
     setBusy(true);
     setError(null);
     setFlashTokens(true);
     playCommit();
+    partyPlaybackDoneRef.current = false;
     try {
       const t = await api.commitRound(team.teamId);
       onTeamUpdate(t);
@@ -239,6 +365,7 @@ export default function CombatScreen({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (playing) return;
       if (e.key >= "1" && e.key <= "6") {
         void setMagnet(Number(e.key));
       }
@@ -250,7 +377,7 @@ export default function CombatScreen({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setMagnet, team.phase, busy]);
+  }, [setMagnet, team.phase, busy, playing]);
 
   async function afterVictory() {
     setBusy(true);
@@ -264,21 +391,29 @@ export default function CombatScreen({
     }
   }
 
-  // Magnet under reversed visual line: pos 1 → rightmost slot
-  const magnetSlotIndex = 6 - team.magnetPosition; // 0..5 left→right
+  const magnetSlotIndex = 6 - team.magnetPosition;
   const magnetPct = (magnetSlotIndex / 5) * 100;
-
   const phaseLabel = team.phase.replaceAll("_", " ");
+  const showBossTelegraphBanner =
+    team.phase === "boss_telegraph" && (!playing || activeBeat?.kind === "telegraph");
 
   return (
-    <div className="min-h-full flex flex-col">
-      {/* Incoming tokens — only the grades that will drop this round */}
+    <div className="min-h-full flex flex-col relative">
+      {activeBeat?.bubble &&
+        (activeBeat.bubble.side !== "party" ||
+          !activeBeat.bubble.speakerId) && (
+          <StageBubble cue={activeBeat} />
+        )}
+
+      {/* Incoming tokens */}
       <div className="relative h-24 md:h-28 border-b border-parchment/10 bg-navy/50 overflow-hidden">
         <div className="absolute top-2 left-3 right-3 flex justify-between text-xs text-parchment-dim">
           <span>
             {team.phase === "awaiting_magnet"
               ? "Incoming drop (plan your magnet)"
-              : "Tokens"}
+              : playing
+                ? "Resolving…"
+                : "Tokens"}
           </span>
           <span>
             Pool left: {team.tokensRemaining ?? "?"}
@@ -286,111 +421,161 @@ export default function CombatScreen({
           </span>
         </div>
         <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6 pt-2">
-          {(
-            team.pendingTokens?.length
-              ? team.pendingTokens
-              : team.cloud?.length
-                ? team.cloud
-                : []
-          ).map((g, i) => (
+          {pendingGrades.map((g, i) => (
             <div
               key={`${g}-${i}`}
-              className={`token-bob w-12 h-12 md:w-14 md:h-14 rounded-full border-2 flex items-center justify-center font-bold text-xl md:text-2xl bg-navy-light/90 shadow-lg ${GRADE_CLASS[g as Grade]} ${flashTokens ? "token-fall" : ""}`}
+              className={`token-bob w-12 h-12 md:w-14 md:h-14 rounded-full border-2 flex items-center justify-center font-bold text-xl md:text-2xl bg-navy-light/90 shadow-lg ${GRADE_CLASS[g]} ${flashTokens ? "token-fall" : ""}`}
               style={{
                 animationDelay: `${i * 0.12}s`,
-                color: GRADE_COLORS[g as Grade],
-                borderColor: GRADE_COLORS[g as Grade],
+                color: GRADE_COLORS[g],
+                borderColor: GRADE_COLORS[g],
               }}
               title="This grade will drop when you press Drop Tokens"
             >
               {g}
             </div>
           ))}
-          {!team.pendingTokens?.length && !team.cloud?.length && (
+          {!pendingGrades.length && (
             <span className="text-parchment-dim/60 text-sm italic">
-              No tokens telegraphed
+              {playing ? "Resolving…" : "No tokens telegraphed"}
             </span>
           )}
         </div>
       </div>
 
-      {/* Boss telegraph banner */}
-      {team.phase === "boss_telegraph" && (
+      {showBossTelegraphBanner && (
         <div className="bg-crimson/90 text-parchment text-center py-2.5 px-4 font-bold tracking-wide animate-pulse border-b border-crimson-bright">
           ⚠ {team.boss?.name ?? "Boss"} is about to attack!
         </div>
       )}
 
-      {/* End-of-fight summary */}
-      {(team.phase === "victory" || team.phase === "defeat") && (
+      {(team.phase === "victory" || team.phase === "defeat") && !playing && (
         <FightSummary team={team} />
       )}
 
-      {/* Main battlefield */}
+      {/* Magnet playbook — what this soldier does with each incoming grade */}
+      {team.phase === "awaiting_magnet" && magnetSoldier && !playing && (
+        <div className="border-b border-parchment/10 bg-navy-light/40 px-3 py-2">
+          <div className="max-w-4xl mx-auto flex flex-wrap items-start gap-3">
+            <div className="text-sm shrink-0">
+              <span className="text-parchment-dim">Magnet on </span>
+              <strong>
+                {ARCHETYPE_ICONS[magnetSoldier.archetype]} {magnetSoldier.name}
+              </strong>
+              <span className="text-parchment-dim">
+                {" "}
+                ({magnetSoldier.archetype})
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {(pendingGrades.length
+                ? [...new Set(pendingGrades)]
+                : (["A", "B", "C", "D", "F"] as Grade[])
+              ).map((g) => {
+                const risk = gradeRiskNote(magnetSoldier.archetype, g);
+                return (
+                  <div
+                    key={g}
+                    className={`rounded-lg border px-2 py-1 text-[11px] md:text-xs bg-navy/60 ${GRADE_CLASS[g]}`}
+                    style={{ borderColor: GRADE_COLORS[g] }}
+                    title={describeGradeEffect(magnetSoldier.archetype, g)}
+                  >
+                    <span className="font-bold" style={{ color: GRADE_COLORS[g] }}>
+                      {g}
+                    </span>
+                    <span className="text-parchment-dim ml-1">
+                      {describeGradeEffect(magnetSoldier.archetype, g)}
+                    </span>
+                    {risk && (
+                      <span className="block text-grade-f text-[10px]">{risk}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Battlefield */}
       <div className="flex-1 grid grid-cols-12 gap-2 p-3 md:p-4 min-h-0">
-        {/* Party — front (1) on the right, nearest boss */}
+        {/* Party */}
         <div className="col-span-12 md:col-span-5 flex flex-col">
           <div className="text-xs uppercase tracking-widest text-parchment-dim mb-1 flex justify-between">
             <span>Back (6)</span>
             <span>Party</span>
             <span className="text-rune">Front (1) → boss</span>
           </div>
+          {/* Party shield bar */}
+          <div className="mb-2 flex items-center gap-2 text-xs">
+            <span className="text-rune shrink-0">🛡 Party shield</span>
+            {team.partyShield.active && team.partyShield.remaining > 0 ? (
+              <>
+                <div className="flex-1 h-2 rounded-full bg-navy overflow-hidden border border-rune/30">
+                  <div
+                    className="h-full bg-rune/80 transition-all"
+                    style={{
+                      width: `${Math.min(100, (team.partyShield.remaining / 6) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-rune font-semibold tabular-nums">
+                  {team.partyShield.remaining}
+                </span>
+              </>
+            ) : (
+              <span className="text-parchment-dim/70 italic">down</span>
+            )}
+          </div>
           <div className="relative flex-1 flex items-end gap-1 md:gap-2">
             {partyVisual.map((s) => {
               const pos = (s.position ?? 1) as number;
+              const claim = claimBySoldier.get(s.id);
+              const focused = focusSet.has(s.id);
+              const isSpeaker = activeBeat?.bubble?.speakerId === s.id;
               return (
                 <button
                   key={s.id}
                   type="button"
-                  disabled={!s.alive || team.phase !== "awaiting_magnet"}
+                  disabled={
+                    !s.alive || team.phase !== "awaiting_magnet" || playing
+                  }
                   title={
                     !s.alive
                       ? "Fallen — magnet cannot be placed here"
                       : `Place magnet on #${pos}`
                   }
                   onClick={() => void setMagnet(pos)}
-                  className={`flex-1 rounded-lg border bg-navy-light/70 p-1.5 md:p-2 text-center transition ${
+                  className={`relative flex-1 rounded-lg border bg-navy-light/70 p-1 md:p-1.5 text-center transition ${
                     !s.alive
-                      ? "opacity-35 grayscale border-parchment/10 cursor-not-allowed"
-                      : team.magnetPosition === pos
-                        ? "border-rune ring-2 ring-rune/40"
-                        : "border-parchment/15 hover:border-parchment/40"
+                      ? "opacity-40 border-parchment/10 cursor-not-allowed"
+                      : focused || isSpeaker
+                        ? "border-rune unit-focus bg-navy-light"
+                        : team.magnetPosition === pos
+                          ? "border-rune ring-2 ring-rune/40"
+                          : "border-parchment/15 hover:border-parchment/40"
                   }`}
                 >
-                  <div className="text-[9px] text-parchment-dim">#{pos}</div>
-                  <div className="text-lg md:text-2xl">
-                    {ARCHETYPE_ICONS[s.archetype]}
+                  <div className="text-[8px] text-parchment-dim mb-0.5">
+                    #{pos}
                   </div>
-                  <div className="text-[10px] md:text-xs font-medium truncate">
-                    {s.name}
-                  </div>
-                  <div className="mt-1 h-1.5 rounded bg-navy overflow-hidden">
-                    <div
-                      className="h-full bg-crimson-bright transition-all"
-                      style={{
-                        width: `${Math.max(0, (s.currentHp / s.maxHp) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-parchment-dim mt-0.5">
-                    {s.currentHp}/{s.maxHp}
-                  </div>
-                  {s.statuses?.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-0.5 mt-1">
-                      {s.statuses.map((st, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[9px] px-1 rounded bg-navy border border-parchment/20"
-                        >
-                          {st.kind === "Dot" ? st.type[0] : st.kind[0]}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <CombatActor
+                    unitId={s.id}
+                    name={s.name}
+                    portrait={{ role: "party", archetype: s.archetype }}
+                    cue={activeBeat}
+                    alive={s.alive}
+                    currentHp={s.currentHp}
+                    maxHp={s.maxHp}
+                    block={s.block}
+                    statuses={s.statuses}
+                    claimGrade={claim?.effectiveGrade}
+                    subtitle={s.archetype}
+                    size="md"
+                  />
                 </button>
               );
             })}
-            {/* Magnet under reversed line */}
             <div
               className="pointer-events-none absolute bottom-0 h-2 w-[14%] magnet-glow rounded-full bg-rune/80 transition-all duration-200"
               style={{
@@ -405,7 +590,9 @@ export default function CombatScreen({
                 <button
                   key={n}
                   type="button"
-                  disabled={team.phase !== "awaiting_magnet" || !living}
+                  disabled={
+                    team.phase !== "awaiting_magnet" || !living || playing
+                  }
                   title={
                     living
                       ? `Magnet → position ${n}`
@@ -432,21 +619,43 @@ export default function CombatScreen({
           <div className="text-xs uppercase tracking-widest text-parchment-dim mb-2">
             Gap / Adds
           </div>
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-3 justify-center">
             {team.minions?.length ? (
-              team.minions.map((m) => (
-                <div
-                  key={m.id}
-                  className="rounded-lg border border-parchment/20 bg-navy-light/60 px-3 py-2 text-center text-sm"
-                >
-                  <div>💀 {m.name}</div>
-                  <div className="text-xs text-parchment-dim">
-                    {m.currentHp}/{m.maxHp}
+              team.minions.map((m) => {
+                const focused = focusSet.has(m.id);
+                const dead = m.currentHp <= 0;
+                return (
+                  <div
+                    key={m.id}
+                    className={`relative rounded-lg border px-2 py-2 min-w-[5.5rem] max-w-[7rem] transition ${
+                      dead
+                        ? "opacity-40 border-parchment/10"
+                        : focused
+                          ? "border-grade-d unit-focus-hostile bg-navy-light"
+                          : "border-parchment/20 bg-navy-light/60"
+                    }`}
+                  >
+                    <CombatActor
+                      unitId={m.id}
+                      name={m.name}
+                      portrait={{ role: "minion", name: m.name }}
+                      cue={activeBeat}
+                      alive={!dead}
+                      currentHp={m.currentHp}
+                      maxHp={m.maxHp}
+                      size="sm"
+                      subtitle={dead ? "fallen" : `ATK ${m.damage ?? 7}`}
+                    />
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="text-parchment-dim/50 text-sm italic">Empty corridor…</div>
+              <div className="text-parchment-dim/50 text-sm italic text-center px-2">
+                Empty corridor…
+                <div className="text-[10px] mt-1">
+                  (Colossus may summon archers)
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -458,38 +667,40 @@ export default function CombatScreen({
           </div>
           {team.boss ? (
             <div
-              className={`w-full max-w-xs rounded-xl border p-4 text-center transition ${
+              className={`relative w-full max-w-xs rounded-xl border p-3 text-center transition ${
+                focusSet.has("boss") ||
+                activeBeat?.kind === "boss" ||
+                activeBeat?.kind === "telegraph" ||
                 team.phase === "boss_telegraph"
-                  ? "border-grade-f ring-4 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light scale-105"
+                  ? "border-grade-f ring-4 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light unit-focus-hostile"
                   : "border-crimson/40 bg-gradient-to-b from-crimson/20 to-navy-light"
               }`}
             >
-              <div className="text-5xl mb-2">👹</div>
-              <div className="text-xl font-bold">{team.boss.name}</div>
-              {team.phase === "boss_telegraph" && (
-                <div className="text-sm text-grade-f font-semibold mt-1 animate-pulse">
-                  Winding up…
-                </div>
-              )}
-              <div className="mt-3 h-3 rounded-full bg-navy overflow-hidden border border-parchment/10">
-                <div
-                  className="h-full bg-gradient-to-r from-crimson to-grade-d transition-all"
-                  style={{
-                    width: `${(team.boss.currentHp / team.boss.maxHp) * 100}%`,
-                  }}
-                />
-              </div>
-              <div className="text-sm mt-1 text-parchment-dim">
-                {team.boss.currentHp} / {team.boss.maxHp}
-              </div>
+              <CombatActor
+                unitId="boss"
+                name={team.boss.name}
+                portrait={{
+                  role: "boss",
+                  bossId: (team.boss as { id?: string }).id,
+                }}
+                cue={activeBeat}
+                alive={team.boss.currentHp > 0}
+                currentHp={team.boss.currentHp}
+                maxHp={team.boss.maxHp}
+                size="lg"
+                subtitle={
+                  activeBeat?.kind === "boss"
+                    ? "Attacking!"
+                    : team.phase === "boss_telegraph" ||
+                        activeBeat?.kind === "telegraph"
+                      ? "Winding up…"
+                      : undefined
+                }
+              />
+              <BossStatusRow boss={team.boss} />
             </div>
           ) : (
             <div className="text-parchment-dim">No boss</div>
-          )}
-          {team.partyShield.active && (
-            <div className="mt-3 text-sm text-rune">
-              🛡️ Party shield: {team.partyShield.remaining}
-            </div>
           )}
         </div>
       </div>
@@ -501,7 +712,9 @@ export default function CombatScreen({
             <span className="text-parchment-dim">Round</span>{" "}
             <strong>{team.round}</strong>
             <span className="mx-2 text-parchment-dim">·</span>
-            <span className="capitalize text-rune">{phaseLabel}</span>
+            <span className="capitalize text-rune">
+              {playing ? "watching actions" : phaseLabel}
+            </span>
             {team.partyShield.active && (
               <>
                 <span className="mx-2 text-parchment-dim">·</span>
@@ -536,10 +749,23 @@ export default function CombatScreen({
             >
               VO
             </button>
+            {playing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPlayIndex(playQueue.length);
+                  setPlaying(false);
+                  partyPlaybackDoneRef.current = true;
+                }}
+                className="rounded-lg border border-parchment/30 px-3 py-2 text-sm"
+              >
+                Skip
+              </button>
+            )}
             {team.phase === "awaiting_magnet" && (
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || playing}
                 onClick={() => void dropTokens()}
                 className="rounded-lg bg-rune/90 hover:bg-rune text-navy font-bold px-5 py-2.5 text-sm md:text-base disabled:opacity-50"
               >
@@ -549,14 +775,14 @@ export default function CombatScreen({
             {team.phase === "boss_telegraph" && (
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || playing}
                 onClick={() => void runBossResolve()}
                 className="rounded-lg bg-crimson hover:bg-crimson-bright px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
               >
                 {busy ? "Resolving…" : "Boss attacks!"}
               </button>
             )}
-            {team.phase === "victory" && (
+            {team.phase === "victory" && !playing && (
               <button
                 type="button"
                 disabled={busy}
@@ -568,7 +794,7 @@ export default function CombatScreen({
                   : "Continue → camp & reform"}
               </button>
             )}
-            {team.phase === "defeat" && (
+            {team.phase === "defeat" && !playing && (
               <button
                 type="button"
                 onClick={onLeave}
@@ -591,9 +817,8 @@ export default function CombatScreen({
 
         <div
           ref={logEndRef}
-          className="h-28 overflow-y-auto rounded-lg bg-navy-light/50 border border-parchment/10 p-2 text-xs md:text-sm font-mono space-y-0.5"
+          className="h-20 overflow-y-auto rounded-lg bg-navy-light/50 border border-parchment/10 p-2 text-xs md:text-sm font-mono space-y-0.5"
         >
-          {/* Chronological: oldest at top, newest at bottom (read downward) */}
           {team.log.map((entry, i) => (
             <div
               key={`${entry.round}-${i}-${entry.text.slice(0, 24)}`}
@@ -614,10 +839,12 @@ export default function CombatScreen({
           ))}
         </div>
         <p className="text-[11px] text-parchment-dim text-center">
-          Incoming grades are fixed before you drop · Front nearest boss · Keys{" "}
+          Bubbles = who acts · playbook under magnet · Front nearest
+          boss · Keys{" "}
           <kbd className="px-1 border border-parchment/30 rounded">1</kbd>–
           <kbd className="px-1 border border-parchment/30 rounded">6</kbd> magnet ·{" "}
-          <kbd className="px-1 border border-parchment/30 rounded">Space</kbd> drops
+          <kbd className="px-1 border border-parchment/30 rounded">Space</kbd>{" "}
+          drops
         </p>
       </div>
     </div>
