@@ -1,0 +1,24 @@
+{
+  "name": "dungeon-grades",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Classroom dungeon crawler powered by test grades",
+  "workspaces": [
+    "packages/*",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w server & npm run dev -w client",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w @dungeon-grades/shared && npm run build -w server && npm run build -w client",
+    "test": "npm run test -w @dungeon-grades/shared && npm run test -w server",
+    "start": "npm run start -w server",
+    "audio:generate": "npm run audio:generate -w server",
+    "audio:generate:force": "npm run audio:generate:force -w server"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

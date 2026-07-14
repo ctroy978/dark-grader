@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+import type { Grade } from "@dungeon-grades/shared";
+import {
+  commitFullRound,
+  commitRound,
+  createTeam,
+  placeMagnet,
+  resolveBoss,
+  selectParty,
+  startFight,
+} from "./combat.js";
+
+const SAMPLE_POOL: Grade[] = [
+  "A",
+  "A",
+  "B",
+  "B",
+  "B",
+  "C",
+  "C",
+  "C",
+  "C",
+  "D",
+  "D",
+  "F",
+  "A",
+  "B",
+  "C",
+];
+
+function readyTeam() {
+  const team = createTeam("t1", "ABCDE", "Test Team", 12345);
+  const living = team.roster.filter((s) => s.alive).slice(0, 6);
+  selectParty(
+    team,
+    living.map((s) => s.id),
+  );
+  startFight(team, "bone_colossus", SAMPLE_POOL);
+  return team;
+}
+
+describe("combat loop", () => {
+  it("starts fight with shield only when a Shield Maiden is in the party", () => {
+    const withMaiden = readyTeam();
+    expect(withMaiden.phase).toBe("awaiting_magnet");
+    expect(withMaiden.partyShield.active).toBe(true);
+    expect(withMaiden.partyShield.remaining).toBeGreaterThanOrEqual(1);
+
+    const noMaiden = createTeam("t-nm", "NOMDN", "No Maiden", 9);
+    selectParty(noMaiden, [
+      "vanguard_1",
+      "vanguard_2",
+      "firemage_1",
+      "healer_1",
+      "archer_1",
+      "archer_2",
+    ]);
+    startFight(noMaiden, "bone_colossus", SAMPLE_POOL);
+    expect(noMaiden.partyShield.active).toBe(false);
+    expect(noMaiden.partyShield.remaining).toBe(0);
+  });
+
+  it("splits party phase from boss phase", () => {
+    const team = readyTeam();
+    placeMagnet(team, 3);
+    commitRound(team);
+    expect(["boss_telegraph", "victory", "defeat"]).toContain(team.phase);
+    if (team.phase === "boss_telegraph") {
+      const afterPartyHp = team.boss!.currentHp;
+      resolveBoss(team);
+      expect(["awaiting_magnet", "victory", "defeat"]).toContain(team.phase);
+      // boss may heal (Regenerate) so only check we advanced
+      expect(team.log.some((l) => l.tags?.includes("telegraph"))).toBe(true);
+      expect(afterPartyHp).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("commitFullRound completes a full cycle", () => {
+    const team = readyTeam();
+    placeMagnet(team, 3);
+    commitFullRound(team);
+    expect(["awaiting_magnet", "victory", "defeat"]).toContain(team.phase);
+    expect(team.log.length).toBeGreaterThan(3);
+  });
+
+  it("runs many full rounds to completion or timeout", () => {
+    const team = readyTeam();
+    for (let i = 0; i < 40; i++) {
+      if (team.phase !== "awaiting_magnet") break;
+      const living = team.roster.filter(
+        (s) => s.alive && s.position && team.activePartyIds.includes(s.id),
+      );
+      if (!living.length) break;
+      const target = living[i % living.length].position!;
+      placeMagnet(team, target);
+      commitFullRound(team);
+    }
+    expect(["awaiting_magnet", "victory", "defeat"]).toContain(team.phase);
+  });
+
+  it("rejects commit when not awaiting magnet", () => {
+    const team = createTeam("t2", "ZZZZZ", "X", 1);
+    expect(() => commitRound(team)).toThrow();
+  });
+
+  it("rejects magnet under a dead soldier", () => {
+    const team = readyTeam();
+    const front = team.roster.find((s) => s.position === 2)!;
+    front.currentHp = 0;
+    front.alive = false;
+    expect(() => placeMagnet(team, 2)).toThrow(/fallen/i);
+    placeMagnet(team, 1); // living ok
+    expect(team.magnetPosition).toBe(1);
+  });
+});
