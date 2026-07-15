@@ -114,7 +114,7 @@ describe("campaign progression", () => {
     team.boss = {
       id: "ash_wraith",
       name: "Ash Wraith",
-      maxHp: 260,
+      maxHp: 210,
       currentHp: 40,
       traits: [],
       attackIds: [],

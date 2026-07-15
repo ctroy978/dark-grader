@@ -159,9 +159,13 @@ export function resolveBossPhase(
     log(`${boss.name} is enraged! (below 40% HP — attacks hit harder)`);
   }
 
+  // Boss stun: boss and minions both skip (stun should feel like a full turn of safety)
   if (boss.stunRoundsLeft > 0) {
     boss.stunRoundsLeft -= 1;
     log(`${boss.name} is stunned and skips its turn!`);
+    if (livingMinionCount(team) > 0) {
+      log(`Minions falter while ${boss.name} is stunned — no volley this round.`);
+    }
     // Not an attack — empty victims, no attack SFX (client uses "stunned" fx, not windup)
     present?.onBossAttack?.({
       attackId: "StunSkip",
@@ -171,47 +175,48 @@ export function resolveBossPhase(
       sfxId: undefined,
       fx: ["stunned", "stun-skip"],
     });
-  } else {
-    const attackId =
-      boss.sequenceIndex >= 0
-        ? boss.attackIds[boss.sequenceIndex % boss.attackIds.length]
-        : pickWeightedAttack(
-            template ?? {
-              id: boss.id,
-              name: boss.name,
-              maxHp: boss.maxHp,
-              traits: boss.traits,
-              attackIds: boss.attackIds,
-              difficulty: "",
-              summary: "",
-              recommendedRounds: "",
-              enrageHpPct: 0.4,
-              enrageDamageMult: 1.3,
-              gruntPool: [],
-              laughPool: [],
-              attacks: boss.attackIds.map((id) => ({
-                id,
-                weight: 2,
-                bubble_lines: [],
-              })),
-              audio: [],
-            },
-            random,
-            team,
-          );
-    if (boss.sequenceIndex >= 0) boss.sequenceIndex += 1;
-    const victims = performAttack(team, attackId, random, log, rage);
-    const audio = resolveBossAudio(template, attackId, random);
-    present?.onBossAttack?.({
-      attackId,
-      victimIds: victims,
-      bubbleText: audio.bubbleText,
-      sfxId: audio.sfxId,
-      fx: rage > 1 ? ["enraged"] : [],
-    });
+    return;
   }
 
-  // Adds always act after boss
+  const attackId =
+    boss.sequenceIndex >= 0
+      ? boss.attackIds[boss.sequenceIndex % boss.attackIds.length]
+      : pickWeightedAttack(
+          template ?? {
+            id: boss.id,
+            name: boss.name,
+            maxHp: boss.maxHp,
+            traits: boss.traits,
+            attackIds: boss.attackIds,
+            difficulty: "",
+            summary: "",
+            recommendedRounds: "",
+            enrageHpPct: 0.4,
+            enrageDamageMult: 1.3,
+            gruntPool: [],
+            laughPool: [],
+            attacks: boss.attackIds.map((id) => ({
+              id,
+              weight: 2,
+              bubble_lines: [],
+            })),
+            audio: [],
+          },
+          random,
+          team,
+        );
+  if (boss.sequenceIndex >= 0) boss.sequenceIndex += 1;
+  const victims = performAttack(team, attackId, random, log, rage);
+  const audio = resolveBossAudio(template, attackId, random);
+  present?.onBossAttack?.({
+    attackId,
+    victimIds: victims,
+    bubbleText: audio.bubbleText,
+    sfxId: audio.sfxId,
+    fx: rage > 1 ? ["enraged"] : [],
+  });
+
+  // Adds act after a real boss attack (not on stun skip)
   for (const minion of [...team.minions]) {
     if (minion.currentHp <= 0) continue;
     const target = magnetBiasedTarget(team, random);
@@ -307,7 +312,7 @@ function performAttack(
       break;
     }
     case "Regenerate": {
-      const heal = 14;
+      const heal = 10;
       boss.currentHp = Math.min(boss.maxHp, boss.currentHp + heal);
       log(`${boss.name} regenerates ${heal} HP (${boss.currentHp}/${boss.maxHp})`);
       const victim = magnetBiasedTarget(team, random);
@@ -324,10 +329,10 @@ function performAttack(
         const m: Minion = {
           id: `bone_archer_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
           name: "Bone Archer",
-          maxHp: 16,
-          currentHp: 16,
-          // Softened — adds were out-damaging the boss pressure for classroom play
-          damage: 5,
+          maxHp: 12,
+          currentHp: 12,
+          // Glass summoner package: adds tax DPS but clear quickly
+          damage: 4,
         };
         team.minions.push(m);
       }

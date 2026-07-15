@@ -4,10 +4,10 @@
 
 id = "bone_colossus"
 name = "Bone Colossus"
-max_hp = 360
+max_hp = 230
 traits = ["Undead", "Enrage"]
 difficulty = "Hard"
-summary = "Cascade (front hard → back soft), Bone Archers, poison, magnet crush. Enrages below 40% HP."
+summary = "Lower HP but Bone Archers tax damage (minions die first). Cascade, poison, magnet crush. Enrages below 40% HP."
 recommended_rounds = "10–16"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.3

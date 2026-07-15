@@ -151,8 +151,9 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 ### Bosses
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
 - **Cascade** raw pos1→6 = 16,13,10,7,4,2  
-- **Bone Archer** minions: 16 HP / 5 dmg  
-- Stun: `stunRoundsLeft` skips boss attack; **telegraph must not wind up as attack** when already stunned  
+- **Bone Archer** minions: **12 HP / 4 dmg** (Colossus is a glass summoner: boss HP lower, adds tax DPS)  
+- Stun: `stunRoundsLeft` skips **boss + minions**; **telegraph must not wind up as attack** when already stunned  
+- Boss HP (balance A+): Ash **210**, Bone Colossus **230**; Regenerate heals **10**
 
 ---
 
@@ -228,8 +229,9 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 4. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
 5. Image bubble frames  
 6. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
-7. Optional: skip minions when boss stunned  
-8. ~~Soft-lock when living &lt; 6~~ — fixed: understrength parties allowed
+7. ~~Optional: skip minions when boss stunned~~ — done (stun skips adds too)  
+8. ~~Soft-lock when living &lt; 6~~ — fixed: understrength parties allowed  
+9. Cascade / FireMage FF fine-tune if still too hard after A+ package
 
 ---
 

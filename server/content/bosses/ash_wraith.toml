@@ -1,6 +1,6 @@
 id = "ash_wraith"
 name = "Ash Wraith"
-max_hp = 260
+max_hp = 210
 traits = ["Volatile"]
 difficulty = "Standard"
 summary = "No summons. Cascade punishes soft fronts; poison and crush still hurt."
