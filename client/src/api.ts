@@ -37,7 +37,11 @@ export type BoardReveal = {
     block: number;
     statuses: import("@dungeon-grades/shared").StatusTag[];
   }>;
-  boss: { currentHp: number; maxHp: number } | null;
+  boss: {
+    currentHp: number;
+    maxHp: number;
+    statuses?: import("@dungeon-grades/shared").StatusTag[];
+  } | null;
   minions: Array<{
     id: string;
     name: string;
@@ -96,6 +100,7 @@ export type EnrichedTeam = {
     currentHp: number;
     maxHp: number;
     traits?: string[];
+    statuses?: import("@dungeon-grades/shared").StatusTag[];
     curseDamageTakenMult?: number;
     curseRoundsLeft?: number;
     outgoingDamageMult?: number;

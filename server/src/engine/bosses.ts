@@ -162,12 +162,14 @@ export function resolveBossPhase(
   if (boss.stunRoundsLeft > 0) {
     boss.stunRoundsLeft -= 1;
     log(`${boss.name} is stunned and skips its turn!`);
+    // Not an attack — empty victims, no attack SFX (client uses "stunned" fx, not windup)
     present?.onBossAttack?.({
       attackId: "StunSkip",
       victimIds: [],
-      bubbleText: "…",
-      sfxId: pickFromPool(template?.gruntPool ?? [], random) ?? "boss_attack",
-      fx: ["stunned"],
+      bubbleText: "Stunned!",
+      // soft / no SFX — avoid attack horn on skip
+      sfxId: undefined,
+      fx: ["stunned", "stun-skip"],
     });
   } else {
     const attackId =

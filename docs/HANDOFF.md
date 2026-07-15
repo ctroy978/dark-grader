@@ -1,10 +1,10 @@
 # Dungeon Grades — Agent Handoff
 
-**Last updated:** 2026-07-15  
+**Last updated:** 2026-07-15 (post ability rework + claim rules + roster/art)  
 **Repo:** `ctroy978/dark-grader` (local path often `/home/tcoop/Work/darker`)  
 **Owner:** Troy / ctroy978 — classroom only (LAN, firewall, no public SaaS)
 
-Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `Dungeon_Grades_UI_Spec.md`, `docs/DESIGN.md`. **Code + this handoff win** when they disagree with older docs.
+Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `Dungeon_Grades_UI_Spec.md`, `docs/DESIGN.md`. **Code + this handoff + README ability section win** when they disagree with older docs.
 
 ---
 
@@ -12,7 +12,7 @@ Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `
 
 Browser classroom game: **test letter grades (A–F)** become **power tokens**. Students share **one Chromebook per team**. Only control each round: **Token Magnet (1–6)** then **Drop Tokens**. Server is authoritative for RNG and combat.
 
-**Art direction:** Darkest Dungeon–style — pose images (`standing` / `attack` / `hit` / `death`), labels under portraits, short comic bubbles, occasional ElevenLabs VO. Real PNGs are landing; SVG placeholders remain as fallback.
+**Art direction:** Darkest Dungeon–style — pose images (`standing` / `attack` / `hit` / `death`), labels under portraits, short comic bubbles, occasional ElevenLabs VO. Real PNGs under `client/public/art/`; SVG placeholders as fallback.
 
 ---
 
@@ -29,10 +29,11 @@ npm run dev:client   # :5173, proxies /api → localhost:3001 and socket.io
 - Teacher PIN default: `teacher` (`TEACHER_PIN` env)
 - ElevenLabs: repo-root `.env` → `ELEVENLABS_API_KEY` (gitignored)
 - Audio cache: `server/data/audio/` — `npm run audio:generate`
-- Persist: JSON under `server/data/` (`classroom.json`, `teams/*.json`) — **not** SQLite; **gitignored** runtime data
-- **Combat art is NOT gitignored** — lives under `client/public/art/` and should be committed when ready
+- Persist: JSON under `server/data/` — **gitignored** runtime data
+- **Combat art is NOT gitignored** — commit under `client/public/art/`
+- **Existing teams keep old roster** until teacher reset / new invite after roster changes
 
-**Tests:** `npm test` (shared magnet + server combat/campaign/tokens/boss loader/balance sims)
+**Tests:** `npm test` (shared magnet + server combat/campaign/tokens/claims/boss loader/balance sims)
 
 **Git:** `git@github.com:ctroy978/dark-grader.git` (SSH)
 
@@ -41,17 +42,18 @@ npm run dev:client   # :5173, proxies /api → localhost:3001 and socket.io
 ## Layout
 
 ```
-packages/shared/     types, balance, magnet, playbook, presentation cues (BoardReveal), statusUi
+packages/shared/     types, balance, magnet, playbook, presentation, statusUi, grades
 server/
-  content/bosses/    TOML boss packs (tracked)
+  content/bosses/    TOML boss packs
   src/engine/        combat, claims, specialists, bosses, dots, presentation, damage
-  src/seed/          bossLoader, roster, instantiateBoss
-  data/              gitignored runtime (JSON + audio cache)
+  src/seed/          bossLoader, roster, names, instantiateBoss
+  data/              gitignored runtime
 client/
-  src/combat/        CombatActor, PlaceholderPortrait (PNG + SVG fallback), poses, SpeechBubble, StatusChips
-  src/screens/       CombatScreen (playback + visualHold), LobbyScreen, TeacherDashboard, JoinScreen
-  public/art/        {key}/{pose}.png — see public/art/README.md
+  src/combat/        CombatActor, PlaceholderPortrait, poses, SpeechBubble, StatusChips
+  src/screens/       CombatScreen (playback + visualHold), Lobby, Teacher, Join
+  public/art/        {key}/{pose}.png
 docs/                DESIGN.md, this HANDOFF.md
+README.md            Full ability reference for design review (keep in sync with specialists.ts)
 ```
 
 ---
@@ -66,10 +68,9 @@ docs/                DESIGN.md, this HANDOFF.md
 | Combat | **Server-authoritative** |
 | Round advance | Explicit **Drop Tokens**; boss telegraph then resolve-boss |
 | UI teaching | Board first (poses, labels, playbook); log is secondary |
-| Bubbles | Short comic text now; **image bubble frames later** |
-| Party size | 6 of ~22 roster |
+| Party size | 6 of **22** roster |
 | Campaign | Default **3 rooms**: Ash Wraith → Bone Colossus → Bone Colossus |
-| Damage priority | Party hits **minions first**, then boss (`hitEnemies` in `damage.ts`) |
+| Damage priority | Party hits **minions first**, then boss (`hitEnemies`) |
 
 ---
 
@@ -77,164 +78,150 @@ docs/                DESIGN.md, this HANDOFF.md
 
 1. **`awaiting_magnet`** — `pendingTokens` drawn; magnet playbook for target  
 2. Magnet **1–6** (cannot park on dead)  
-3. **Drop Tokens** → claims → party actions → DoTs → deaths → **`boss_telegraph`**  
-4. Client plays `playback` cues with **progressive HP reveals**, then auto **resolve-boss**  
-5. Boss/minion cues → next magnet phase or win/lose  
+3. **Drop Tokens** → claims → **Runesinger first** → other party actions front→back → DoTs (party + boss) → deaths → **`boss_telegraph`** (or victory/defeat)  
+4. Client plays `playback` with **progressive HP reveals**, then auto **resolve-boss**  
+5. Boss/minion cues (or stun skip) → next magnet phase or win/lose  
 
 Phases: `lobby` | `between_rooms` | `awaiting_magnet` | `resolving` | `boss_telegraph` | `victory` | `defeat` | `campaign_complete`
 
-### Post-fight (important)
+### Post-fight
 
 | Outcome | Flow |
 |---------|------|
-| **Victory** | Client **Continue → camp & reform** → `POST /api/team/:id/continue` → `enterBetweenRooms` (idempotent). Final room → `campaign_complete`. |
-| **Defeat** | Client **Reform party & retry room** → `POST /api/team/:id/return-from-defeat` → `returnFromDefeat`. Same `roomIndex`; **no** camp heal; dead stay dead. Room 0 → `lobby`, later rooms → `between_rooms`. |
-
-**Bug fixed 2026-07-14:** defeat used to only offer “Return Home”, leaving the team stuck in `defeat` forever if you rejoined. Always ship the return-from-defeat path.
+| **Victory** | Continue → camp → `POST .../continue` → `enterBetweenRooms` (idempotent). Final room → `campaign_complete`. |
+| **Defeat** | Reform & retry → `POST .../return-from-defeat` → same `roomIndex`; no camp heal; dead stay dead. |
 
 ---
 
-## Rules (important — still in force)
+## Claim rules (rewritten 2026-07-15)
+
+**Do not regress to 30% magnet odds.**
+
+1. Soldier under magnet **always** gets **exactly one** of the drawn tokens (**which grade is random**).  
+2. Remaining tokens → other living soldiers, weighted by **proximity** to magnet (adjacent 2× far). Magnet cannot claim a second.  
+3. Each soldier ≤1 token per drop.  
+
+Code: `server/src/engine/claims.ts`, `packages/shared/src/magnet.ts` (`proximityClaimWeights`). Tests: `claims.test.ts`, `magnet.test.ts`.
+
+---
+
+## Action order (critical)
+
+1. Claims resolved  
+2. **All Runesingers** who claimed (rewrite grades + heals)  
+3. **Everyone else** front (pos 1) → back (pos 6)  
+4. DoT phase (party then **boss DoTs**)  
+5. Boss telegraph / victory / defeat  
+
+Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyActionPhase` / `markClaimerResolved` in `specialists.ts`). Never “hits” Runesinger after she already acted.
+
+---
+
+## Rules still in force
 
 ### Tokens
 - Class pool from teacher grades; reshuffle discard when empty  
 - Telegraph: `pendingTokens` at magnet phase start  
-- Count: `floor(living / 2)` min 1 → 6→3 … 3→1 (`tokensForLivingCount`)  
+- Count: `floor(living / 2)` min 1 → 6→3 … (`tokensForLivingCount`)  
 - Slime: one fewer token next drop (min 1)
 
 ### Party shield (Shield Maiden)
-- Opening 1d6 only if living Maiden in party; no stacking  
-- C = reroll shield; F = short-circuit  
-- Friendly fire **bypasses** shield + Vanguard block
+- Opening **1d6** if living Maiden in party  
+- **A** = hit 14 + **reroll shield 1d6**  
+- B/C/D = hit 11/9/7  
+- **F** = shield drops to **0** (noop if already down)  
+- Friendly fire **bypasses** shield + personal block  
 
-### Vanguard block
-- A/B/C/D ≈ **7 / 5 / 3 / 1**; personal; clears next party phase
+### Personal block (Vanguard)
+- A–C personal block + party-wide block; D/F still hit  
+- Clears next party phase  
 
 ### DoTs
-- Fire 6 / Ice 3 / Poison party splash 9/stack / Slime 2 — see `DOT_STATS`  
-- Labels under actors: e.g. `Poison ×2`
+- Fire 6 / Ice 3 / Poison party splash 9/stack / Slime 2 — `DOT_STATS`  
+- Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash)  
+- Doomcaller transfers party DoTs → boss  
 
-### Bosses (TOML + code registry)
-- Content: `server/content/bosses/*.toml`  
-- Mechanics by attack id in `server/src/engine/bosses.ts`  
-- **Cascade** raw: pos1→6 = **16, 13, 10, 7, 4, 2**  
-- Colossus force-summons when gap empty  
-- **Bone Archer** (softened for classroom): **16 HP / 5 damage** (was 20/7)  
-- New boss from existing attacks = new TOML only; scalars/`*_pool` **before** `[[audio]]`/`[[attacks]]`  
-- See `server/content/README.md`
-
-### Runesinger (buffed after playtest)
-- A/B/C/D party damage bonus this round: **+5 / +3 / +2 / +1**  
-- F: boss next attack **+3** (was +4)  
-- Playbook text in `packages/shared/src/playbook.ts` must stay in sync  
-
-### Campaign
-- `roomIndex` = rooms cleared; continue from victory is **idempotent**  
-- Inter-room Vanguard heal 20% if any living Vanguard; reform 6  
+### Bosses
+- TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
+- **Cascade** raw pos1→6 = 16,13,10,7,4,2  
+- **Bone Archer** minions: 16 HP / 5 dmg  
+- Stun: `stunRoundsLeft` skips boss attack; **telegraph must not wind up as attack** when already stunned  
 
 ---
 
-## Combat presentation (critical contract)
+## Ability summary (source of truth: `specialists.ts`)
 
-### Progressive board reveals (do not regress)
+Full tables live in **`README.md` → Character abilities**. High level:
 
-Server resolves **all** combat math on Drop Tokens / resolve-boss, but the client must **not** flash final HP at drop.
+| Archetype | Role |
+|-----------|------|
+| **Vanguard** | Personal block + hit; A–C also +party block (self A=6+3, B=4+2) |
+| **ShieldMaiden** | Damage ladder; A refresh shield; F dump shield |
+| **FireMage** | High damage (A20/B16/C12) + cleanse; C/D/F friendly fire |
+| **Healer** | A all / B front / C **back** heal+Marks; F boss heal +8 |
+| **Archer** | ST damage + minion bonus (A+3…D+1); F misfire |
+| **Doomcaller** | Strip/transfer DoTs to boss (A stacks 2r, B unique 3r, C/D cleanse lines); F copy boss types onto self; death → poison by last claim tier |
+| **Necromancer** | Drain + heal lowest; F hit **highest-HP ally 10** (no boss heal) |
+| **Thundercaller** | Single lightning (no chain); A/B/C 30% boss stun; A front Charge+3 / B back Charge+3; F 30% stun **unresolved** claimer |
+| **Runesinger** | **Always first**; rewrite tokens + heal holders (A all→A +5, B floor B +4, C lowest→C +3, D heal+3, F shift all down) |
 
-1. **Server** attaches `reveal?: BoardReveal` on combat cues (`action`, `boss`, `minion`, `death`, `dot`, `system`) via `pushCue` → `captureBoardReveal` in `server/src/engine/presentation.ts`.  
-   - Type: `packages/shared/src/presentation.ts` (`BoardReveal`)  
-2. **Client** (`CombatScreen.tsx`):
-   - On Drop Tokens / resolve-boss: **`setVisualHold(snapshotCombatants(team))` immediately** (React state, not only a ref)  
-   - While `visualHold` is set: render `view = applyBoardReveal(hold, team, latestReveal…)`  
-   - Clear hold with `endPresentation()` when playback finishes or Skip  
-   - **Bug fixed 2026-07-15:** using only a ref + `playing` from `useEffect` caused one frame of post-resolve board → **minions vanished at drop**
+**Charge:** status on soldiers; consumed into next `hitEnemies` for that actor.
 
-### Minion kills (do not regress)
-
-- Party damage hits **minions first** (`hitEnemies`)  
-- On kill: leave minion at **0 HP** (do **not** purge mid-party-phase)  
-- Action cues: **focus the hit minion**, bubble e.g. `"Volley! Bone Archer down!"`, heavier SFX  
-- Diff pre/post action HP in `commitRound` for `hitFocusIds` / `slainNames`  
-- **`purgeDeadMinions` only at start of `resolveBoss`** (after party playback is done)  
-- `poses.ts`: action cue → speaker `attack`, other focus targets `hit`
-
-### Fixed chrome (layout bounce)
-
-Combat header must not reflow when tokens/playbook/banners toggle:
-
-- Token strip: **fixed height**, always **3 reserved slots**  
-- Alert band + playbook strip: always mounted with **min-height**  
-- Token bob/fall animations stay inside `overflow: hidden`
-
-### Magnet playbook (keep)
-Under magnet target: grade effects + risk notes (`playbook.ts`). Owner likes this — do not remove.
-
-### PresentationCue content
-- Token holders: claim + action bubbles; occasional VO  
-- Boss/minion: TOML lines + SFX  
-- One party hurt bubble after boss damage  
-- Grade badges: progressive during playback (`visibleClaims`), full after  
-
-**Client timings:** classroom-readable (~0.9–1.5s per cue; Skip available). `cueDurationMs` in `CombatScreen.tsx`.
-
-### Combat actors + art
-
-| File | Role |
-|------|------|
-| `poses.ts` | pose from cue + alive |
-| `PlaceholderPortrait.tsx` | **PNG if loads**, else SVG placeholder; `artKeyFor` / `artUrlFor` |
-| `CombatActor.tsx` | portrait + HP + labels + bubble |
-| `SpeechBubble.tsx` | comic bubbles |
-
-**Art path (wired):**
-```
-client/public/art/{key}/{pose}.png   → served as /art/{key}/{pose}.png
-```
-
-| Keys (party) | Boss / minion |
-|--------------|----------------|
-| `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger` | `ash_wraith`, `bone_colossus`, `bone_archer` |
-
-Poses: `standing`, `attack`, `hit`, `death`  
-**Format:** PNG only (loader looks for `.png`)  
-**Size:** aspect **5:6**, target **~768×922**; same master size for party and bosses (UI scales boss larger). Transparent cutout preferred. `object-cover object-top`.  
-Art is **per archetype**, not per named soldier. Missing pose → SVG fallback for that pose only.
-
-**Not gitignored** — commit art when ready. `server/data/` *is* gitignored (runtime).
+**Roster (22):** Archer×3, Doomcaller×2, Necromancer×2, Runesinger×2, rest unchanged.  
+**Names / art gender:** Male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; Female = ShieldMaiden, Healer, Archer, Runesinger — `server/src/seed/names.ts`.
 
 ---
 
-## Owner feedback (recent playtests)
+## Combat presentation (critical contracts)
 
-- Magnet playbook / status labels: **keep**  
-- Art: looks good; more incoming; fine in repo  
-- Combat feels **brutal** (esp. minions / Ash Wraith); Bone Archers and Runesinger softened once — **may need broader balance**  
-- Want effects (heal, hit, buff) **on cast**, not all at drop → progressive `reveal` system  
-- Minion kills must be **readable** (who killed them) — not vanish at drop  
-- Token strip must not **bounce the page** when grades appear/disappear  
+### Progressive board reveals
+- Server attaches `reveal?: BoardReveal` on combat cues  
+- Client: `setVisualHold` **before** drop/resolve; render via `applyBoardReveal`  
+- Clear hold in `endPresentation`  
+
+### Minion kills
+- Leave at 0 HP until `purgeDeadMinions` at start of `resolveBoss`  
+- Focus + kill bubble on action cues  
+
+### Outcome SFX (fixed 2026-07-15)
+- **Victory/defeat horn only after presentation ends** (`endPresentation`), not on phase change at Drop Tokens  
+- Do not play victory from log text (“is defeated!”)  
+
+### Boss stun presentation (fixed 2026-07-15)
+- If already stunned after party: telegraph **“Stunned…”**, not “gathers power” / attack SFX  
+- Stun skip cue: not attack pose; bubble “Stunned!”  
+- Minions may still fire after boss skip (by design for now)  
+
+### Fixed chrome
+- Token strip fixed height, 3 slots; alert/playbook min-height  
+
+### Art paths
+```
+client/public/art/{key}/{pose}.png
+```
+Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `ash_wraith`, `bone_colossus`, **`bone_archer`** (minions — not nested under colossus).  
+Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
+
+---
+
+## Owner feedback / recent fixes
+
+- Ability + magnet rework session completed (all 9 kits + claims + roster)  
+- Victory horn fired at drop → fixed  
+- Stunned boss still *looked* like it attacked → telegraph + skip presentation fixed  
+- Combat still feels hard; balance pass still open  
 
 ---
 
 ## Open / next phase
 
-1. **Balance pass** after more playtests (Ash Wraith hard in sims; party often wipes with boss ~30–75 HP)  
-2. Finish / commit remaining art (all keys × 4 poses)  
+1. **Balance pass** after playtests with new kits + magnet guarantee  
+2. Finish missing art poses if any (commit under `public/art/`)  
 3. Classroom deploy (serve built client from server, one command)  
-4. Optional adaptive Cascade  
+4. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
 5. Image bubble frames  
-6. Richer FX overlays on real art  
-7. Sync stale `docs/DESIGN.md`  
-
----
-
-## Quick teacher flow
-
-1. Login PIN → paste grades → Generate pool  
-2. Campaign path (rooms/bosses)  
-3. Create invite codes  
-4. Students join → form party → enter room → magnet + Drop Tokens  
-5. Wipe → **Reform party & retry**; win → **Continue → camp**
-
-Default path: **Ash Wraith → Bone Colossus → Bone Colossus**.
+6. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
+7. Optional: skip minions when boss stunned  
 
 ---
 
@@ -242,15 +229,14 @@ Default path: **Ash Wraith → Bone Colossus → Bone Colossus**.
 
 | Symptom | Check |
 |---------|--------|
-| Vite `ECONNREFUSED` on `/api/...` | Server not on :3001 — `npm run dev:server` |
-| Stuck on defeat | Need return-from-defeat API; restart server if old build |
-| Minions vanish on drop | `visualHold` set before commit; no mid-party `purgeDeadMinions`; hard-refresh client + restart server |
-| HP jumps on drop | Progressive `reveal` + `visualHold`; shared rebuild after `BoardReveal` edits |
-| Art not showing | Path/case: `/art/{key}/{pose}.png`; hard-refresh after first 404 |
-| Mid-fight after code change | Teacher **Reset team** or new invite |
-| Shared types/playbook edits | `npm run build -w @dungeon-grades/shared` |
-| Boss TOML | `server/content/bosses/` + loader order rules |
-| Boss SFX missing | `npm run audio:generate` with API key |
+| Vite `ECONNREFUSED` | `npm run dev:server` on :3001 |
+| Stuck on defeat | `return-from-defeat` path; restart server |
+| Minions vanish on drop | `visualHold`; no mid-party purge |
+| Victory horn at drop | Client must use endPresentation for outcome SFX; hard-refresh |
+| Stunned boss winds up | Server telegraph branch when `stunRoundsLeft > 0`; restart server |
+| Shared edits | `npm run build -w @dungeon-grades/shared` |
+| Old roster names/counts | Teacher reset team / new invite |
+| Art 404 | Path/case; hard-refresh after first miss |
 
 ---
 
@@ -258,12 +244,14 @@ Default path: **Ash Wraith → Bone Colossus → Bone Colossus**.
 
 | System | Files |
 |--------|--------|
-| Progressive presentation | `shared/presentation.ts`, `server/.../presentation.ts`, `client/.../CombatScreen.tsx` |
-| Minion targeting / purge | `server/.../damage.ts` (`hitEnemies`, `purgeDeadMinions`), `combat.ts` (`commitRound`, `resolveBoss`) |
-| Defeat → lobby | `returnFromDefeat` in `combat.ts`, `POST .../return-from-defeat` in `index.ts` |
-| Art loader | `client/.../PlaceholderPortrait.tsx`, `client/public/art/README.md` |
-| Runesinger | `server/.../specialists.ts`, `shared/playbook.ts` |
-| Bone Archers | `server/.../bosses.ts` (`SummonBoneArchers`) |
+| Claims (magnet guarantee) | `claims.ts`, `magnet.ts`, `claims.test.ts` |
+| Specialists / abilities | `specialists.ts`, `playbook.ts`, `README.md` abilities |
+| Runesinger first + Charge + party stun | `combat.ts` action order, `specialists.ts`, `damage.ts` (`applyCharge`/`consumeCharge`) |
+| Boss DoTs / Doomcaller | `dots.ts`, `types.ts` `BossState.statuses` |
+| Progressive presentation | `presentation.ts` (shared+server), `CombatScreen.tsx` |
+| Outcome / stun audio-visual | `CombatScreen.tsx`, `audio.ts`, `bosses.ts`, `poses.ts` |
+| Roster / names | `balance.ts` `ROSTER_COUNTS`, `seed/names.ts`, `seed/roster.ts` |
+| Art loader | `PlaceholderPortrait.tsx`, `public/art/README.md` |
 
 ---
 

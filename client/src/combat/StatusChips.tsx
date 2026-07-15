@@ -39,6 +39,7 @@ export function BossStatusRow({
   boss: {
     currentHp: number;
     maxHp: number;
+    statuses?: StatusTag[];
     curseDamageTakenMult?: number;
     curseRoundsLeft?: number;
     outgoingDamageMult?: number;

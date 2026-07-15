@@ -27,7 +27,13 @@ import {
   cueHurtMaybe,
   pushCue,
 } from "./presentation.js";
-import { resolveSpecialistAction, triggerDoomcallerDeath } from "./specialists.js";
+import {
+  beginPartyActionPhase,
+  endPartyActionPhase,
+  markClaimerResolved,
+  resolveSpecialistAction,
+  triggerDoomcallerDeath,
+} from "./specialists.js";
 import {
   consumePendingTokens,
   createTokenPool,
@@ -254,7 +260,8 @@ export function commitRound(team: TeamState): TeamState {
   });
 
   const claims = resolveClaims(team, drawn, random);
-  team.lastClaims = claims.map((c) => ({ ...c }));
+  // Same object refs so Runesinger can rewrite grades for later actors + UI badges
+  team.lastClaims = claims;
   for (const c of claims) {
     const s = team.roster.find((x) => x.id === c.soldierId);
     if (s) {
@@ -268,54 +275,67 @@ export function commitRound(team: TeamState): TeamState {
     }
   }
 
-  // Party actions front (1) → back (6) — short attack bubbles, not essays
+  // Party actions: **Runesinger first** (rewrites tokens), then others front → back
   const claimBySoldier = new Map(claims.map((c) => [c.soldierId, c]));
-  for (const soldier of livingParty(team)) {
-    const claim = claimBySoldier.get(soldier.id);
-    if (!claim) continue;
+  const actors = livingParty(team).filter((s) => claimBySoldier.has(s.id));
+  const ordered = [
+    ...actors.filter((s) => s.archetype === "Runesinger"),
+    ...actors.filter((s) => s.archetype !== "Runesinger"),
+  ];
 
-    // Diff enemy HP so presentation can focus the minion/boss that was hit
-    const beforeBossHp = team.boss?.currentHp ?? 0;
-    const beforeMinions = team.minions.map((m) => ({
-      id: m.id,
-      name: m.name,
-      hp: m.currentHp,
-    }));
+  beginPartyActionPhase(ordered.map((s) => s.id));
+  try {
+    for (const soldier of ordered) {
+      const claim = claimBySoldier.get(soldier.id);
+      if (!claim) continue;
 
-    resolveSpecialistAction(team, soldier, claim, random, (text, tags) =>
-      pushLog(team, text, tags ?? ["party"]),
-    );
+      // Diff enemy HP so presentation can focus the minion/boss that was hit
+      const beforeBossHp = team.boss?.currentHp ?? 0;
+      const beforeMinions = team.minions.map((m) => ({
+        id: m.id,
+        name: m.name,
+        hp: m.currentHp,
+      }));
 
-    const hitFocusIds: string[] = [];
-    const slainNames: string[] = [];
-    for (const prev of beforeMinions) {
-      const now = team.minions.find((m) => m.id === prev.id);
-      if (!now) continue;
-      if (now.currentHp < prev.hp) {
-        hitFocusIds.push(now.id);
-        if (prev.hp > 0 && now.currentHp <= 0) {
-          slainNames.push(now.name);
+      resolveSpecialistAction(team, soldier, claim, random, (text, tags) =>
+        pushLog(team, text, tags ?? ["party"]),
+      );
+      markClaimerResolved(soldier.id);
+
+      const hitFocusIds: string[] = [];
+      const slainNames: string[] = [];
+      for (const prev of beforeMinions) {
+        const now = team.minions.find((m) => m.id === prev.id);
+        if (!now) continue;
+        if (now.currentHp < prev.hp) {
+          hitFocusIds.push(now.id);
+          if (prev.hp > 0 && now.currentHp <= 0) {
+            slainNames.push(now.name);
+          }
         }
       }
-    }
-    if (team.boss && team.boss.currentHp < beforeBossHp) {
-      hitFocusIds.push("boss");
-    }
+      if (team.boss && team.boss.currentHp < beforeBossHp) {
+        hitFocusIds.push("boss");
+      }
 
-    const fx: string[] = [];
-    if (soldier.archetype === "Healer") fx.push("heal-glow");
-    if (soldier.archetype === "FireMage") fx.push("fire-flash");
-    if (claim.effectiveGrade === "F") fx.push("backfire");
-    cueAction(
-      team,
-      soldier.id,
-      soldier.name,
-      soldier.archetype,
-      claim.effectiveGrade,
-      random,
-      fx,
-      { hitFocusIds, slainNames },
-    );
+      const fx: string[] = [];
+      if (soldier.archetype === "Healer") fx.push("heal-glow");
+      if (soldier.archetype === "FireMage") fx.push("fire-flash");
+      if (soldier.archetype === "Runesinger") fx.push("heal-glow");
+      if (claim.effectiveGrade === "F") fx.push("backfire");
+      cueAction(
+        team,
+        soldier.id,
+        soldier.name,
+        soldier.archetype,
+        claim.effectiveGrade,
+        random,
+        fx,
+        { hitFocusIds, slainNames },
+      );
+    }
+  } finally {
+    endPartyActionPhase();
   }
 
   // One compact DoT beat (visuals on chips, not a speech parade)
@@ -363,26 +383,49 @@ export function commitRound(team: TeamState): TeamState {
   }
 
   team.phase = "boss_telegraph";
-  pushLog(
-    team,
-    `${team.boss!.name} gathers power…`,
-    ["boss", "telegraph"],
-  );
   {
     const tpl = getBossTemplate(team.boss!.id);
-    pushCue(team, {
-      kind: "telegraph",
-      focusIds: ["boss"],
-      bubble: {
-        speakerId: "boss",
-        speakerName: team.boss!.name,
-        side: "boss",
-        text: "…",
-      },
-      fx: ["boss-windup"],
-      sfxId: tpl?.telegraphSfx ?? "boss_attack",
-      durationMs: 1100,
-    });
+    const stunned = (team.boss!.stunRoundsLeft ?? 0) > 0;
+    if (stunned) {
+      // Already stunned by party this drop — do not wind up / play attack SFX
+      pushLog(
+        team,
+        `${team.boss!.name} is reeling (stunned)…`,
+        ["boss", "telegraph", "stun"],
+      );
+      pushCue(team, {
+        kind: "telegraph",
+        focusIds: ["boss"],
+        bubble: {
+          speakerId: "boss",
+          speakerName: team.boss!.name,
+          side: "boss",
+          text: "Stunned…",
+        },
+        fx: ["stunned"],
+        // no attack SFX — skip is resolved next
+        durationMs: 900,
+      });
+    } else {
+      pushLog(
+        team,
+        `${team.boss!.name} gathers power…`,
+        ["boss", "telegraph"],
+      );
+      pushCue(team, {
+        kind: "telegraph",
+        focusIds: ["boss"],
+        bubble: {
+          speakerId: "boss",
+          speakerName: team.boss!.name,
+          side: "boss",
+          text: "…",
+        },
+        fx: ["boss-windup"],
+        sfxId: tpl?.telegraphSfx ?? "boss_attack",
+        durationMs: 1100,
+      });
+    }
   }
   return team;
 }
@@ -409,9 +452,13 @@ export function resolveBoss(team: TeamState): TeamState {
   if (team.boss.currentHp > 0 && livingParty(team).length > 0) {
     resolveBossPhase(team, random, (text) => pushLog(team, text, ["boss"]), {
       onBossAttack: (info) => {
+        const isStunSkip =
+          info.attackId === "StunSkip" ||
+          (info.fx ?? []).includes("stun-skip") ||
+          (info.fx ?? []).includes("stunned");
         pushCue(team, {
-          kind: "boss",
-          focusIds: ["boss", ...info.victimIds],
+          kind: isStunSkip ? "system" : "boss",
+          focusIds: isStunSkip ? ["boss"] : ["boss", ...info.victimIds],
           bubble: info.bubbleText
             ? {
                 speakerId: "boss",
@@ -420,11 +467,14 @@ export function resolveBoss(team: TeamState): TeamState {
                 text: info.bubbleText,
               }
             : undefined,
-          fx: ["boss-attack", ...(info.fx ?? [])],
+          // Stun skip: no boss-attack flash (that looked like a hit)
+          fx: isStunSkip
+            ? [...(info.fx ?? ["stunned"])]
+            : ["boss-attack", ...(info.fx ?? [])],
           sfxId: info.sfxId,
-          durationMs: 1300,
+          durationMs: isStunSkip ? 1000 : 1300,
         });
-        hurtVictims.push(...info.victimIds);
+        if (!isStunSkip) hurtVictims.push(...info.victimIds);
       },
       onMinionAttack: (info) => {
         pushCue(team, {

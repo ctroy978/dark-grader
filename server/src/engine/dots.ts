@@ -1,4 +1,10 @@
-import { DOT_STATS, type DotType, type Soldier, type TeamState } from "@dungeon-grades/shared";
+import {
+  DOT_STATS,
+  type BossState,
+  type DotType,
+  type Soldier,
+  type TeamState,
+} from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
 import {
   applyPartyDamage,
@@ -11,15 +17,64 @@ export function applyDot(
   soldier: Soldier,
   type: DotType,
   stacks = 1,
+  durationOverride?: number,
 ): void {
   const existing = soldier.statuses.find((s) => s.kind === "Dot" && s.type === type);
-  const duration = DOT_STATS[type].duration;
+  const duration = durationOverride ?? DOT_STATS[type].duration;
   if (existing && existing.kind === "Dot") {
     existing.stacks += stacks;
     existing.duration = Math.max(existing.duration, duration);
   } else {
     soldier.statuses.push({ kind: "Dot", type, stacks, duration });
   }
+}
+
+/** Apply / stack a DoT on the boss (Doomcaller transfer, death poison). */
+export function applyBossDot(
+  boss: BossState,
+  type: DotType,
+  stacks: number,
+  duration: number,
+): void {
+  if (!boss.statuses) boss.statuses = [];
+  const existing = boss.statuses.find((s) => s.kind === "Dot" && s.type === type);
+  if (existing && existing.kind === "Dot") {
+    existing.stacks += stacks;
+    existing.duration = Math.max(existing.duration, duration);
+  } else {
+    boss.statuses.push({ kind: "Dot", type, stacks, duration });
+  }
+}
+
+/** Unique DoT types currently on the boss. */
+export function bossDotTypes(boss: BossState): DotType[] {
+  if (!boss.statuses) return [];
+  const types = new Set<DotType>();
+  for (const st of boss.statuses) {
+    if (st.kind === "Dot") types.add(st.type);
+  }
+  return [...types];
+}
+
+/**
+ * Strip DoTs and plain Marks from soldiers; return collected DoT stacks
+ * (each soldier's stacks counted — A transfer can sum to many stacks).
+ */
+export function stripDotsAndMarks(
+  soldiers: Soldier[],
+): { type: DotType; stacks: number }[] {
+  const collected: { type: DotType; stacks: number }[] = [];
+  for (const s of soldiers) {
+    for (const st of s.statuses) {
+      if (st.kind === "Dot") {
+        collected.push({ type: st.type, stacks: st.stacks });
+      }
+    }
+    s.statuses = s.statuses.filter(
+      (st) => st.kind !== "Dot" && st.kind !== "Mark",
+    );
+  }
+  return collected;
 }
 
 export function cleanseDots(
@@ -57,12 +112,20 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     }
   }
 
-  if (!summary.length) {
+  const bossHasDots =
+    !!team.boss?.statuses?.some((s) => s.kind === "Dot") &&
+    (team.boss?.currentHp ?? 0) > 0;
+
+  if (!summary.length && !bossHasDots) {
     log(`— DoT phase: none active —`);
     return;
   }
 
-  log(`— DoT phase — ${summary.join(" · ")}`);
+  if (summary.length) {
+    log(`— DoT phase — ${summary.join(" · ")}`);
+  } else {
+    log(`— DoT phase — boss marks only —`);
+  }
 
   // --- Poison: single party splash ---
   let maxPoisonStacks = 0;
@@ -121,7 +184,44 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     log(`  [Slime] Party slowed — fewer tokens next drop`);
   }
 
+  // --- Boss DoTs (Doomcaller transfers, death poison) ---
+  tickBossDots(team, log);
+
   log(`— End DoT phase —`);
+}
+
+/** Damage the boss for each DoT stack, then expire. */
+export function tickBossDots(
+  team: TeamState,
+  log: (text: string) => void,
+): void {
+  const boss = team.boss;
+  if (!boss || boss.currentHp <= 0) return;
+  if (!boss.statuses?.length) return;
+
+  const dots = boss.statuses.filter((s) => s.kind === "Dot");
+  if (!dots.length) return;
+
+  for (const dot of dots) {
+    if (dot.kind !== "Dot") continue;
+    // Flat tick on boss HP (Poison is not a party splash when on the boss)
+    const perTick = DOT_STATS[dot.type].tick * dot.stacks;
+    const dmg = Math.min(boss.currentHp, perTick);
+    boss.currentHp -= dmg;
+    log(
+      `  [Boss ${dot.type}×${dot.stacks}] ${dmg} to ${boss.name} · ${dot.duration - 1}r left`,
+    );
+    dot.duration -= 1;
+  }
+
+  boss.statuses = boss.statuses.filter(
+    (s) => !(s.kind === "Dot" && s.duration <= 0),
+  );
+
+  if (boss.currentHp <= 0) {
+    boss.currentHp = 0;
+    log(`  ${boss.name} collapses under DoT pressure!`);
+  }
 }
 
 function distributePoison(

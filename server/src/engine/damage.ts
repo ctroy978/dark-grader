@@ -92,6 +92,27 @@ export function purgeDeadMinions(team: TeamState): void {
   team.minions = team.minions.filter((m) => m.currentHp > 0);
 }
 
+/** Consume Thundercaller charge on a soldier (extra damage on next hit). */
+export function consumeCharge(soldier: Soldier | undefined | null): number {
+  if (!soldier) return 0;
+  const idx = soldier.statuses.findIndex((s) => s.kind === "Charge");
+  if (idx < 0) return 0;
+  const st = soldier.statuses[idx];
+  const amount = st && st.kind === "Charge" ? st.amount : 0;
+  soldier.statuses.splice(idx, 1);
+  return amount;
+}
+
+export function applyCharge(soldier: Soldier, amount: number): void {
+  if (amount <= 0) return;
+  const existing = soldier.statuses.find((s) => s.kind === "Charge");
+  if (existing && existing.kind === "Charge") {
+    existing.amount += amount;
+  } else {
+    soldier.statuses.push({ kind: "Charge", amount });
+  }
+}
+
 /**
  * Deal damage to enemies. Minions first (design §6.6).
  * - single: all damage into first living minion, else boss
@@ -99,14 +120,19 @@ export function purgeDeadMinions(team: TeamState): void {
  *
  * Dead minions stay on the roster at 0 HP until `purgeDeadMinions` so the
  * client can show who killed them during action playback.
+ *
+ * @param minionBonus Extra damage when the hit lands on a minion (not boss).
+ * @param actor If set, consumes their Charge bonus into this hit.
  */
 export function hitEnemies(
   team: TeamState,
   baseDamage: number,
   mode: "single" | "chain" = "single",
   extraBounces = 0,
+  minionBonus = 0,
+  actor?: Soldier | null,
 ): string {
-  const bonus = team.partyDamageBonus || 0;
+  const bonus = (team.partyDamageBonus || 0) + consumeCharge(actor);
   const parts: string[] = [];
 
   const applyToBoss = (amount: number) => {
@@ -132,19 +158,26 @@ export function hitEnemies(
   };
 
   if (mode === "single") {
-    const amount = Math.max(0, Math.floor(baseDamage + bonus));
-    if (!applyToMinion(amount)) applyToBoss(amount);
+    const vsBoss = Math.max(0, Math.floor(baseDamage + bonus));
+    const vsMinion = Math.max(0, Math.floor(baseDamage + bonus + minionBonus));
+    if (!applyToMinion(vsMinion)) applyToBoss(vsBoss);
     return parts.join("; ") || "no target";
   }
 
-  // chain: primary full damage, bounces reduced
-  const amounts = [Math.max(0, Math.floor(baseDamage + bonus))];
+  // chain: primary full damage, bounces reduced (minion bonus on each hop that hits a minion)
+  const base = Math.max(0, Math.floor(baseDamage + bonus));
+  const amounts = [base];
   for (let i = 0; i < extraBounces; i++) {
     amounts.push(Math.max(1, Math.floor((baseDamage + bonus) * 0.55)));
   }
 
   for (const amount of amounts) {
-    if (!applyToMinion(amount)) applyToBoss(amount);
+    const livingMinion = team.minions.some((x) => x.currentHp > 0);
+    if (livingMinion) {
+      applyToMinion(amount + minionBonus);
+    } else {
+      applyToBoss(amount);
+    }
   }
   return parts.join("; ") || "no target";
 }

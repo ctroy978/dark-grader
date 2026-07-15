@@ -13,17 +13,22 @@ export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
   Runesinger: 40,
 };
 
-/** Roster counts for a new campaign (design §6.0) */
+/**
+ * Roster counts for a new campaign.
+ * Total 22: art-aligned gender pools (see server/src/seed/names.ts).
+ * Males: Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller
+ * Females: ShieldMaiden, Healer, Archer, Runesinger
+ */
 export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
   { archetype: "Vanguard", count: 2 },
   { archetype: "ShieldMaiden", count: 3 },
   { archetype: "FireMage", count: 3 },
   { archetype: "Healer", count: 3 },
-  { archetype: "Archer", count: 6 },
-  { archetype: "Doomcaller", count: 1 },
-  { archetype: "Necromancer", count: 1 },
+  { archetype: "Archer", count: 3 },
+  { archetype: "Doomcaller", count: 2 },
+  { archetype: "Necromancer", count: 2 },
   { archetype: "Thundercaller", count: 2 },
-  { archetype: "Runesinger", count: 1 },
+  { archetype: "Runesinger", count: 2 },
 ];
 
 /** Full party (6) drops 3 tokens; scales down as the line thins. */
@@ -39,10 +44,15 @@ export function tokensForLivingCount(livingCount: number): number {
   return Math.max(1, Math.floor(livingCount / 2));
 }
 
-/** Magnet claim weights (design §1.2) */
-export const MAGNET_WEIGHT = 0.3;
+/**
+ * Residual claim weights after magnet’s guaranteed token.
+ * Adjacent (to magnet) vs other living soldiers — relative ratio 2:1.
+ * Magnet soldier is excluded (weight 0) and always receives one random token first.
+ */
 export const ADJACENT_WEIGHT = 0.2;
 export const OTHER_WEIGHT = 0.1;
+/** @deprecated Magnet always claims; no probabilistic magnet weight. */
+export const MAGNET_WEIGHT = 0;
 
 export const PARTY_SIZE = 6;
 

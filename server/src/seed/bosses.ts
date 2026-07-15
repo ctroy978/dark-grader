@@ -37,6 +37,7 @@ export function instantiateBoss(templateId: string): BossState {
     traits: [...t.traits],
     attackIds: [...t.attackIds],
     sequenceIndex: -1,
+    statuses: [],
     curseDamageTakenMult: 1,
     curseRoundsLeft: 0,
     outgoingDamageMult: 1,

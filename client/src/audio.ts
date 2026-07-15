@@ -117,14 +117,9 @@ export function playForLogLine(text: string): void {
     play("hit_heavy");
     return;
   }
-  if (t.includes("defeated") || t.includes("victory")) {
-    play("victory");
-    return;
-  }
-  if (t.includes("fallen") && t.includes("party")) {
-    play("defeat");
-    return;
-  }
+  // Victory / defeat horns are owned by CombatScreen endPresentation (after
+  // playback). Do not fire from log text — "is defeated!" arrives at Drop Tokens
+  // while the board is still animating the kill.
   if (t.includes("ticks") || t.includes("poison") || t.includes("fire ")) {
     play("dot_tick");
   }

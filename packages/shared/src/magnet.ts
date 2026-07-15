@@ -1,9 +1,4 @@
-import {
-  ADJACENT_WEIGHT,
-  MAGNET_WEIGHT,
-  OTHER_WEIGHT,
-  PARTY_SIZE,
-} from "./balance.js";
+import { ADJACENT_WEIGHT, OTHER_WEIGHT, PARTY_SIZE } from "./balance.js";
 import type { Position } from "./types.js";
 
 /** Circular adjacency on a 1–6 line. */
@@ -14,16 +9,25 @@ export function adjacentPositions(pos: Position): [Position, Position] {
 }
 
 /**
- * Claim probability for each party position given magnet placement.
- * Sums to 1.0 for a full party of 6.
+ * Weights for residual tokens after the magnet soldier already claimed.
+ * Magnet slot is 0 (they always get exactly one random token first).
+ * Adjacent (circular) > other living slots. Relative ratio 2:1 (0.2 vs 0.1).
  */
-export function claimWeights(magnet: Position): number[] {
+export function proximityClaimWeights(magnet: Position): number[] {
   const weights = new Array(PARTY_SIZE).fill(OTHER_WEIGHT);
-  weights[magnet - 1] = MAGNET_WEIGHT;
+  weights[magnet - 1] = 0;
   const [a, b] = adjacentPositions(magnet);
   weights[a - 1] = ADJACENT_WEIGHT;
   weights[b - 1] = ADJACENT_WEIGHT;
   return weights;
+}
+
+/**
+ * @deprecated Prefer proximityClaimWeights — magnet now always claims first.
+ * Kept for any UI that still wants a full-line “who is near?” display.
+ */
+export function claimWeights(magnet: Position): number[] {
+  return proximityClaimWeights(magnet);
 }
 
 /**

@@ -45,7 +45,12 @@ function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
       ...s,
       statuses: s.statuses.map((st) => ({ ...st })),
     })),
-    boss: t.boss ? { ...t.boss } : null,
+    boss: t.boss
+      ? {
+          ...t.boss,
+          statuses: (t.boss.statuses ?? []).map((st) => ({ ...st })),
+        }
+      : null,
     minions: t.minions.map((m) => ({ ...m })),
     partyShield: { ...t.partyShield },
     lastClaims: [],
@@ -74,7 +79,12 @@ function applyBoardReveal(
       }),
       boss:
         final.boss && base.boss
-          ? { ...final.boss, currentHp: base.boss.currentHp, maxHp: base.boss.maxHp }
+          ? {
+              ...final.boss,
+              currentHp: base.boss.currentHp,
+              maxHp: base.boss.maxHp,
+              statuses: (base.boss.statuses ?? []).map((st) => ({ ...st })),
+            }
           : final.boss,
       minions: base.minions.map((m) => ({ ...m })),
       partyShield: { ...base.partyShield },
@@ -101,6 +111,9 @@ function applyBoardReveal(
             ...final.boss,
             currentHp: reveal.boss.currentHp,
             maxHp: reveal.boss.maxHp,
+            statuses: (reveal.boss.statuses ?? final.boss.statuses ?? []).map(
+              (st) => ({ ...st }),
+            ),
           }
         : final.boss,
     minions: reveal.minions.map((m) => ({ ...m })),
@@ -155,7 +168,11 @@ function cueDurationMs(cue: PresentationCue): number {
 }
 
 function playCueAudio(cue: PresentationCue): void {
-  if (cue.sfxId) play(cue.sfxId);
+  // Victory / defeat horns play once at endPresentation — not mid-queue and
+  // not when Drop Tokens returns phase=victory while the board is still animating.
+  if (cue.sfxId && cue.sfxId !== "victory" && cue.sfxId !== "defeat") {
+    play(cue.sfxId);
+  }
   if (cue.playVo && cue.voId) play(cue.voId);
 }
 
@@ -251,6 +268,8 @@ export default function CombatScreen({
   const [visualHold, setVisualHold] = useState<EnrichedTeam | null>(null);
   const playedSigRef = useRef<string>("");
   const partyPlaybackDoneRef = useRef(false);
+  /** Prevent double endPresentation (two finish effects) from double-playing horns */
+  const outcomeSfxPlayedRef = useRef(false);
   const teamRef = useRef(team);
   teamRef.current = team;
 
@@ -266,6 +285,16 @@ export default function CombatScreen({
     setPlaying(false);
     partyPlaybackDoneRef.current = true;
     setVisualHold(null);
+    // Outcome SFX after the story finishes (or Skip) — never at token drop
+    if (outcomeSfxPlayedRef.current) return;
+    const p = teamRef.current.phase;
+    if (p === "victory") {
+      outcomeSfxPlayedRef.current = true;
+      play("victory");
+    } else if (p === "defeat") {
+      outcomeSfxPlayedRef.current = true;
+      play("defeat");
+    }
   }
 
   /**
@@ -324,6 +353,7 @@ export default function CombatScreen({
     if (sig === playedSigRef.current) return;
     playedSigRef.current = sig;
     partyPlaybackDoneRef.current = false;
+    outcomeSfxPlayedRef.current = false;
     setPlayQueue(beats);
     setPlayIndex(0);
     setPlaying(true);
@@ -353,8 +383,12 @@ export default function CombatScreen({
 
   // Log audio for lines when not in structured playback (fallback)
   useEffect(() => {
-    if (playing) {
+    // While a drop/boss story is playing (or about to), don't fire phase/log SFX —
+    // that was playing the victory horn the instant tokens dropped.
+    const hasStory = (team.playback?.length ?? 0) > 0 || playing || !!visualHold;
+    if (playing || visualHold) {
       logLenRef.current = team.log.length;
+      if (phaseRef.current !== team.phase) phaseRef.current = team.phase;
       return;
     }
     if (team.log.length > logLenRef.current) {
@@ -367,9 +401,15 @@ export default function CombatScreen({
       logLenRef.current = team.log.length;
     }
     if (phaseRef.current !== team.phase) {
-      if (team.phase === "victory") play("victory");
-      if (team.phase === "defeat") play("defeat");
-      if (team.phase === "boss_telegraph") play("boss_attack");
+      // Victory/defeat: only if there was no presentation story (cue path / endPresentation handle normal fights)
+      if (
+        (team.phase === "victory" || team.phase === "defeat") &&
+        !hasStory &&
+        !(team.playback?.length)
+      ) {
+        play(team.phase === "victory" ? "victory" : "defeat");
+      }
+      if (team.phase === "boss_telegraph" && !hasStory) play("boss_attack");
       if (team.phase === "awaiting_magnet" && team.round === 1) {
         play("vo_round_start");
       }
@@ -377,7 +417,7 @@ export default function CombatScreen({
     }
     const el = logEndRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [team.log, team.phase, team.round, playing]);
+  }, [team.log, team.phase, team.round, playing, visualHold, team.playback]);
 
   const partyVisual = useMemo(() => {
     const list = view.activePartyIds

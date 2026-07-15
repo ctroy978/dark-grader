@@ -45,8 +45,17 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `stun-${index}`,
       icon: "💫",
       label: `Stun ${st.duration}`,
-      title: `Stunned for ${st.duration} more tick(s)`,
+      title: `Stunned — may lose their next attack`,
       colorClass: "text-yellow-200 border-yellow-400/40 bg-yellow-950/40",
+    };
+  }
+  if (st.kind === "Charge") {
+    return {
+      key: `charge-${index}`,
+      icon: "⚡",
+      label: `Charge +${st.amount}`,
+      title: `Charged — next attack deals +${st.amount} damage`,
+      colorClass: "text-sky-200 border-sky-400/40 bg-sky-950/40",
     };
   }
   // Weaken — also used by Doomcaller for death-curse tier
@@ -70,6 +79,7 @@ export interface BossIndicator {
 export function bossIndicators(boss: {
   currentHp: number;
   maxHp: number;
+  statuses?: StatusTag[];
   curseDamageTakenMult?: number;
   curseRoundsLeft?: number;
   outgoingDamageMult?: number;
@@ -78,6 +88,19 @@ export function bossIndicators(boss: {
   nextAttackBonus?: number;
 }): BossIndicator[] {
   const out: BossIndicator[] = [];
+  for (const st of boss.statuses ?? []) {
+    if (st.kind === "Dot") {
+      const m = DOT_META[st.type];
+      const stacks = st.stacks > 1 ? `×${st.stacks}` : "";
+      out.push({
+        key: `boss-dot-${st.type}`,
+        icon: m.icon,
+        label: `${m.short}${stacks}`,
+        title: `Boss ${st.type} · ${st.stacks} stack(s) · ${st.duration} round(s)`,
+        colorClass: m.colorClass,
+      });
+    }
+  }
   if (boss.maxHp > 0 && boss.currentHp / boss.maxHp <= 0.4) {
     out.push({
       key: "enrage",

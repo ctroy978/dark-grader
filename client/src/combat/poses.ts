@@ -37,6 +37,13 @@ export function poseForUnit(
 
     case "boss":
     case "telegraph":
+      // Stunned boss reels — do not use attack pose (looked like they still struck)
+      if (
+        unitId === "boss" &&
+        cue.fx?.some((f) => f.includes("stun") || f === "stunned")
+      ) {
+        return "hit";
+      }
       if (unitId === "boss" || isSpeaker) return "attack";
       if (inFocus) return "hit";
       return "standing";

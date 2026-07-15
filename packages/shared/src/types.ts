@@ -38,7 +38,18 @@ export interface WeakenStatus {
   duration: number;
 }
 
-export type StatusTag = DotInstance | MarkStatus | StunStatus | WeakenStatus;
+/** Thundercaller charge — extra damage on this soldier’s next enemy hit. */
+export interface ChargeStatus {
+  kind: "Charge";
+  amount: number;
+}
+
+export type StatusTag =
+  | DotInstance
+  | MarkStatus
+  | StunStatus
+  | WeakenStatus
+  | ChargeStatus;
 
 export interface Soldier {
   id: string;
@@ -92,10 +103,15 @@ export interface BossState {
   traits: string[];
   attackIds: string[];
   sequenceIndex: number;
-  /** Incoming damage multiplier from Doomcaller curse (1 = normal) */
+  /**
+   * DoTs / marks on the boss (Doomcaller transfer, death poison, etc.).
+   * Ticked after party DoTs; damage goes to boss HP.
+   */
+  statuses: StatusTag[];
+  /** Incoming damage multiplier (legacy curse; kept for enrage tools / old saves) */
   curseDamageTakenMult: number;
   curseRoundsLeft: number;
-  /** Outgoing damage mult from F curse / Runesinger F */
+  /** Outgoing damage mult from Runesinger F / old F curse */
   outgoingDamageMult: number;
   outgoingBuffRoundsLeft: number;
   /** Stunned for this many boss phases */

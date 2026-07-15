@@ -37,7 +37,11 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       statuses: s.statuses.map((st) => ({ ...st })),
     })),
     boss: team.boss
-      ? { currentHp: team.boss.currentHp, maxHp: team.boss.maxHp }
+      ? {
+          currentHp: team.boss.currentHp,
+          maxHp: team.boss.maxHp,
+          statuses: (team.boss.statuses ?? []).map((st) => ({ ...st })),
+        }
       : null,
     minions: team.minions.map((m) => ({
       id: m.id,

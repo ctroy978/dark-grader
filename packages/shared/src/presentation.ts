@@ -14,7 +14,11 @@ export interface BoardReveal {
     block: number;
     statuses: StatusTag[];
   }>;
-  boss: { currentHp: number; maxHp: number } | null;
+  boss: {
+    currentHp: number;
+    maxHp: number;
+    statuses?: StatusTag[];
+  } | null;
   minions: Array<{
     id: string;
     name: string;
@@ -85,16 +89,16 @@ export function claimBubbleText(grade: Grade): string {
 export function actionBubbleText(archetype: string, grade: Grade): string {
   const key = `${archetype}:${grade}`;
   const table: Record<string, string> = {
-    "Vanguard:A": "Block up!",
+    "Vanguard:A": "Party block!",
     "Vanguard:B": "Hold the line!",
-    "Vanguard:C": "Shield ready!",
-    "Vanguard:D": "Tiny block…",
-    "Vanguard:F": "…nothing.",
-    "ShieldMaiden:A": "Strike!",
+    "Vanguard:C": "Shields up!",
+    "Vanguard:D": "Brace!",
+    "Vanguard:F": "Weak swing!",
+    "ShieldMaiden:A": "Strike + shield!",
     "ShieldMaiden:B": "Hit!",
-    "ShieldMaiden:C": "Shield roll!",
+    "ShieldMaiden:C": "Strike!",
     "ShieldMaiden:D": "Tap!",
-    "ShieldMaiden:F": "Short-circuit!",
+    "ShieldMaiden:F": "Shield out!",
     "FireMage:A": "Inferno!",
     "FireMage:B": "Burn!",
     "FireMage:C": "Fire—watch out!",
@@ -102,7 +106,7 @@ export function actionBubbleText(archetype: string, grade: Grade): string {
     "FireMage:F": "BOOM—sorry!",
     "Healer:A": "Heal all!",
     "Healer:B": "Front heal!",
-    "Healer:C": "Patch up!",
+    "Healer:C": "Back line!",
     "Healer:D": "Self heal…",
     "Healer:F": "Wrong target!",
     "Archer:A": "Volley!",
@@ -110,26 +114,26 @@ export function actionBubbleText(archetype: string, grade: Grade): string {
     "Archer:C": "Shot!",
     "Archer:D": "Pew…",
     "Archer:F": "Misfire!",
-    "Doomcaller:A": "Curse!",
-    "Doomcaller:B": "Doom…",
-    "Doomcaller:C": "Hex!",
-    "Doomcaller:D": "Weak curse…",
-    "Doomcaller:F": "Bad curse!",
+    "Doomcaller:A": "Marks… transferred!",
+    "Doomcaller:B": "One of each!",
+    "Doomcaller:C": "Front cleanse!",
+    "Doomcaller:D": "Back cleanse!",
+    "Doomcaller:F": "Marks on me!",
     "Necromancer:A": "Drain!",
     "Necromancer:B": "Siphon!",
     "Necromancer:C": "Leech!",
     "Necromancer:D": "Ow—drain…",
-    "Necromancer:F": "Backlash!",
-    "Thundercaller:A": "Lightning!",
-    "Thundercaller:B": "Zap chain!",
+    "Necromancer:F": "Wrong life!",
+    "Thundercaller:A": "Lightning! Charge front!",
+    "Thundercaller:B": "Zap! Charge back!",
     "Thundercaller:C": "Zap!",
-    "Thundercaller:D": "Unstable!",
+    "Thundercaller:D": "Spark!",
     "Thundercaller:F": "Overload!",
-    "Runesinger:A": "Power rune!",
-    "Runesinger:B": "Strong rune!",
-    "Runesinger:C": "Rune!",
-    "Runesinger:D": "Fizzle…",
-    "Runesinger:F": "Corrupted!",
+    "Runesinger:A": "All A's!",
+    "Runesinger:B": "Up to B!",
+    "Runesinger:C": "Lift the lowest!",
+    "Runesinger:D": "Heal holders!",
+    "Runesinger:F": "Tokens fall!",
   };
   return table[key] ?? `${grade}!`;
 }

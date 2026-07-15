@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { claimWeights, pickWeightedIndex, adjacentPositions } from "./magnet.js";
+import {
+  proximityClaimWeights,
+  pickWeightedIndex,
+  adjacentPositions,
+} from "./magnet.js";
 import { createRng } from "./rng.js";
 
 describe("magnet adjacency", () => {
@@ -10,21 +14,28 @@ describe("magnet adjacency", () => {
   });
 });
 
-describe("claim weights", () => {
-  it("sums to 1.0", () => {
+describe("proximity claim weights (residual tokens)", () => {
+  it("zeros magnet; adjacent > other", () => {
     for (let m = 1; m <= 6; m++) {
-      const w = claimWeights(m as 1 | 2 | 3 | 4 | 5 | 6);
-      const sum = w.reduce((a, b) => a + b, 0);
-      expect(sum).toBeCloseTo(1, 10);
-      expect(w[m - 1]).toBeCloseTo(0.3);
+      const w = proximityClaimWeights(m as 1 | 2 | 3 | 4 | 5 | 6);
+      expect(w[m - 1]).toBe(0);
+      const [a, b] = adjacentPositions(m as 1 | 2 | 3 | 4 | 5 | 6);
+      expect(w[a - 1]).toBe(0.2);
+      expect(w[b - 1]).toBe(0.2);
+      // Non-adjacent, non-magnet slots
+      for (let i = 0; i < 6; i++) {
+        if (i === m - 1 || i === a - 1 || i === b - 1) continue;
+        expect(w[i]).toBe(0.1);
+      }
     }
   });
 });
 
 describe("pickWeightedIndex empirical distribution", () => {
-  it("favors magnet position (~30%)", () => {
-    const weights = claimWeights(3);
-    const eligible = [true, true, true, true, true, true];
+  it("favors adjacent positions when magnet slot is ineligible", () => {
+    const weights = proximityClaimWeights(3);
+    // Magnet (index 2) already claimed — residual only
+    const eligible = [true, true, false, true, true, true];
     const counts = new Array(6).fill(0);
     const random = createRng(42);
     const N = 50_000;
@@ -33,16 +44,20 @@ describe("pickWeightedIndex empirical distribution", () => {
       expect(idx).not.toBeNull();
       counts[idx!]++;
     }
-    // magnet at 3 → index 2
-    expect(counts[2] / N).toBeGreaterThan(0.28);
-    expect(counts[2] / N).toBeLessThan(0.32);
-    // adjacent 2 and 4
-    expect(counts[1] / N).toBeGreaterThan(0.18);
-    expect(counts[1] / N).toBeLessThan(0.22);
+    // adjacent 2 and 4 → indices 1 and 3; weights 0.2 each of total 0.7 ≈ 28.6%
+    expect(counts[1] / N).toBeGreaterThan(0.26);
+    expect(counts[1] / N).toBeLessThan(0.32);
+    expect(counts[3] / N).toBeGreaterThan(0.26);
+    expect(counts[3] / N).toBeLessThan(0.32);
+    // magnet never
+    expect(counts[2]).toBe(0);
+    // far positions 0.1/0.7 ≈ 0.143
+    expect(counts[0] / N).toBeGreaterThan(0.12);
+    expect(counts[0] / N).toBeLessThan(0.18);
   });
 
   it("returns null when nobody eligible", () => {
-    const weights = claimWeights(1);
+    const weights = proximityClaimWeights(1);
     const eligible = [false, false, false, false, false, false];
     expect(pickWeightedIndex(weights, eligible, () => 0.5)).toBeNull();
   });
