@@ -87,7 +87,8 @@ export function soldierAt(team: TeamState, position: number): Soldier | undefine
   return livingParty(team).find((s) => s.position === position);
 }
 
-function purgeDeadMinions(team: TeamState): void {
+/** Remove slain minions from the board (after presentation snapshots are captured). */
+export function purgeDeadMinions(team: TeamState): void {
   team.minions = team.minions.filter((m) => m.currentHp > 0);
 }
 
@@ -95,6 +96,9 @@ function purgeDeadMinions(team: TeamState): void {
  * Deal damage to enemies. Minions first (design §6.6).
  * - single: all damage into first living minion, else boss
  * - chain: hit primary then up to `extraBounces` additional enemies
+ *
+ * Dead minions stay on the roster at 0 HP until `purgeDeadMinions` so the
+ * client can show who killed them during action playback.
  */
 export function hitEnemies(
   team: TeamState,
@@ -119,8 +123,11 @@ export function hitEnemies(
     const dmg = Math.min(m.currentHp, amount);
     m.currentHp -= dmg;
     parts.push(`${dmg} to ${m.name}`);
-    if (m.currentHp <= 0) parts.push(`${m.name} slain`);
-    purgeDeadMinions(team);
+    if (m.currentHp <= 0) {
+      m.currentHp = 0;
+      parts.push(`${m.name} slain`);
+    }
+    // Do not remove yet — presentation needs the corpse for the kill beat
     return true;
   };
 

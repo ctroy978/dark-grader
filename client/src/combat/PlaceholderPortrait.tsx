@@ -1,13 +1,25 @@
+import { useEffect, useState } from "react";
 import type { Archetype } from "@dungeon-grades/shared";
 import type { CombatPose } from "./poses";
 
 /**
- * Temporary gothic silhouettes until real art lands.
- * Same component API will swap to <img> via artKey later.
+ * Portrait: real PNG if present under /art/{key}/{pose}.png, else SVG stub.
  *
- * Asset path convention (for real art):
- *   /art/{key}/{pose}.png   e.g. /art/vanguard/standing.png
+ *   /art/vanguard/standing.png
+ *   /art/ash_wraith/attack.png
  */
+
+const ARCHETYPE_KEY: Record<Archetype, string> = {
+  Vanguard: "vanguard",
+  ShieldMaiden: "shieldmaiden",
+  FireMage: "firemage",
+  Healer: "healer",
+  Archer: "archer",
+  Doomcaller: "doomcaller",
+  Necromancer: "necromancer",
+  Thundercaller: "thundercaller",
+  Runesinger: "runesinger",
+};
 
 const ARCHETYPE_TINT: Record<Archetype, string> = {
   Vanguard: "#5a6a8a",
@@ -37,6 +49,27 @@ export type PortraitKind =
   | { role: "party"; archetype: Archetype }
   | { role: "boss"; bossId?: string }
   | { role: "minion"; name?: string };
+
+/** Folder name under client/public/art/ for this portrait. */
+export function artKeyFor(kind: PortraitKind): string {
+  if (kind.role === "party") return ARCHETYPE_KEY[kind.archetype];
+  if (kind.role === "boss") {
+    const id = kind.bossId?.toLowerCase().replace(/\s+/g, "_");
+    return id || "boss";
+  }
+  // Minions: bone archer etc.
+  const n = kind.name?.toLowerCase().replace(/\s+/g, "_") ?? "minion";
+  if (n.includes("bone") && n.includes("archer")) return "bone_archer";
+  return n;
+}
+
+/**
+ * Resolve real art URL.
+ * Place files under client/public/art/{key}/{pose}.png
+ */
+export function artUrlFor(key: string, pose: CombatPose): string {
+  return `/art/${key}/${pose}.png`;
+}
 
 function poseTransform(pose: CombatPose): {
   body: string;
@@ -104,12 +137,46 @@ export function PlaceholderPortrait({
       ? "ADD"
       : kind.archetype.slice(0, 8);
 
+  const artKey = artKeyFor(kind);
+  const imgSrc = artUrlFor(artKey, pose);
+  // Prefer real PNG; fall back to SVG if missing or failed to load
+  const [useImg, setUseImg] = useState(true);
+  useEffect(() => {
+    setUseImg(true);
+  }, [imgSrc]);
+
+  if (useImg) {
+    return (
+      <div
+        className={`portrait-frame relative overflow-hidden rounded bg-navy border border-parchment/20 ${className}`}
+        data-pose={pose}
+        data-art-key={artKey}
+        title={`${label} · ${pose}`}
+      >
+        <img
+          src={imgSrc}
+          alt=""
+          className="w-full h-full object-cover object-top block"
+          style={{ filter: t.filter, opacity: t.opacity }}
+          onError={() => setUseImg(false)}
+          draggable={false}
+        />
+        {pose === "hit" && (
+          <div className="pointer-events-none absolute inset-0 bg-crimson/25 mix-blend-overlay" />
+        )}
+        {pose === "attack" && (
+          <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-rune/40" />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`portrait-frame relative overflow-hidden rounded bg-navy border border-parchment/20 ${className}`}
       data-pose={pose}
       data-art-placeholder="true"
-      title={`Placeholder · ${label} · ${pose} (swap art later)`}
+      title={`Placeholder · ${label} · ${pose}`}
     >
       <svg
         viewBox="0 0 100 120"
@@ -225,15 +292,4 @@ export function PlaceholderPortrait({
       )}
     </div>
   );
-}
-
-/**
- * Future: resolve real art URL if present.
- * Place files under client/public/art/{key}/{pose}.png
- */
-export function artUrlFor(
-  key: string,
-  pose: CombatPose,
-): string {
-  return `/art/${key}/${pose}.png`;
 }

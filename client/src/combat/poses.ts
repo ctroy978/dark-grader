@@ -31,8 +31,8 @@ export function poseForUnit(
 
     case "action":
       if (isSpeaker) return "attack";
-      // Boss is often listed as a focus target of party strikes
-      if (unitId === "boss" && inFocus) return "hit";
+      // Focused non-speaker = damage target (boss or minion)
+      if (inFocus) return "hit";
       return "standing";
 
     case "boss":

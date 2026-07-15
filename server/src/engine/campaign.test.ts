@@ -5,6 +5,7 @@ import {
   createTeam,
   enterBetweenRooms,
   placeMagnet,
+  returnFromDefeat,
   selectParty,
   startFight,
 } from "./combat.js";
@@ -91,5 +92,96 @@ describe("campaign progression", () => {
     expect(["victory", "defeat", "awaiting_magnet", "boss_telegraph"]).toContain(
       team.phase,
     );
+  });
+
+  it("returns from defeat to lobby without advancing room", () => {
+    const team = createTeam("c4", "CAMP4", "Camp", 4);
+    team.phase = "defeat";
+    team.roomIndex = 0;
+    team.round = 12;
+    team.activePartyIds = team.roster.slice(0, 6).map((s) => s.id);
+    // Wipe the active party
+    for (const id of team.activePartyIds) {
+      const s = team.roster.find((x) => x.id === id)!;
+      s.alive = false;
+      s.currentHp = 0;
+      s.position = 1;
+    }
+    team.boss = {
+      id: "ash_wraith",
+      name: "Ash Wraith",
+      maxHp: 260,
+      currentHp: 40,
+      traits: [],
+      attackIds: [],
+      sequenceIndex: -1,
+      curseDamageTakenMult: 1,
+      curseRoundsLeft: 0,
+      outgoingDamageMult: 1,
+      outgoingBuffRoundsLeft: 0,
+      stunRoundsLeft: 0,
+      nextAttackBonus: 0,
+    };
+
+    returnFromDefeat(team);
+    expect(team.phase).toBe("lobby");
+    expect(team.roomIndex).toBe(0);
+    expect(team.boss).toBeNull();
+    expect(team.activePartyIds).toEqual([]);
+    expect(team.round).toBe(0);
+    // Fallen stay dead
+    expect(team.roster.filter((s) => !s.alive).length).toBe(6);
+    expect(team.roster.filter((s) => s.alive).length).toBeGreaterThanOrEqual(6);
+
+    // Idempotent
+    returnFromDefeat(team);
+    expect(team.phase).toBe("lobby");
+    expect(team.roomIndex).toBe(0);
+  });
+
+  it("returns from mid-campaign defeat to between_rooms, same room", () => {
+    const team = createTeam("c5", "CAMP5", "Camp", 5);
+    team.phase = "defeat";
+    team.roomIndex = 1;
+    team.boss = {
+      id: "bone_colossus",
+      name: "Bone Colossus",
+      maxHp: 100,
+      currentHp: 10,
+      traits: [],
+      attackIds: [],
+      sequenceIndex: -1,
+      curseDamageTakenMult: 1,
+      curseRoundsLeft: 0,
+      outgoingDamageMult: 1,
+      outgoingBuffRoundsLeft: 0,
+      stunRoundsLeft: 0,
+      nextAttackBonus: 0,
+    };
+
+    returnFromDefeat(team);
+    expect(team.phase).toBe("between_rooms");
+    expect(team.roomIndex).toBe(1);
+    expect(team.boss).toBeNull();
+  });
+
+  it("can reform and start fight after returnFromDefeat", () => {
+    const team = createTeam("c6", "CAMP6", "Camp", 6);
+    team.phase = "defeat";
+    team.roomIndex = 0;
+    // Kill 6 soldiers so they cannot reuse them
+    for (const s of team.roster.slice(0, 6)) {
+      s.alive = false;
+      s.currentHp = 0;
+    }
+    returnFromDefeat(team);
+    const living = team.roster.filter((s) => s.alive).slice(0, 6);
+    selectParty(
+      team,
+      living.map((s) => s.id),
+    );
+    startFight(team, "ash_wraith", POOL);
+    expect(team.phase).toBe("awaiting_magnet");
+    expect(team.roomIndex).toBe(0);
   });
 });

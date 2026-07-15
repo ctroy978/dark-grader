@@ -18,6 +18,7 @@ import {
   activeParty,
   healSoldier,
   livingParty,
+  purgeDeadMinions,
 } from "./damage.js";
 import { tickDots } from "./dots.js";
 import {
@@ -272,9 +273,35 @@ export function commitRound(team: TeamState): TeamState {
   for (const soldier of livingParty(team)) {
     const claim = claimBySoldier.get(soldier.id);
     if (!claim) continue;
+
+    // Diff enemy HP so presentation can focus the minion/boss that was hit
+    const beforeBossHp = team.boss?.currentHp ?? 0;
+    const beforeMinions = team.minions.map((m) => ({
+      id: m.id,
+      name: m.name,
+      hp: m.currentHp,
+    }));
+
     resolveSpecialistAction(team, soldier, claim, random, (text, tags) =>
       pushLog(team, text, tags ?? ["party"]),
     );
+
+    const hitFocusIds: string[] = [];
+    const slainNames: string[] = [];
+    for (const prev of beforeMinions) {
+      const now = team.minions.find((m) => m.id === prev.id);
+      if (!now) continue;
+      if (now.currentHp < prev.hp) {
+        hitFocusIds.push(now.id);
+        if (prev.hp > 0 && now.currentHp <= 0) {
+          slainNames.push(now.name);
+        }
+      }
+    }
+    if (team.boss && team.boss.currentHp < beforeBossHp) {
+      hitFocusIds.push("boss");
+    }
+
     const fx: string[] = [];
     if (soldier.archetype === "Healer") fx.push("heal-glow");
     if (soldier.archetype === "FireMage") fx.push("fire-flash");
@@ -287,6 +314,7 @@ export function commitRound(team: TeamState): TeamState {
       claim.effectiveGrade,
       random,
       fx,
+      { hitFocusIds, slainNames },
     );
   }
 
@@ -308,6 +336,8 @@ export function commitRound(team: TeamState): TeamState {
     }
   });
   processDeaths(team);
+  // Keep slain minions at 0 HP on the board through party playback so the
+  // client can show who killed them. Corpses are removed when the boss acts.
 
   if (livingParty(team).length === 0) {
     team.phase = "defeat";
@@ -366,6 +396,9 @@ export function resolveBoss(team: TeamState): TeamState {
     throw new Error("Cannot resolve boss: not in boss telegraph phase");
   }
   if (!team.boss) throw new Error("No active fight");
+
+  // Party presentation is done — remove corpses before boss/adds act
+  purgeDeadMinions(team);
 
   team.playback = [];
   const random = createRng(
@@ -514,6 +547,29 @@ export function applyInterRoomHealing(team: TeamState): void {
   ]);
 }
 
+/** Clear fight-only fields so the team can form a party again. */
+function clearFightState(team: TeamState): void {
+  team.boss = null;
+  team.minions = [];
+  team.round = 0;
+  team.pendingTokens = [];
+  team.playback = [];
+  team.lastClaims = [];
+  team.partyShield = { remaining: 0, active: false };
+  team.partyDamageBonus = 0;
+  team.slimeSlowNextRound = false;
+  team.tokens = { remaining: [], discard: [] };
+  for (const s of team.roster) {
+    s.block = 0;
+    s.statuses = [];
+    s.position = null;
+    const ext = s as Soldier & { deathLogged?: boolean };
+    delete ext.deathLogged;
+  }
+  team.activePartyIds = [];
+  team.magnetPosition = 1;
+}
+
 /**
  * Advance after a room victory.
  * - Idempotent: only runs from `victory` (double-click safe).
@@ -537,20 +593,7 @@ export function enterBetweenRooms(
   }
 
   applyInterRoomHealing(team);
-
-  // Clear fight-only state
-  team.boss = null;
-  team.minions = [];
-  team.round = 0;
-  for (const s of team.roster) {
-    s.block = 0;
-    s.statuses = [];
-    s.position = null;
-    const ext = s as Soldier & { deathLogged?: boolean };
-    delete ext.deathLogged;
-  }
-  team.activePartyIds = [];
-  team.magnetPosition = 1;
+  clearFightState(team);
 
   // One room cleared
   team.roomIndex += 1;
@@ -569,6 +612,42 @@ export function enterBetweenRooms(
     pushLog(
       team,
       `Room ${cleared} cleared. Camping before room ${cleared + 1} of ${total}. Reform a party of 6 living soldiers.`,
+      ["system", "campaign"],
+    );
+  }
+}
+
+/**
+ * After a wipe: return to camp to reform and retry the **same** room.
+ * - Idempotent when already in lobby / between_rooms.
+ * - Does **not** advance roomIndex or apply inter-room heal.
+ * - Fallen stay dead; living keep current HP.
+ */
+export function returnFromDefeat(team: TeamState): void {
+  if (team.phase === "lobby" || team.phase === "between_rooms") {
+    return;
+  }
+  if (team.phase !== "defeat") {
+    throw new Error("Can only return to camp after a defeat");
+  }
+
+  const living = livingRosterCount(team);
+  clearFightState(team);
+
+  // Same room to retry: room 0 → lobby, later rooms → between_rooms camp UI
+  team.phase = team.roomIndex === 0 ? "lobby" : "between_rooms";
+
+  if (living < PARTY_SIZE) {
+    pushLog(
+      team,
+      `Defeat — only ${living} living soldiers left (need ${PARTY_SIZE}). Ask the teacher to reset the team, or try with what you have if the roster recovers.`,
+      ["system", "campaign"],
+    );
+  } else {
+    const roomNum = team.roomIndex + 1;
+    pushLog(
+      team,
+      `Defeat on room ${roomNum}. Reform a party of ${PARTY_SIZE} from the ${living} living soldiers and try again.`,
       ["system", "campaign"],
     );
   }

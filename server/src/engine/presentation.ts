@@ -2,10 +2,22 @@ import {
   actionBubbleText,
   claimBubbleText,
   hurtBubbleText,
+  type BoardReveal,
   type Grade,
   type PresentationCue,
   type TeamState,
 } from "@dungeon-grades/shared";
+
+/** Kinds that change combatant HP/status — attach a board snapshot for the client. */
+const REVEAL_KINDS = new Set<PresentationCue["kind"]>([
+  "action",
+  "boss",
+  "minion",
+  "hurt",
+  "dot",
+  "death",
+  "system",
+]);
 
 export function ensurePlayback(team: TeamState): PresentationCue[] {
   if (!Array.isArray(team.playback)) team.playback = [];
@@ -13,15 +25,47 @@ export function ensurePlayback(team: TeamState): PresentationCue[] {
   return team.playback;
 }
 
+/** Snapshot board after a resolve step (for progressive client presentation). */
+export function captureBoardReveal(team: TeamState): BoardReveal {
+  return {
+    soldiers: team.roster.map((s) => ({
+      id: s.id,
+      currentHp: s.currentHp,
+      maxHp: s.maxHp,
+      alive: s.alive,
+      block: s.block,
+      statuses: s.statuses.map((st) => ({ ...st })),
+    })),
+    boss: team.boss
+      ? { currentHp: team.boss.currentHp, maxHp: team.boss.maxHp }
+      : null,
+    minions: team.minions.map((m) => ({
+      id: m.id,
+      name: m.name,
+      currentHp: m.currentHp,
+      maxHp: m.maxHp,
+      damage: m.damage,
+    })),
+    partyShield: {
+      remaining: team.partyShield.remaining,
+      active: team.partyShield.active,
+    },
+  };
+}
+
 export function pushCue(
   team: TeamState,
   cue: Omit<PresentationCue, "id">,
 ): void {
   const list = ensurePlayback(team);
-  list.push({
+  const withId: PresentationCue = {
     ...cue,
     id: `r${team.round}-c${list.length}`,
-  });
+  };
+  if (REVEAL_KINDS.has(withId.kind) && !withId.reveal) {
+    withId.reveal = captureBoardReveal(team);
+  }
+  list.push(withId);
 }
 
 /** ~30% of token-holder lines get real VO when VO toggle is on. */
@@ -77,24 +121,50 @@ export function cueAction(
   grade: Grade,
   random: () => number,
   fxExtra: string[] = [],
+  opts?: {
+    /** Enemy unit ids damaged this action (minion ids and/or "boss") */
+    hitFocusIds?: string[];
+    /** Minion names slain this action — shown in the bubble */
+    slainNames?: string[];
+  },
 ): void {
   // One of the claimers may also "speak" during the attack
   const playVo = maybePlayVo(random, 0.28);
+  const hitFocus = opts?.hitFocusIds?.filter(Boolean) ?? [];
+  const slain = opts?.slainNames?.filter(Boolean) ?? [];
+  // Focus attacker + whatever they hit (minion and/or boss) so kills are readable
+  const focusIds = [
+    soldierId,
+    ...hitFocus.filter((id) => id !== soldierId),
+  ];
+  if (hitFocus.length === 0 && team.boss) {
+    focusIds.push("boss");
+  }
+
+  let text = actionBubbleText(archetype, grade);
+  if (slain.length) {
+    text = `${text} ${slain[0]} down!`;
+  }
+
   pushCue(team, {
     kind: "action",
-    focusIds: [soldierId, "boss"],
+    focusIds,
     grade,
     bubble: {
       speakerId: soldierId,
       speakerName: soldierName,
       side: "party",
-      text: actionBubbleText(archetype, grade),
+      text,
     },
-    fx: ["attack-flash", ...fxExtra],
-    sfxId: grade === "F" ? "explosion_f" : "hit_light",
+    fx: [
+      "attack-flash",
+      ...fxExtra,
+      ...(slain.length ? ["minion-kill"] : []),
+    ],
+    sfxId: grade === "F" ? "explosion_f" : slain.length ? "hit_heavy" : "hit_light",
     voId: voActionId(grade),
     playVo,
-    durationMs: 1100,
+    durationMs: slain.length ? 1300 : 1100,
   });
 }
 

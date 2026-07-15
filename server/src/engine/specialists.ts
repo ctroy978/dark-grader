@@ -441,28 +441,31 @@ function runesinger(
   log: LogFn,
   label: string,
 ): void {
+  // Support buffer: buffs land before later claims in the same drop, so
+  // stacking higher numbers makes A/B feel worth the magnet.
   if (g === "A") {
-    team.partyDamageBonus += 3;
-    log(`${label}: powerful rune — party +3 damage this round`);
+    team.partyDamageBonus += 5;
+    log(`${label}: powerful rune — party +5 damage this round`);
     return;
   }
   if (g === "B") {
-    team.partyDamageBonus += 2;
-    log(`${label}: good rune — party +2 damage`);
+    team.partyDamageBonus += 3;
+    log(`${label}: good rune — party +3 damage`);
     return;
   }
   if (g === "C") {
-    team.partyDamageBonus += 1;
-    log(`${label}: basic rune — party +1 damage`);
+    team.partyDamageBonus += 2;
+    log(`${label}: basic rune — party +2 damage`);
     return;
   }
   if (g === "D") {
-    log(`${label}: weak rune — self buff (minimal this round)`);
+    team.partyDamageBonus += 1;
+    log(`${label}: faint rune — party +1 damage`);
     return;
   }
-  // F — boss next attack bonus
+  // F — boss next attack bonus (still risky, slightly less crushing)
   if (team.boss) {
-    team.boss.nextAttackBonus += 4;
-    log(`${label}: corrupted rune — boss +4 next attack`);
+    team.boss.nextAttackBonus += 3;
+    log(`${label}: corrupted rune — boss +3 next attack`);
   }
 }

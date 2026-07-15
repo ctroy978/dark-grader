@@ -25,6 +25,7 @@ import {
   enterBetweenRooms,
   placeMagnet,
   resolveBoss,
+  returnFromDefeat,
   selectParty,
   startFight,
 } from "./engine/combat.js";
@@ -415,6 +416,23 @@ app.post<{ Params: { id: string } }>("/api/team/:id/continue", async (req) => {
   broadcastTeam(team.teamId);
   return enrich(team);
 });
+
+/** After a wipe: back to lobby/camp to reform and retry the same room. */
+app.post<{ Params: { id: string } }>(
+  "/api/team/:id/return-from-defeat",
+  async (req) => {
+    const team = store.getTeam(req.params.id);
+    if (!team) {
+      const err = new Error("Team not found") as Error & { statusCode: number };
+      err.statusCode = 404;
+      throw err;
+    }
+    returnFromDefeat(team);
+    store.updateTeam(team);
+    broadcastTeam(team.teamId);
+    return enrich(team);
+  },
+);
 
 const io = new SocketServer({
   cors: { origin: true },

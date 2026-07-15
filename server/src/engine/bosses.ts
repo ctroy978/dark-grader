@@ -322,9 +322,10 @@ function performAttack(
         const m: Minion = {
           id: `bone_archer_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
           name: "Bone Archer",
-          maxHp: 20,
-          currentHp: 20,
-          damage: 7,
+          maxHp: 16,
+          currentHp: 16,
+          // Softened — adds were out-damaging the boss pressure for classroom play
+          damage: 5,
         };
         team.minions.push(m);
       }

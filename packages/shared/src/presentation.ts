@@ -1,4 +1,29 @@
-import type { Grade } from "./types.js";
+import type { Grade, StatusTag } from "./types.js";
+
+/**
+ * Combatant HP / status snapshot for progressive presentation.
+ * Server attaches this to cues after the matching resolve step so the client
+ * can show heals/damage when a unit "casts", not all at once on Drop Tokens.
+ */
+export interface BoardReveal {
+  soldiers: Array<{
+    id: string;
+    currentHp: number;
+    maxHp: number;
+    alive: boolean;
+    block: number;
+    statuses: StatusTag[];
+  }>;
+  boss: { currentHp: number; maxHp: number } | null;
+  minions: Array<{
+    id: string;
+    name: string;
+    currentHp: number;
+    maxHp: number;
+    damage?: number;
+  }>;
+  partyShield: { remaining: number; active: boolean };
+}
 
 /**
  * One presentation beat for the client.
@@ -37,6 +62,11 @@ export interface PresentationCue {
   playVo?: boolean;
   /** Suggested duration; client may clamp */
   durationMs?: number;
+  /**
+   * Board state *after* this beat's mechanics (action, boss hit, death, …).
+   * Client freezes pre-drop HP and applies the latest reveal as cues play.
+   */
+  reveal?: BoardReveal;
 }
 
 /** Short claim yell for a grade token. */

@@ -64,10 +64,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Overload — zaps whole party",
   },
   Runesinger: {
-    A: "Party +3 damage this round",
-    B: "Party +2 damage",
-    C: "Party +1 damage",
-    D: "Almost nothing",
+    A: "Party +5 damage this round",
+    B: "Party +3 damage",
+    C: "Party +2 damage",
+    D: "Party +1 damage",
     F: "Corrupted — boss next attack hits harder",
   },
 };

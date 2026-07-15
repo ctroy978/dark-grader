@@ -28,6 +28,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+export type BoardReveal = {
+  soldiers: Array<{
+    id: string;
+    currentHp: number;
+    maxHp: number;
+    alive: boolean;
+    block: number;
+    statuses: import("@dungeon-grades/shared").StatusTag[];
+  }>;
+  boss: { currentHp: number; maxHp: number } | null;
+  minions: Array<{
+    id: string;
+    name: string;
+    currentHp: number;
+    maxHp: number;
+    damage?: number;
+  }>;
+  partyShield: { remaining: number; active: boolean };
+};
+
 export type PresentationCue = {
   id: string;
   kind: string;
@@ -44,6 +64,8 @@ export type PresentationCue = {
   voId?: string;
   playVo?: boolean;
   durationMs?: number;
+  /** Board after this beat — client reveals HP when the cast plays */
+  reveal?: BoardReveal;
 };
 
 /** @deprecated use PresentationCue */
@@ -157,6 +179,10 @@ export const api = {
     request<EnrichedTeam>(`/api/team/${id}/start-fight`, { method: "POST" }),
   continueCampaign: (id: string) =>
     request<EnrichedTeam>(`/api/team/${id}/continue`, { method: "POST" }),
+  returnFromDefeat: (id: string) =>
+    request<EnrichedTeam>(`/api/team/${id}/return-from-defeat`, {
+      method: "POST",
+    }),
 
   teacherOverview: (pin: string) =>
     request<Overview>(`/api/teacher/overview?pin=${encodeURIComponent(pin)}`),
