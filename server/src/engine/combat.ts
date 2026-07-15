@@ -78,19 +78,55 @@ export function createTeam(
   };
 }
 
+/**
+ * How many soldiers must be in the line right now.
+ * Full roster → always 6. Attrition → field every living soldier (1–5).
+ * Zero living → 0 (cannot enter a room).
+ */
+export function requiredPartySize(team: TeamState): number {
+  const living = livingRosterCount(team);
+  if (living <= 0) return 0;
+  return Math.min(PARTY_SIZE, living);
+}
+
 export function selectParty(team: TeamState, soldierIds: string[]): void {
   if (team.phase !== "lobby" && team.phase !== "between_rooms") {
     throw new Error("Can only select party in lobby or between rooms");
   }
-  if (soldierIds.length !== PARTY_SIZE) {
-    throw new Error(`Party must be exactly ${PARTY_SIZE} soldiers`);
+
+  const need = requiredPartySize(team);
+  if (need <= 0) {
+    throw new Error(
+      "No living soldiers left. Ask the teacher to reset the team.",
+    );
+  }
+  if (soldierIds.length !== need) {
+    throw new Error(
+      need < PARTY_SIZE
+        ? `Only ${need} living — field all of them (got ${soldierIds.length})`
+        : `Party must be exactly ${PARTY_SIZE} soldiers`,
+    );
   }
   const unique = new Set(soldierIds);
-  if (unique.size !== PARTY_SIZE) throw new Error("Duplicate soldiers in party");
+  if (unique.size !== need) throw new Error("Duplicate soldiers in party");
 
   for (const id of soldierIds) {
     const s = team.roster.find((x) => x.id === id);
     if (!s || !s.alive) throw new Error(`Invalid soldier: ${id}`);
+  }
+
+  // Understrength: every living soldier must be in the line (no bench while short)
+  if (need < PARTY_SIZE) {
+    const livingIds = new Set(
+      team.roster.filter((s) => s.alive).map((s) => s.id),
+    );
+    for (const id of livingIds) {
+      if (!unique.has(id)) {
+        throw new Error(
+          "Understrength party must include every living soldier",
+        );
+      }
+    }
   }
 
   for (const s of team.roster) s.position = null;
@@ -110,14 +146,17 @@ export function startFight(
   if (team.phase === "campaign_complete") {
     throw new Error("Campaign already complete — teacher must reset the team");
   }
-  if (team.activePartyIds.length !== PARTY_SIZE) {
+  const need = requiredPartySize(team);
+  if (need <= 0) {
     throw new Error(
-      "This team has not formed a party yet. Students must pick 6 soldiers and order them in the lobby before the fight can start.",
+      "No living soldiers left. Ask the teacher to reset the team.",
     );
   }
-  if (livingRosterCount(team) < PARTY_SIZE) {
+  if (team.activePartyIds.length !== need) {
     throw new Error(
-      `Not enough living soldiers (${livingRosterCount(team)}). Need ${PARTY_SIZE} to enter a room.`,
+      need < PARTY_SIZE
+        ? `Understrength roster (${need} living) — reform the line with all living soldiers before starting.`
+        : "This team has not formed a party yet. Students must pick 6 soldiers and order them in the lobby before the fight can start.",
     );
   }
   // Ensure every active id is alive and positioned
@@ -659,9 +698,16 @@ export function enterBetweenRooms(
     );
   } else {
     team.phase = "between_rooms";
+    const living = livingRosterCount(team);
+    const lineNote =
+      living >= PARTY_SIZE
+        ? `Reform a party of ${PARTY_SIZE} living soldiers.`
+        : living > 0
+          ? `Only ${living} living — field all of them understrength for room ${cleared + 1}.`
+          : `No living soldiers left — ask the teacher to reset.`;
     pushLog(
       team,
-      `Room ${cleared} cleared. Camping before room ${cleared + 1} of ${total}. Reform a party of 6 living soldiers.`,
+      `Room ${cleared} cleared. Camping before room ${cleared + 1} of ${total}. ${lineNote}`,
       ["system", "campaign"],
     );
   }
@@ -687,14 +733,20 @@ export function returnFromDefeat(team: TeamState): void {
   // Same room to retry: room 0 → lobby, later rooms → between_rooms camp UI
   team.phase = team.roomIndex === 0 ? "lobby" : "between_rooms";
 
-  if (living < PARTY_SIZE) {
+  const roomNum = team.roomIndex + 1;
+  if (living <= 0) {
     pushLog(
       team,
-      `Defeat — only ${living} living soldiers left (need ${PARTY_SIZE}). Ask the teacher to reset the team, or try with what you have if the roster recovers.`,
+      `Defeat — the whole roster has fallen. Ask the teacher to reset the team.`,
+      ["system", "campaign"],
+    );
+  } else if (living < PARTY_SIZE) {
+    pushLog(
+      team,
+      `Defeat on room ${roomNum}. Only ${living} living — reform understrength (all survivors) and try again, or ask the teacher to reset.`,
       ["system", "campaign"],
     );
   } else {
-    const roomNum = team.roomIndex + 1;
     pushLog(
       team,
       `Defeat on room ${roomNum}. Reform a party of ${PARTY_SIZE} from the ${living} living soldiers and try again.`,
@@ -703,9 +755,9 @@ export function returnFromDefeat(team: TeamState): void {
   }
 }
 
-/** Living soldiers available for the next room (need ≥6 to continue campaign). */
+/** True if at least one living soldier can still enter a room (understrength OK). */
 export function canFormNextParty(team: TeamState): boolean {
-  return livingRosterCount(team) >= PARTY_SIZE;
+  return livingRosterCount(team) >= 1;
 }
 
 export function livingRosterCount(team: TeamState): number {

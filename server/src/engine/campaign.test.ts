@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Grade } from "@dungeon-grades/shared";
 import {
+  canFormNextParty,
   commitFullRound,
   createTeam,
   enterBetweenRooms,
   placeMagnet,
+  requiredPartySize,
   returnFromDefeat,
   selectParty,
   startFight,
@@ -187,5 +189,68 @@ describe("campaign progression", () => {
     startFight(team, "ash_wraith", POOL);
     expect(team.phase).toBe("awaiting_magnet");
     expect(team.roomIndex).toBe(0);
+  });
+
+  it("allows understrength party when fewer than 6 living (no soft-lock)", () => {
+    const team = createTeam("c7", "CAMP7", "Short", 7);
+    team.phase = "between_rooms";
+    team.roomIndex = 1;
+    // Leave only 4 living
+    for (const s of team.roster) {
+      s.alive = false;
+      s.currentHp = 0;
+    }
+    const survivors = team.roster.slice(0, 4);
+    for (const s of survivors) {
+      s.alive = true;
+      s.currentHp = Math.max(1, Math.floor(s.maxHp / 2));
+    }
+
+    expect(requiredPartySize(team)).toBe(4);
+    expect(canFormNextParty(team)).toBe(true);
+
+    expect(() =>
+      selectParty(
+        team,
+        survivors.slice(0, 3).map((s) => s.id),
+      ),
+    ).toThrow(/all of them|Understrength/i);
+
+    selectParty(
+      team,
+      survivors.map((s) => s.id),
+    );
+    expect(team.activePartyIds).toHaveLength(4);
+    expect(
+      team.activePartyIds.map(
+        (id) => team.roster.find((s) => s.id === id)!.position,
+      ),
+    ).toEqual([1, 2, 3, 4]);
+
+    startFight(team, "bone_colossus", POOL);
+    expect(team.phase).toBe("awaiting_magnet");
+    expect(team.activePartyIds).toHaveLength(4);
+    expect(team.boss?.id).toBe("bone_colossus");
+  });
+
+  it("blocks party formation when the entire roster is dead", () => {
+    const team = createTeam("c8", "CAMP8", "Wipe", 8);
+    team.phase = "lobby";
+    for (const s of team.roster) {
+      s.alive = false;
+      s.currentHp = 0;
+    }
+    expect(requiredPartySize(team)).toBe(0);
+    expect(canFormNextParty(team)).toBe(false);
+    expect(() => selectParty(team, [])).toThrow(/No living/i);
+  });
+
+  it("still requires exactly 6 when 6+ living", () => {
+    const team = createTeam("c9", "CAMP9", "Full", 9);
+    team.phase = "lobby";
+    const five = team.roster.filter((s) => s.alive).slice(0, 5);
+    expect(() => selectParty(team, five.map((s) => s.id))).toThrow(
+      /exactly 6/i,
+    );
   });
 });

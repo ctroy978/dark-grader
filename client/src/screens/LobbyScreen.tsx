@@ -11,9 +11,9 @@ function emptySlots(): (string | null)[] {
 
 function slotsFromTeam(team: EnrichedTeam): (string | null)[] {
   const slots = emptySlots();
-  if (team.activePartyIds.length === PARTY_SIZE) {
+  if (team.activePartyIds.length > 0) {
     team.activePartyIds.forEach((id, i) => {
-      slots[i] = id;
+      if (i < PARTY_SIZE) slots[i] = id;
     });
     return slots;
   }
@@ -46,9 +46,9 @@ export default function LobbyScreen({
     s.emit("subscribe:team", team.teamId);
     const onState = (t: EnrichedTeam) => {
       onTeamUpdate(t);
-      // If server has a full party and local is empty, hydrate once
+      // If server has a party and local is empty, hydrate once
       setSlots((prev) => {
-        if (prev.every((x) => !x) && t.activePartyIds.length === PARTY_SIZE) {
+        if (prev.every((x) => !x) && t.activePartyIds.length > 0) {
           return slotsFromTeam(t);
         }
         return prev;
@@ -60,17 +60,25 @@ export default function LobbyScreen({
     };
   }, [team.teamId, onTeamUpdate]);
 
+  const alive = useMemo(
+    () => team.roster.filter((r) => r.alive),
+    [team.roster],
+  );
+  /** Full line of 6, or every survivor when the roster is understrength. */
+  const requiredSize = Math.min(PARTY_SIZE, alive.length);
+  const understrength = alive.length > 0 && alive.length < PARTY_SIZE;
+
   const filledIds = useMemo(
     () => slots.filter((id): id is string => !!id),
     [slots],
   );
   const filledCount = filledIds.length;
-  const complete = filledCount === PARTY_SIZE && new Set(filledIds).size === PARTY_SIZE;
-
-  const alive = useMemo(
-    () => team.roster.filter((r) => r.alive),
-    [team.roster],
-  );
+  const complete =
+    requiredSize > 0 &&
+    filledCount === requiredSize &&
+    new Set(filledIds).size === requiredSize &&
+    (!understrength ||
+      alive.every((s) => filledIds.includes(s.id)));
 
   const soldierById = useMemo(() => {
     const m = new Map(team.roster.map((s) => [s.id, s]));
@@ -97,6 +105,7 @@ export default function LobbyScreen({
   function placeSoldier(id: string) {
     const soldier = soldierById.get(id);
     if (!soldier?.alive) return;
+    if (requiredSize <= 0) return;
 
     setSlots((prev) => {
       const next = [...prev];
@@ -115,13 +124,21 @@ export default function LobbyScreen({
         return next;
       }
 
+      const filled = next.filter(Boolean).length;
       const target =
         activeSlot !== null ? activeSlot : next.findIndex((x) => x === null);
-      if (target < 0) return prev; // line full
+      if (target < 0) return prev;
+      // Don't grow past required size unless replacing an occupied slot
+      if (!next[target] && filled >= requiredSize) return prev;
       next[target] = id;
       return next;
     });
     setSavedOk(false);
+  }
+
+  /** Compact front→back ids for the API (no null holes). */
+  function partyIdsFromSlots(): string[] {
+    return slots.filter((id): id is string => !!id);
   }
 
   // After a place, auto-focus the next empty slot (front → back)
@@ -138,15 +155,19 @@ export default function LobbyScreen({
 
   async function saveParty() {
     if (!complete) {
-      setError("Fill all 6 positions before saving.");
+      setError(
+        understrength
+          ? `Field all ${requiredSize} living soldiers before saving.`
+          : "Fill all 6 positions before saving.",
+      );
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const soldierIds = slots as string[];
-      const t = await api.setRoster(team.teamId, soldierIds);
+      const t = await api.setRoster(team.teamId, partyIdsFromSlots());
       onTeamUpdate(t);
+      setSlots(slotsFromTeam(t));
       setSavedOk(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save party");
@@ -158,14 +179,18 @@ export default function LobbyScreen({
 
   async function startFight() {
     if (!complete) {
-      setError("Fill all 6 positions before starting.");
+      setError(
+        understrength
+          ? `Field all ${requiredSize} living soldiers before starting.`
+          : "Fill all 6 positions before starting.",
+      );
       return;
     }
     setBusy(true);
     setError(null);
     try {
       // Always save formation first so order is on the server
-      let t = await api.setRoster(team.teamId, slots as string[]);
+      let t = await api.setRoster(team.teamId, partyIdsFromSlots());
       t = await api.startFight(team.teamId);
       onTeamUpdate(t);
     } catch (err) {
@@ -245,13 +270,21 @@ export default function LobbyScreen({
         {team.phase === "between_rooms" && team.lastClearedBossName && (
           <p className="text-xs text-grade-a">
             Cleared {team.lastClearedBossName}. Living soldiers keep their HP — fallen
-            stay gone. Need 6 living to enter the next room.
+            stay gone.{" "}
+            {understrength
+              ? `Field all ${alive.length} survivors understrength for the next room.`
+              : `Pick ${PARTY_SIZE} living soldiers for the next room.`}
           </p>
         )}
-        {alive.length < 6 && (
+        {alive.length === 0 && (
           <p className="text-sm text-grade-f">
-            Only {alive.length} living soldiers — cannot form a full party. Campaign
-            stalled unless the teacher resets.
+            No living soldiers left — ask the teacher to reset the team.
+          </p>
+        )}
+        {understrength && (
+          <p className="text-sm text-grade-d">
+            Only {alive.length} living — you may continue <strong>understrength</strong>{" "}
+            (field every survivor). Harder fight; teacher reset still available.
           </p>
         )}
       </section>
@@ -260,7 +293,10 @@ export default function LobbyScreen({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-parchment">
-              1. Form your party of 6
+              1. Form your party
+              {understrength
+                ? ` of ${requiredSize} (understrength)`
+                : ` of ${PARTY_SIZE}`}
             </h2>
             <p className="text-sm text-parchment-dim mt-1 max-w-2xl">
               Click a <strong className="text-parchment">slot</strong>, then a soldier
@@ -269,12 +305,19 @@ export default function LobbyScreen({
               the boss and takes more hits.{" "}
               <strong className="text-parchment">Position 6 (back)</strong> is safer.
               You must set this line before every room, including the first.
+              {understrength && (
+                <>
+                  {" "}
+                  With attrition, place <strong className="text-parchment">all</strong>{" "}
+                  living soldiers (order still matters).
+                </>
+              )}
             </p>
           </div>
           <div className="text-sm text-parchment-dim">
             Filled{" "}
             <span className={complete ? "text-grade-a font-bold" : "text-rune font-bold"}>
-              {filledCount}/6
+              {filledCount}/{requiredSize || PARTY_SIZE}
             </span>
           </div>
         </div>
@@ -411,9 +454,13 @@ export default function LobbyScreen({
 
       <section className="sticky bottom-3 rounded-xl border border-parchment/15 bg-navy/95 p-3 flex flex-wrap gap-2 items-center shadow-lg">
         <span className="text-sm text-parchment-dim mr-auto">
-          {complete
-            ? "Lineup complete — save or enter the dungeon."
-            : `Choose ${PARTY_SIZE - filledCount} more soldier(s).`}
+          {alive.length === 0
+            ? "No living soldiers — teacher reset required."
+            : complete
+              ? understrength
+                ? "Understrength lineup ready — save or enter."
+                : "Lineup complete — save or enter the dungeon."
+              : `Choose ${Math.max(0, requiredSize - filledCount)} more soldier(s).`}
         </span>
         <button
           type="button"
@@ -425,7 +472,7 @@ export default function LobbyScreen({
         </button>
         <button
           type="button"
-          disabled={busy || !complete || alive.length < 6}
+          disabled={busy || !complete || alive.length < 1}
           onClick={() => void startFight()}
           className="rounded-lg bg-crimson hover:bg-crimson-bright px-5 py-2.5 text-sm font-semibold disabled:opacity-40"
         >

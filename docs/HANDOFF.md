@@ -91,6 +91,13 @@ Phases: `lobby` | `between_rooms` | `awaiting_magnet` | `resolving` | `boss_tele
 | **Victory** | Continue → camp → `POST .../continue` → `enterBetweenRooms` (idempotent). Final room → `campaign_complete`. |
 | **Defeat** | Reform & retry → `POST .../return-from-defeat` → same `roomIndex`; no camp heal; dead stay dead. |
 
+### Understrength parties (no soft-lock)
+
+- Living ≥ 6 → party must still be exactly **6**.
+- Living **1–5** → field **all** living soldiers (positions 1…N). Lobby + `selectParty` / `startFight` allow this.
+- Living **0** → cannot enter; teacher reset required.
+- `requiredPartySize(team)` / `canFormNextParty` (≥1 living) in `combat.ts`.
+
 ---
 
 ## Claim rules (rewritten 2026-07-15)
@@ -215,13 +222,14 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Balance pass** after playtests with new kits + magnet guarantee  
+1. **Balance pass** after playtests with new kits + magnet guarantee (Colossus + minions especially)  
 2. Finish missing art poses if any (commit under `public/art/`)  
 3. Classroom deploy (serve built client from server, one command)  
 4. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
 5. Image bubble frames  
 6. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
 7. Optional: skip minions when boss stunned  
+8. ~~Soft-lock when living &lt; 6~~ — fixed: understrength parties allowed
 
 ---
 
