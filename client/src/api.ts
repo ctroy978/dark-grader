@@ -48,6 +48,7 @@ export type BoardReveal = {
     currentHp: number;
     maxHp: number;
     damage?: number;
+    statuses?: import("@dungeon-grades/shared").StatusTag[];
   }>;
   partyShield: { remaining: number; active: boolean };
 };
@@ -114,6 +115,7 @@ export type EnrichedTeam = {
     currentHp: number;
     maxHp: number;
     damage?: number;
+    statuses?: import("@dungeon-grades/shared").StatusTag[];
   }[];
   cloud: Grade[];
   pendingTokens?: Grade[];

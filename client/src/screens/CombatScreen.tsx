@@ -51,7 +51,10 @@ function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
           statuses: (t.boss.statuses ?? []).map((st) => ({ ...st })),
         }
       : null,
-    minions: t.minions.map((m) => ({ ...m })),
+    minions: t.minions.map((m) => ({
+      ...m,
+      statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+    })),
     partyShield: { ...t.partyShield },
     lastClaims: [],
   };
@@ -86,7 +89,10 @@ function applyBoardReveal(
               statuses: (base.boss.statuses ?? []).map((st) => ({ ...st })),
             }
           : final.boss,
-      minions: base.minions.map((m) => ({ ...m })),
+      minions: base.minions.map((m) => ({
+        ...m,
+        statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+      })),
       partyShield: { ...base.partyShield },
     };
   }
@@ -116,7 +122,10 @@ function applyBoardReveal(
             ),
           }
         : final.boss,
-    minions: reveal.minions.map((m) => ({ ...m })),
+    minions: reveal.minions.map((m) => ({
+      ...m,
+      statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+    })),
     partyShield: { ...reveal.partyShield },
   };
 }
@@ -865,6 +874,7 @@ export default function CombatScreen({
                       alive={!dead}
                       currentHp={m.currentHp}
                       maxHp={m.maxHp}
+                      statuses={m.statuses}
                       size="sm"
                       subtitle={dead ? "fallen" : `ATK ${m.damage ?? 7}`}
                     />

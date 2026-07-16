@@ -277,10 +277,9 @@ export function commitRound(team: TeamState): TeamState {
 
   team.partyDamageBonus = 0;
 
-  // Clear personal block from the *previous* round before new party actions
-  for (const s of activeParty(team)) {
-    s.block = 0;
-  }
+  // Note: do NOT clear personal block here. Vanguard block is meant to absorb
+  // boss/minion (and same-round DoT) damage and only expire after that boss
+  // phase — clearing at Drop Tokens made chips vanish before any attack reveal.
 
   // Drop exactly the telegraphed pending tokens (already drawn when phase began)
   if (!team.pendingTokens?.length) {
@@ -535,6 +534,12 @@ export function resolveBoss(team: TeamState): TeamState {
     });
     // One party member reacts when attacked (bubble + rare VO)
     cueHurtMaybe(team, [...new Set(hurtVictims)], random);
+  }
+
+  // Defensive window closed: leftover personal block expires after the boss/add
+  // volley that could consume it (not at the next token drop).
+  for (const s of activeParty(team)) {
+    s.block = 0;
   }
 
   processDeaths(team);

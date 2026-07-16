@@ -49,6 +49,7 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       currentHp: m.currentHp,
       maxHp: m.maxHp,
       damage: m.damage,
+      statuses: (m.statuses ?? []).map((st) => ({ ...st })),
     })),
     partyShield: {
       remaining: team.partyShield.remaining,

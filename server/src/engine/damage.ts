@@ -116,7 +116,9 @@ export function applyCharge(soldier: Soldier, amount: number): void {
 /**
  * Deal damage to enemies. Minions first (design §6.6).
  * - single: all damage into first living minion, else boss
- * - chain: hit primary then up to `extraBounces` additional enemies
+ * - chain: hit primary then up to `extraBounces` additional enemies (reduced bounce dmg)
+ * - aoe: hit up to `extraBounces` **distinct** living enemies (minions first, then boss);
+ *   each takes full base damage. (`extraBounces` = max targets when mode is aoe.)
  *
  * Dead minions stay on the roster at 0 HP until `purgeDeadMinions` so the
  * client can show who killed them during action playback.
@@ -127,24 +129,29 @@ export function applyCharge(soldier: Soldier, amount: number): void {
 export function hitEnemies(
   team: TeamState,
   baseDamage: number,
-  mode: "single" | "chain" = "single",
+  mode: "single" | "chain" | "aoe" = "single",
   extraBounces = 0,
   minionBonus = 0,
   actor?: Soldier | null,
 ): string {
-  const bonus = (team.partyDamageBonus || 0) + consumeCharge(actor);
+  const charge = consumeCharge(actor);
+  const bonus = (team.partyDamageBonus || 0) + charge;
   const parts: string[] = [];
 
   const applyToBoss = (amount: number) => {
-    if (!team.boss || team.boss.currentHp <= 0) return;
+    if (!team.boss || team.boss.currentHp <= 0) return false;
     const mult = team.boss.curseDamageTakenMult || 1;
     const dmg = Math.min(team.boss.currentHp, Math.floor(amount * mult));
     team.boss.currentHp -= dmg;
     parts.push(`${dmg} to ${team.boss.name}`);
+    return true;
   };
 
-  const applyToMinion = (amount: number) => {
-    const m = team.minions.find((x) => x.currentHp > 0);
+  /** Hit first living minion (or a specific one for aoe). */
+  const applyToMinion = (amount: number, minionId?: string) => {
+    const m = minionId
+      ? team.minions.find((x) => x.id === minionId && x.currentHp > 0)
+      : team.minions.find((x) => x.currentHp > 0);
     if (!m) return false;
     const dmg = Math.min(m.currentHp, amount);
     m.currentHp -= dmg;
@@ -161,6 +168,34 @@ export function hitEnemies(
     const vsBoss = Math.max(0, Math.floor(baseDamage + bonus));
     const vsMinion = Math.max(0, Math.floor(baseDamage + bonus + minionBonus));
     if (!applyToMinion(vsMinion)) applyToBoss(vsBoss);
+    return parts.join("; ") || "no target";
+  }
+
+  if (mode === "aoe") {
+    // extraBounces carries max target count for aoe (A/B=3, C=2, D=1)
+    const maxTargets = Math.max(1, extraBounces);
+    const base = Math.max(0, Math.floor(baseDamage + (team.partyDamageBonus || 0)));
+    // Charge only on the first target so multi-hit kits don't explode with Thundercaller buffs
+    let chargeLeft = charge;
+
+    const livingMinionIds = team.minions
+      .filter((m) => m.currentHp > 0)
+      .map((m) => m.id);
+    let hits = 0;
+    for (const id of livingMinionIds) {
+      if (hits >= maxTargets) break;
+      const amount = base + minionBonus + chargeLeft;
+      chargeLeft = 0;
+      if (applyToMinion(amount, id)) hits += 1;
+    }
+    if (
+      hits < maxTargets &&
+      team.boss &&
+      team.boss.currentHp > 0
+    ) {
+      applyToBoss(base + chargeLeft);
+      hits += 1;
+    }
     return parts.join("; ") || "no target";
   }
 

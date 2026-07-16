@@ -22,10 +22,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Shield shorts out → 0 (nothing if already down)",
   },
   FireMage: {
-    A: "Big fire hit + cleanse party DoTs (not Fire)",
-    B: "Fire hit + cleanse front",
-    C: "Hit boss + friendly fire on front (ignores shield)",
-    D: "Weak hit + worse friendly fire",
+    A: "Wildfire ≤3 foes (9 each) + boss Fire burn; cleanse party DoTs (not Fire)",
+    B: "Wildfire ≤3 foes (7 each) + boss Fire burn; cleanse front",
+    C: "Wildfire ≤2 foes (6 each) + Fire burn; friendly fire front (ignores shield)",
+    D: "Ember 1 foe (4); worse friendly fire",
     F: "Explodes on the whole party (ignores shield)",
   },
   Healer: {
@@ -36,10 +36,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — heals the boss (+8)",
   },
   Archer: {
-    A: "Huge volley (18); +3 vs minions",
-    B: "Strong volley (13); +2 vs minions",
-    C: "Solid shot (9); +2 vs minions",
-    D: "Weak shot (4); +1 vs minions",
+    A: "Arrow Storm ≤3 foes (10; +2 vs minions)",
+    B: "Arrow Storm ≤3 foes (8; +1 vs minions)",
+    C: "Arrow Storm ≤2 foes (6; +1 vs minions)",
+    D: "Single shot (4; +1 vs minions)",
     F: "Misfire — tiny hit + may hurt an ally",
   },
   Doomcaller: {

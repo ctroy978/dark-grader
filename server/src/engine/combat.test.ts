@@ -113,6 +113,28 @@ describe("combat loop", () => {
     expect(team.magnetPosition).toBe(1);
   });
 
+  it("keeps personal block through party phase; expires only after boss resolve", () => {
+    const team = readyTeam();
+    // Simulate leftover Vanguard block from the prior defensive window
+    for (const s of team.roster) {
+      if (s.position) s.block = 8;
+    }
+    placeMagnet(team, 1);
+    commitRound(team);
+    // Must NOT wipe block at Drop Tokens (presentation needs chips until boss hits)
+    if (team.phase === "boss_telegraph") {
+      const stillBlocking = team.roster
+        .filter((s) => s.alive && s.position)
+        .some((s) => s.block > 0);
+      expect(stillBlocking).toBe(true);
+      resolveBoss(team);
+    }
+    // Leftover expires after the boss/add volley that can consume it
+    for (const s of team.roster.filter((x) => x.position)) {
+      expect(s.block).toBe(0);
+    }
+  });
+
   it("builds short presentation cues with bubbles on commit", () => {
     const team = readyTeam();
     placeMagnet(team, 1);

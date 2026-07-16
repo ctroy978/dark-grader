@@ -85,7 +85,7 @@ This section is for design review — update it when abilities change.
 | Enemy damage | **Minions first**, then boss (`hitEnemies`) |
 | Party damage bonus | Legacy field; Runesinger no longer uses it (token rewrite instead) |
 | Party shield | Opening **1d6** only if a living Shield Maiden is in the party; no stacking; Maiden **A** rerolls it; Maiden **F** dumps it to 0 |
-| Personal block | Vanguard; absorbs boss/minion damage this round; **clears next party phase** |
+| Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
 | Friendly fire | Many backfires **bypass** shield + block |
 | Ice DoT | On claim: **downgrade grade one step** (A→B … D→F; F stays) before resolve |
 | DoT ticks | Fire 6 / Ice 3 / Poison splash 9 per stack / Slime 2 — see `DOT_STATS` |
@@ -121,7 +121,7 @@ Full campaign roster = **22**. Names match art gender (see `server/src/seed/name
 | **D** | +**1** personal block, hit for **4** |
 | **F** | No block, hit for **2** |
 
-Personal block absorbs boss/minion damage this round (clears next party phase). Party block stacks on each living soldier’s personal block (includes self — so A self total block = 6+3 = 9). Not the same as party shield. Damage goes minions → boss.
+Personal block absorbs boss/minion/DoT damage after it is granted; leftover expires after the boss phase (so chips stay until the hit that spends them, not at the next token drop). Party block stacks on each living soldier’s personal block (includes self — so A self total block = 6+3 = 9). Not the same as party shield. Damage goes minions → boss.
 
 ---
 
@@ -141,17 +141,21 @@ Opening shield at fight start: **1d6** only when a living Maiden is in the party
 
 ---
 
-### FireMage — fire damage + cleanse (risky mid grades)
+### FireMage — Wildfire AOE + boss Fire burn + cleanse (risky mid grades)
 
-**Job (as coded):** burst + remove Ice/Poison/Slime (not Fire); C/D/F punish the party.
+**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss, cleanse Ice/Poison/Slime (not Fire). Per-target damage is lower than the old single-target burst so multi-hit doesn’t race the boss alone. C/D/F still punish the party.
 
-| Grade | Effect |
-|-------|--------|
-| **A** | Hit for **20**; cleanse **all** living party Ice/Poison/Slime |
-| **B** | Hit for **16**; cleanse **front line** (pos 1–3) Ice/Poison/Slime |
-| **C** | Hit for **12**; **2** friendly fire to pos **1 and 2** (bypasses shield/block) |
-| **D** | Hit for **5**; **3** friendly fire to pos **1 and 2** (bypasses) |
-| **F** | No enemy hit; **3** damage to **entire** living party (bypasses) |
+**AOE rules:** minions first, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots are unused (no minions → single boss hit).
+
+| Grade | Targets | Direct each | Boss Fire | Also |
+|-------|---------|-------------|-----------|------|
+| **A** | ≤**3** | **9** | **1** stack, **2** rounds | Cleanse **all** living party Ice/Poison/Slime |
+| **B** | ≤**3** | **7** | **1** stack, **2** rounds | Cleanse **front** (pos 1–3) |
+| **C** | ≤**2** | **6** | **1** stack, **2** rounds | **2** friendly fire to pos **1 and 2** (bypasses shield/block) |
+| **D** | **1** | **4** | — | **3** friendly fire to pos **1 and 2** (bypasses) |
+| **F** | — | — | — | No enemy hit; **3** damage to **entire** living party (bypasses) |
+
+Fire tick uses normal `DOT_STATS.Fire` (**6**/stack per DoT phase) on the **boss and any living minions** still standing after the hit (one-shots skip the chip). Minions show a Fire status under their portrait.
 
 ---
 
@@ -169,17 +173,19 @@ Opening shield at fight start: **1d6** only when a living Maiden is in the party
 
 ---
 
-### Archer — single-target damage (minion bonus)
+### Archer — Arrow Storm AOE (minion bonus)
 
-**Job (as coded):** high boss damage; extra bite when the shot hits a **minion** first.
+**Job (as coded):** multi-target volleys so one good token can clear the gap without parking the whole drop on DPS. Lower per-target damage than the old single-target kit; small **minion bonus** so adds die first.
 
-| Grade | vs boss | vs minion |
-|-------|---------|-----------|
-| **A** | **18** | **21** (+3) |
-| **B** | **13** | **15** (+2) |
-| **C** | **9** | **11** (+2) |
-| **D** | **4** | **5** (+1) |
-| **F** | Hit for **3** + **1–2** to a random ally (bypasses shield/block); no minion bonus |
+**AOE rules:** same as FireMage — minions first, then boss; A/B ≤**3**, C ≤**2**, D **1**.
+
+| Grade | Targets | vs boss each | vs minion each |
+|-------|---------|--------------|----------------|
+| **A** | ≤**3** | **10** | **12** (+2) |
+| **B** | ≤**3** | **8** | **9** (+1) |
+| **C** | ≤**2** | **6** | **7** (+1) |
+| **D** | **1** | **4** | **5** (+1) |
+| **F** | **1** | Hit for **3** + **1–2** to a random ally (bypasses shield/block); no minion bonus |
 
 ---
 
@@ -257,14 +263,14 @@ Mutates `effectiveGrade` on shared claim objects so later actors use the new gra
 
 ---
 
-### Rough A-damage comparison (single hit, no bonus, no curse)
+### Rough A-damage comparison (no bonus, no curse)
 
 Useful when weighing “who is just DPS?”
 
 | Archetype | A damage-ish | Notes |
 |-----------|--------------|--------|
-| Archer | 18 (21 vs minion) | Minion bonus |
-| FireMage | 20 | + full cleanse |
+| Archer | **10** each ≤3 foes (12 vs minion) | Arrow Storm AOE |
+| FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + cleanse |
 | Thundercaller | 14 + stun/charge | Single target |
 | ShieldMaiden | 14 + shield 1d6 | |
 | Necromancer | 12 + heal 10 | |

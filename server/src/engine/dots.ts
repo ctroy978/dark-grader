@@ -2,6 +2,7 @@ import {
   DOT_STATS,
   type BossState,
   type DotType,
+  type Minion,
   type Soldier,
   type TeamState,
 } from "@dungeon-grades/shared";
@@ -43,6 +44,24 @@ export function applyBossDot(
     existing.duration = Math.max(existing.duration, duration);
   } else {
     boss.statuses.push({ kind: "Dot", type, stacks, duration });
+  }
+}
+
+/** Apply / stack a DoT on a living minion (FireMage Wildfire, etc.). */
+export function applyMinionDot(
+  minion: Minion,
+  type: DotType,
+  stacks: number,
+  duration: number,
+): void {
+  if (minion.currentHp <= 0 || stacks <= 0) return;
+  if (!minion.statuses) minion.statuses = [];
+  const existing = minion.statuses.find((s) => s.kind === "Dot" && s.type === type);
+  if (existing && existing.kind === "Dot") {
+    existing.stacks += stacks;
+    existing.duration = Math.max(existing.duration, duration);
+  } else {
+    minion.statuses.push({ kind: "Dot", type, stacks, duration });
   }
 }
 
@@ -116,13 +135,27 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     !!team.boss?.statuses?.some((s) => s.kind === "Dot") &&
     (team.boss?.currentHp ?? 0) > 0;
 
-  if (!summary.length && !bossHasDots) {
+  const minionDotSummary: string[] = [];
+  for (const m of team.minions) {
+    if (m.currentHp <= 0) continue;
+    for (const st of m.statuses ?? []) {
+      if (st.kind === "Dot") {
+        minionDotSummary.push(
+          `${m.name}:${st.type}×${st.stacks}(${st.duration}r left)`,
+        );
+      }
+    }
+  }
+  const minionsHaveDots = minionDotSummary.length > 0;
+
+  if (!summary.length && !bossHasDots && !minionsHaveDots) {
     log(`— DoT phase: none active —`);
     return;
   }
 
-  if (summary.length) {
-    log(`— DoT phase — ${summary.join(" · ")}`);
+  if (summary.length || minionDotSummary.length) {
+    const bits = [...summary, ...minionDotSummary.map((s) => `add ${s}`)];
+    log(`— DoT phase — ${bits.join(" · ")}`);
   } else {
     log(`— DoT phase — boss marks only —`);
   }
@@ -187,7 +220,40 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   // --- Boss DoTs (Doomcaller transfers, death poison) ---
   tickBossDots(team, log);
 
+  // --- Minion DoTs (FireMage Wildfire on adds) ---
+  tickMinionDots(team, log);
+
   log(`— End DoT phase —`);
+}
+
+/** Tick Fire/etc. on living adds; remove dead after burn kills. */
+export function tickMinionDots(
+  team: TeamState,
+  log: (text: string) => void,
+): void {
+  for (const m of team.minions) {
+    if (m.currentHp <= 0 || !m.statuses?.length) continue;
+    const dots = m.statuses.filter((s) => s.kind === "Dot");
+    for (const dot of dots) {
+      if (dot.kind !== "Dot") continue;
+      const perTick = DOT_STATS[dot.type].tick * dot.stacks;
+      const dmg = Math.min(m.currentHp, perTick);
+      m.currentHp -= dmg;
+      log(
+        `  [Add ${dot.type}×${dot.stacks}] ${dmg} to ${m.name} · ${dot.duration - 1}r left`,
+      );
+      dot.duration -= 1;
+      if (m.currentHp <= 0) {
+        m.currentHp = 0;
+        log(`  ${m.name} burns out!`);
+        break;
+      }
+    }
+    m.statuses = (m.statuses ?? []).filter(
+      (s) => !(s.kind === "Dot" && s.duration <= 0),
+    );
+    if (m.currentHp <= 0) m.statuses = [];
+  }
 }
 
 /** Damage the boss for each DoT stack, then expire. */

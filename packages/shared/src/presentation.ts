@@ -25,6 +25,7 @@ export interface BoardReveal {
     currentHp: number;
     maxHp: number;
     damage?: number;
+    statuses?: StatusTag[];
   }>;
   partyShield: { remaining: number; active: boolean };
 }

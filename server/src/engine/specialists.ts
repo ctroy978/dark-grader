@@ -21,6 +21,7 @@ import {
 import {
   applyBossDot,
   applyDot,
+  applyMinionDot,
   bossDotTypes,
   cleanseDots,
   stripDotsAndMarks,
@@ -176,6 +177,10 @@ function shieldMaiden(
   log(`${label}: attacks for ${r}`);
 }
 
+/**
+ * FireMage — Wildfire: reduced per-target damage, AOE by grade, Fire burn on
+ * every living foe hit (minions + boss). Targets: A/B ≤3, C ≤2, D 1. F unchanged.
+ */
 function fireMage(
   soldier: Soldier,
   g: Grade,
@@ -185,23 +190,78 @@ function fireMage(
 ): void {
   const cleanseable = ["Ice", "Poison", "Slime"] as const;
 
+  if (g === "F") {
+    // F unchanged — party explosion, no enemy hit
+    const hits: string[] = [];
+    for (const s of livingParty(team)) {
+      hits.push(
+        formatPartyHit(
+          s,
+          applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
+        ),
+      );
+    }
+    log(`${label}: EXPLOSION (ignores shield/block)! ${hits.join("; ")}`);
+    return;
+  }
+
+  const table: Record<
+    Exclude<Grade, "F">,
+    { dmg: number; targets: number; fireStacks: number; fireDuration: number }
+  > = {
+    A: { dmg: 9, targets: 3, fireStacks: 1, fireDuration: 2 },
+    B: { dmg: 7, targets: 3, fireStacks: 1, fireDuration: 2 },
+    C: { dmg: 6, targets: 2, fireStacks: 1, fireDuration: 2 },
+    D: { dmg: 4, targets: 1, fireStacks: 0, fireDuration: 0 },
+  };
+  const t = table[g];
+
+  // Snapshot so we only light enemies this cast actually touched
+  const minionHpBefore = new Map(
+    team.minions.map((m) => [m.id, m.currentHp] as const),
+  );
+  const bossHpBefore = team.boss?.currentHp ?? 0;
+
+  const r = hitEnemies(team, t.dmg, "aoe", t.targets, 0, soldier);
+
+  const burnBits: string[] = [];
+  if (t.fireStacks > 0) {
+    let touchedAny = false;
+    for (const m of team.minions) {
+      const prev = minionHpBefore.get(m.id) ?? m.currentHp;
+      if (!(prev > 0 && m.currentHp < prev)) continue;
+      touchedAny = true;
+      // Still living → Fire chip + DoT tick; one-shots skip (already dead)
+      if (m.currentHp > 0) {
+        applyMinionDot(m, "Fire", t.fireStacks, t.fireDuration);
+        burnBits.push(`${m.name} Fire×${t.fireStacks}`);
+      }
+    }
+    const bossHit =
+      !!team.boss && bossHpBefore > 0 && team.boss.currentHp < bossHpBefore;
+    if (bossHit) touchedAny = true;
+    // Boss burns if hit directly, or if the storm only raked adds (embers catch)
+    if (team.boss && team.boss.currentHp > 0 && touchedAny) {
+      applyBossDot(team.boss, "Fire", t.fireStacks, t.fireDuration);
+      burnBits.push(`boss Fire×${t.fireStacks} (${t.fireDuration}r)`);
+    }
+  }
+  const burnNote = burnBits.length ? `; ${burnBits.join(", ")}` : "";
+
   if (g === "A") {
-    const r = hitEnemies(team, 20, "single", 0, 0, soldier);
     const n = cleanseDots(livingParty(team), [...cleanseable]);
-    log(`${label}: ${r}; cleansed ${n} non-Fire DoTs`);
+    log(`${label}: Wildfire ${r}${burnNote}; cleansed ${n} non-Fire DoTs`);
     return;
   }
   if (g === "B") {
-    const r = hitEnemies(team, 16, "single", 0, 0, soldier);
     const front = livingParty(team).filter(
       (s) => s.position && s.position <= 3,
     );
     const n = cleanseDots(front, [...cleanseable]);
-    log(`${label}: ${r}; cleansed front (${n})`);
+    log(`${label}: Wildfire ${r}${burnNote}; cleansed front (${n})`);
     return;
   }
   if (g === "C") {
-    const r = hitEnemies(team, 12, "single", 0, 0, soldier);
     const hits: string[] = [];
     for (const pos of [1, 2] as const) {
       const s = soldierAt(team, pos);
@@ -214,37 +274,27 @@ function fireMage(
         );
       }
     }
-    log(`${label}: ${r}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`);
-    return;
-  }
-  if (g === "D") {
-    const r = hitEnemies(team, 5, "single", 0, 0, soldier);
-    const hits: string[] = [];
-    for (const pos of [1, 2] as const) {
-      const s = soldierAt(team, pos);
-      if (s) {
-        hits.push(
-          formatPartyHit(
-            s,
-            applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
-          ),
-        );
-      }
-    }
-    log(`${label}: ${r}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`);
-    return;
-  }
-  // F explosion
-  const hits: string[] = [];
-  for (const s of livingParty(team)) {
-    hits.push(
-      formatPartyHit(
-        s,
-        applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
-      ),
+    log(
+      `${label}: Wildfire ${r}${burnNote}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`,
     );
+    return;
   }
-  log(`${label}: EXPLOSION (ignores shield/block)! ${hits.join("; ")}`);
+  // D — single-target ember, no burn, worse friendly fire
+  const hits: string[] = [];
+  for (const pos of [1, 2] as const) {
+    const s = soldierAt(team, pos);
+    if (s) {
+      hits.push(
+        formatPartyHit(
+          s,
+          applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
+        ),
+      );
+    }
+  }
+  log(
+    `${label}: ember ${r}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`,
+  );
 }
 
 function healer(
@@ -294,6 +344,11 @@ function healer(
   log(`${label}: self-heal ${h}`);
 }
 
+/**
+ * Archer — Arrow Storm: AOE by grade (A/B≤3, C≤2, D=1), lower per-target damage.
+ * Small minion bonus so add-clear stays the job without old single-target boss spikes.
+ * F unchanged (misfire).
+ */
 function archer(
   soldier: Soldier,
   g: Grade,
@@ -319,17 +374,19 @@ function archer(
     }
     return;
   }
-  // Base damage unchanged; extra only when the shot lands on a minion
-  const table: Record<Exclude<Grade, "F">, { dmg: number; vsMinion: number }> =
-    {
-      A: { dmg: 18, vsMinion: 3 },
-      B: { dmg: 13, vsMinion: 2 },
-      C: { dmg: 9, vsMinion: 2 },
-      D: { dmg: 4, vsMinion: 1 },
-    };
+  const table: Record<
+    Exclude<Grade, "F">,
+    { dmg: number; targets: number; vsMinion: number }
+  > = {
+    // 10+2=12 vs minion → one-shots Bone Archers; mites (7) die easily
+    A: { dmg: 10, targets: 3, vsMinion: 2 },
+    B: { dmg: 8, targets: 3, vsMinion: 1 },
+    C: { dmg: 6, targets: 2, vsMinion: 1 },
+    D: { dmg: 4, targets: 1, vsMinion: 1 },
+  };
   const t = table[g as Exclude<Grade, "F">];
-  const r = hitEnemies(team, t.dmg, "single", 0, t.vsMinion, soldier);
-  log(`${label}: volley ${r}`);
+  const r = hitEnemies(team, t.dmg, "aoe", t.targets, t.vsMinion, soldier);
+  log(`${label}: Arrow Storm ${r}`);
 }
 
 /**

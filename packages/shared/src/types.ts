@@ -93,6 +93,8 @@ export interface Minion {
   currentHp: number;
   maxHp: number;
   damage: number;
+  /** DoTs on adds (e.g. FireMage Wildfire). Optional for older saves. */
+  statuses?: StatusTag[];
 }
 
 export interface BossState {

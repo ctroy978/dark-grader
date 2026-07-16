@@ -143,7 +143,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 
 ### Personal block (Vanguard)
 - A–C personal block + party-wide block; D/F still hit  
-- Clears next party phase  
+- Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
 
 ### DoTs
 - Fire 6 / Ice 3 / Poison party splash 9/stack / Slime 2 — `DOT_STATS`  
@@ -167,9 +167,9 @@ Full tables live in **`README.md` → Character abilities**. High level:
 |-----------|------|
 | **Vanguard** | Personal block + hit; A–C also +party block (self A=6+3, B=4+2) |
 | **ShieldMaiden** | Damage ladder; A refresh shield; F dump shield |
-| **FireMage** | High damage (A20/B16/C12) + cleanse; C/D/F friendly fire |
+| **FireMage** | Wildfire AOE (A/B≤3, C≤2, D1) + boss Fire burn; cleanse; C/D/F friendly fire |
 | **Healer** | A all / B front / C **back** heal+Marks; F boss heal +8 |
-| **Archer** | ST damage + minion bonus (A+3…D+1); F misfire |
+| **Archer** | Arrow Storm AOE (A/B≤3, C≤2, D1) + small minion bonus; F misfire |
 | **Doomcaller** | Strip/transfer DoTs to boss (A stacks 2r, B unique 3r, C/D cleanse lines); F copy boss types onto self; death → poison by last claim tier |
 | **Necromancer** | Drain + heal lowest; F hit **highest-HP ally 10** (no boss heal) |
 | **Thundercaller** | Single lightning (no chain); A/B/C 30% boss stun; A front Charge+3 / B back Charge+3; F 30% stun **unresolved** claimer |
