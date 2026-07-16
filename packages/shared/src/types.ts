@@ -192,8 +192,8 @@ export interface ClassroomState {
 /** Default dungeon path for a class period */
 export const DEFAULT_CAMPAIGN_LENGTH = 3;
 export const DEFAULT_ROOM_BOSSES = [
+  "moss_grub",
   "ash_wraith",
-  "bone_colossus",
   "bone_colossus",
 ] as const;
 

@@ -129,6 +129,13 @@ weight = 3
 sfx = "boss_bone_summon"
 bubble_lines = ["Rise, archers!", "Bones—fire!", "Fill the gap!"]
 use_laugh = true
+minion_id = "bone_archer"
+minion_name = "Bone Archer"
+minion_max_hp = 12
+minion_damage = 4
+minion_max_count = 2
+free_volley = true
+open_count = 0
 
 [[attacks]]
 id = "PoisonCloud"

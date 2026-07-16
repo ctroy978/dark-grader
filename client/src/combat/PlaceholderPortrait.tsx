@@ -145,6 +145,12 @@ export function PlaceholderPortrait({
     setUseImg(true);
   }, [imgSrc]);
 
+  // Boss art is often a tall bust; party uses short cards with object-top.
+  // object-cover + object-top on a short wide boss frame only showed the scalp.
+  const imgFit = isBoss
+    ? "w-full h-full object-contain object-center block"
+    : "w-full h-full object-cover object-top block";
+
   if (useImg) {
     return (
       <div
@@ -156,7 +162,7 @@ export function PlaceholderPortrait({
         <img
           src={imgSrc}
           alt=""
-          className="w-full h-full object-cover object-top block"
+          className={imgFit}
           style={{ filter: t.filter, opacity: t.opacity }}
           onError={() => setUseImg(false)}
           draggable={false}

@@ -51,8 +51,8 @@ moss_grub
 | 5 | `barrow_warden` | Dress rehearsal + grade signatures | Grave thrall (conditional) |
 | 6 | `bone_colossus` | Final exam | Bone Archers (full) |
 
-**Shipped today:** `ash_wraith`, `bone_colossus` only.  
-**Default in code today:** still 3 rooms Ash → Colossus → Colossus — change when path ships.
+**Shipped today:** `moss_grub`, `ash_wraith`, `bone_colossus`.  
+**Default in code today:** 3 rooms **Moss Grub → Ash → Colossus**.
 
 Teacher may still override `campaignLength` / `roomBossIds`.
 
@@ -116,7 +116,7 @@ Cascade / FireMage FF left for a later pass if needed.
 
 ## 5. Boss specs
 
-### 5.1 Room 1 — Moss Grub (`moss_grub`)
+### 5.1 Room 1 — Moss Grub (`moss_grub`) — **shipped**
 
 **Teaching sentence:** “Learn the loop; bugs in the gap are snacks.”
 
@@ -364,6 +364,7 @@ Poses: `standing`, `attack`, `hit`, `death` (death optional for adds).
 | Date | Note |
 |------|------|
 | 2026-07-15 | Initial plan from playtest + design discussion: 6-room arc, A+ Colossus/Ash numbers, thrall grade heal, Dominated Option C, implementation slices |
+| 2026-07-16 | Moss Grub room 1 shipped: TOML + light attacks + parameterized mite summon; default path Grub → Ash → Colossus |
 
 ---
 

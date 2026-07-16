@@ -12,7 +12,7 @@ import {
 import { instantiateBoss } from "../seed/bosses.js";
 import { getBossTemplate } from "../seed/bossLoader.js";
 import { createCampaignRoster } from "../seed/roster.js";
-import { resolveBossPhase } from "./bosses.js";
+import { openingMinionsForBoss, resolveBossPhase } from "./bosses.js";
 import { resolveClaims, setMagnet } from "./claims.js";
 import {
   activeParty,
@@ -177,7 +177,8 @@ export function startFight(
 
   const random = createRng(team.rngSeed + team.roomIndex * 997);
   team.boss = instantiateBoss(bossTemplateId);
-  team.minions = [];
+  // Soft tutorial mites (and any future open_count summons) enter with the boss
+  team.minions = openingMinionsForBoss(bossTemplateId);
   team.tokens = createTokenPool(gradePool, random);
   team.pendingTokens = [];
   team.round = 1;

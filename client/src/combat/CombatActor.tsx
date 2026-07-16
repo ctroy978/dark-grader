@@ -94,8 +94,16 @@ export function CombatActor({
   const pose = poseOverride ?? poseForUnit(unitId, alive, cue);
   const fx = fxClassesForUnit(unitId, cue);
   const speaking = cue?.bubble?.speakerId === unitId;
-  const h =
-    size === "lg" ? "h-28 md:h-36" : size === "sm" ? "h-16 md:h-20" : "h-20 md:h-24";
+  const isBoss = portrait.role === "boss";
+  // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
+  // Party/minion: fixed height cards.
+  const frameClass = isBoss
+    ? "w-full max-w-[12rem] md:max-w-[14rem] aspect-[5/6] h-auto mx-auto"
+    : size === "lg"
+      ? "w-full h-28 md:h-36"
+      : size === "sm"
+        ? "w-full h-16 md:h-20"
+        : "w-full h-20 md:h-24";
 
   return (
     <div className={`relative flex flex-col items-center ${className} ${fx}`}>
@@ -112,7 +120,7 @@ export function CombatActor({
         </span>
       )}
       {speaking && cue && <SpeechBubble cue={cue} anchor="top" />}
-      <PlaceholderPortrait kind={portrait} pose={pose} className={`w-full ${h}`} />
+      <PlaceholderPortrait kind={portrait} pose={pose} className={frameClass} />
       {showName && (
         <div className="text-[10px] md:text-xs font-medium truncate w-full text-center mt-0.5 leading-tight">
           {name}

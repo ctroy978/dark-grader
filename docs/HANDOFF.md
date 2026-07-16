@@ -71,7 +71,7 @@ README.md            Full ability reference for design review (keep in sync with
 | Round advance | Explicit **Drop Tokens**; boss telegraph then resolve-boss |
 | UI teaching | Board first (poses, labels, playbook); log is secondary |
 | Party size | 6 of **22** roster |
-| Campaign | **Runtime default still 3 rooms** (Ash → Colossus → Colossus). **Target:** 6 rooms per `docs/BOSS_PLAN.md` (Grub → Ash → Herald → Captain → Warden → Colossus) |
+| Campaign | **Runtime default 3 rooms:** Moss Grub → Ash → Colossus. **Target:** 6 rooms per `docs/BOSS_PLAN.md` (Grub → Ash → Herald → Captain → Warden → Colossus) |
 | Damage priority | Party hits **minions first**, then boss (`hitEnemies`) |
 
 ---
@@ -209,7 +209,7 @@ Full tables live in **`README.md` → Character abilities**. High level:
 ```
 client/public/art/{key}/{pose}.png
 ```
-Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `ash_wraith`, `bone_colossus`, **`bone_archer`** (minions — not nested under colossus).  
+Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `bone_colossus`, **`bone_archer`**, **`moss_mite`** (minions — not nested under boss folders).  
 Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ---
@@ -225,7 +225,7 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Boss plan Slice A** — see `docs/BOSS_PLAN.md`: parameterized summon, Moss Grub, default 6-room path  
+1. **Boss plan Slice A (partial)** — Moss Grub shipped as room 1; parameterized summon in TOML; full 6-room path still open  
 2. Slices B–C — Herald, Captain, Warden (thrall + Dominated)  
 3. Finish missing art poses / new boss art (commit under `public/art/`)  
 4. Classroom deploy (serve built client from server, one command)  

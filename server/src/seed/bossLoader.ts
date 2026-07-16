@@ -4,6 +4,19 @@ import { fileURLToPath } from "node:url";
 import { parse as parseToml } from "smol-toml";
 import type { AudioClipDef } from "../audio/catalog.js";
 
+/** Optional summon kit on an attack row (parameterized minions). */
+export interface BossSummonDef {
+  minionId: string;
+  minionName: string;
+  maxHp: number;
+  damage: number;
+  maxCount: number;
+  /** When already at maxCount, fire free shots instead of spawning (Colossus). */
+  freeVolley: boolean;
+  /** Spawn this many living minions at fight start. */
+  openCount: number;
+}
+
 export interface BossAttackDef {
   id: string;
   weight: number;
@@ -11,6 +24,7 @@ export interface BossAttackDef {
   bubble_lines: string[];
   use_grunt?: boolean;
   use_laugh?: boolean;
+  summon?: BossSummonDef;
 }
 
 export interface BossTemplate {
@@ -59,6 +73,13 @@ interface RawBossToml {
     bubble_lines?: string[];
     use_grunt?: boolean;
     use_laugh?: boolean;
+    minion_id?: string;
+    minion_name?: string;
+    minion_max_hp?: number;
+    minion_damage?: number;
+    minion_max_count?: number;
+    free_volley?: boolean;
+    open_count?: number;
   }>;
 }
 
@@ -81,14 +102,39 @@ function parseBossFile(filePath: string): BossTemplate {
   if (!raw.id || !raw.name || !raw.max_hp) {
     throw new Error(`Invalid boss TOML ${filePath}: need id, name, max_hp`);
   }
-  const attacks: BossAttackDef[] = (raw.attacks ?? []).map((a) => ({
-    id: a.id,
-    weight: a.weight ?? 1,
-    sfx: a.sfx,
-    bubble_lines: a.bubble_lines ?? [],
-    use_grunt: a.use_grunt,
-    use_laugh: a.use_laugh,
-  }));
+  const attacks: BossAttackDef[] = (raw.attacks ?? []).map((a) => {
+    const base: BossAttackDef = {
+      id: a.id,
+      weight: a.weight ?? 1,
+      sfx: a.sfx,
+      bubble_lines: a.bubble_lines ?? [],
+      use_grunt: a.use_grunt,
+      use_laugh: a.use_laugh,
+    };
+    // Summon params: any of the minion_* keys, or a Summon* attack id with defaults later
+    if (
+      a.minion_id ||
+      a.minion_name ||
+      a.minion_max_hp != null ||
+      a.minion_damage != null ||
+      a.minion_max_count != null ||
+      a.free_volley != null ||
+      a.open_count != null
+    ) {
+      base.summon = {
+        minionId:
+          a.minion_id ??
+          (a.id.replace(/^Summon/i, "").toLowerCase() || "minion"),
+        minionName: a.minion_name ?? "Minion",
+        maxHp: a.minion_max_hp ?? 10,
+        damage: a.minion_damage ?? 3,
+        maxCount: a.minion_max_count ?? 2,
+        freeVolley: a.free_volley ?? false,
+        openCount: a.open_count ?? 0,
+      };
+    }
+    return base;
+  });
   if (!attacks.length) {
     throw new Error(`Boss ${raw.id} has no [[attacks]]`);
   }

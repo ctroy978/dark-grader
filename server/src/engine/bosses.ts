@@ -6,10 +6,71 @@ import {
   attackDef,
   getBossTemplate,
   pickFromPool,
+  type BossSummonDef,
   type BossTemplate,
 } from "../seed/bossLoader.js";
 
 export type LogFn = (text: string) => void;
+
+/** Legacy defaults when TOML has no summon block (older content packs). */
+const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
+  SummonBoneArchers: {
+    minionId: "bone_archer",
+    minionName: "Bone Archer",
+    maxHp: 12,
+    damage: 4,
+    maxCount: 2,
+    freeVolley: true,
+    openCount: 0,
+  },
+  SummonMossMites: {
+    minionId: "moss_mite",
+    minionName: "Moss Mite",
+    maxHp: 7,
+    damage: 2,
+    maxCount: 2,
+    freeVolley: false,
+    openCount: 1,
+  },
+};
+
+export function resolveSummonSpec(
+  template: BossTemplate | undefined,
+  attackId: string,
+): BossSummonDef | undefined {
+  const fromToml = template ? attackDef(template, attackId)?.summon : undefined;
+  if (fromToml) return fromToml;
+  return DEFAULT_SUMMONS[attackId];
+}
+
+function isSummonAttackId(
+  template: BossTemplate | undefined,
+  attackId: string,
+): boolean {
+  return resolveSummonSpec(template, attackId) != null;
+}
+
+/** Opening minions for a boss (sum of open_count across summon attacks). */
+export function openingMinionsForBoss(bossTemplateId: string): Minion[] {
+  const template = getBossTemplate(bossTemplateId);
+  if (!template) return [];
+  const out: Minion[] = [];
+  for (const atk of template.attacks) {
+    const spec = resolveSummonSpec(template, atk.id);
+    if (!spec || spec.openCount <= 0) continue;
+    const n = Math.min(spec.openCount, spec.maxCount);
+    for (let i = 0; i < n; i++) {
+      out.push({
+        id: `${spec.minionId}_open_${i}`,
+        name: spec.minionName,
+        maxHp: spec.maxHp,
+        currentHp: spec.maxHp,
+        damage: spec.damage,
+      });
+    }
+  }
+  return out;
+}
 
 export interface BossAttackPresent {
   attackId: string;
@@ -70,18 +131,28 @@ function pickWeightedAttack(
 ): string {
   const attackIds = template.attackIds;
   const noMinions = livingMinionCount(team) === 0;
-  const hasSummon = attackIds.includes("SummonBoneArchers");
+  const summonIds = attackIds.filter((id) => isSummonAttackId(template, id));
 
-  if (hasSummon && noMinions) {
+  // Prefer filling the gap when empty (tutorial mites + Colossus archers)
+  if (summonIds.length && noMinions) {
     const force = team.round >= 2 || random() < 0.7;
-    if (force) return "SummonBoneArchers";
+    if (force) {
+      return summonIds[Math.floor(random() * summonIds.length)]!;
+    }
   }
 
+  const living = livingMinionCount(team);
   const weights = attackIds.map((id) => {
     const def = attackDef(template, id);
     let w = def?.weight ?? 2;
-    if (id === "SummonBoneArchers" && noMinions) w *= 4;
-    if (id === "SummonBoneArchers" && livingMinionCount(team) >= 2) w = 0.5;
+    const summon = resolveSummonSpec(template, id);
+    if (summon) {
+      if (noMinions) w *= 4;
+      if (living >= summon.maxCount) {
+        // Free-volley kits still want occasional full-gap pressure; toy adds drop weight hard
+        w = summon.freeVolley ? 0.5 : 0.05;
+      }
+    }
     return w;
   });
   const total = weights.reduce((a, b) => a + b, 0);
@@ -255,6 +326,13 @@ function performAttack(
     return hpLost;
   };
 
+  // Parameterized summons (Moss Mites, Bone Archers, future adds)
+  const summonSpec = resolveSummonSpec(getBossTemplate(boss.id), attackId);
+  if (summonSpec) {
+    performSummon(team, summonSpec, random, log, dmg, hit, victims);
+    return [...victims];
+  }
+
   switch (attackId) {
     case "FrontSlam": {
       log(`${boss.name} uses Front Slam!`);
@@ -267,10 +345,30 @@ function performAttack(
       }
       break;
     }
+    case "LightFrontSlam": {
+      // Tutorial-tier: ~60% of FrontSlam
+      log(`${boss.name} uses a soft Front Slam!`);
+      for (const pos of [1, 2, 3]) {
+        const s = soldierAt(team, pos);
+        if (!s) continue;
+        const base = pos === 1 ? 7 : pos === 2 ? 5 : 3;
+        const hpLost = hit(s, dmg(base));
+        log(`  ${s.name} takes ${hpLost}`);
+      }
+      break;
+    }
     case "LineAttack": {
       log(`${boss.name} uses Line Attack!`);
       for (const s of livingParty(team)) {
         const hpLost = hit(s, dmg(7));
+        log(`  ${s.name} takes ${hpLost}`);
+      }
+      break;
+    }
+    case "LightLineAttack": {
+      log(`${boss.name} uses a light Line Attack!`);
+      for (const s of livingParty(team)) {
+        const hpLost = hit(s, dmg(4));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;
@@ -322,34 +420,6 @@ function performAttack(
       }
       break;
     }
-    case "SummonBoneArchers": {
-      const livingAdds = livingMinionCount(team);
-      const toSpawn = Math.max(0, 2 - livingAdds);
-      for (let i = 0; i < toSpawn; i++) {
-        const m: Minion = {
-          id: `bone_archer_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
-          name: "Bone Archer",
-          maxHp: 12,
-          currentHp: 12,
-          // Glass summoner package: adds tax DPS but clear quickly
-          damage: 4,
-        };
-        team.minions.push(m);
-      }
-      if (toSpawn > 0) {
-        log(`${boss.name} summons ${toSpawn} Bone Archer(s) into the gap!`);
-      } else {
-        log(`${boss.name} rallies the archers — free volley!`);
-        for (const minion of team.minions) {
-          if (minion.currentHp <= 0) continue;
-          const target = magnetBiasedTarget(team, random);
-          if (!target) break;
-          const hpLost = hit(target, dmg(minion.damage));
-          log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
-        }
-      }
-      break;
-    }
     case "PoisonCloud": {
       log(`${boss.name} exhales a Poison Cloud!`);
       for (const pos of [1, 2, 3, 4, 5, 6]) {
@@ -371,4 +441,49 @@ function performAttack(
     }
   }
   return [...victims];
+}
+
+function performSummon(
+  team: TeamState,
+  spec: BossSummonDef,
+  random: () => number,
+  log: LogFn,
+  dmg: (base: number) => number,
+  hit: (s: { id: string }, amount: number) => number,
+  victims: Set<string>,
+): void {
+  const boss = team.boss!;
+  const livingAdds = livingMinionCount(team);
+  const toSpawn = Math.max(0, spec.maxCount - livingAdds);
+  for (let i = 0; i < toSpawn; i++) {
+    const m: Minion = {
+      id: `${spec.minionId}_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
+      name: spec.minionName,
+      maxHp: spec.maxHp,
+      currentHp: spec.maxHp,
+      damage: spec.damage,
+    };
+    team.minions.push(m);
+  }
+  if (toSpawn > 0) {
+    log(
+      `${boss.name} summons ${toSpawn} ${spec.minionName}(s) into the gap!`,
+    );
+    return;
+  }
+  if (spec.freeVolley) {
+    log(`${boss.name} rallies the ${spec.minionName}s — free volley!`);
+    for (const minion of team.minions) {
+      if (minion.currentHp <= 0) continue;
+      const target = magnetBiasedTarget(team, random);
+      if (!target) break;
+      const hpLost = hit(target, dmg(minion.damage));
+      if (hpLost > 0) victims.add(target.id);
+      log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
+    }
+  } else {
+    log(
+      `${boss.name} thrashing — the gap is already full of ${spec.minionName}s!`,
+    );
+  }
 }
