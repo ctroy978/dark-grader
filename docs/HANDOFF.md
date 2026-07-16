@@ -1,10 +1,12 @@
 # Dungeon Grades — Agent Handoff
 
-**Last updated:** 2026-07-15 (post ability rework + claim rules + roster/art)  
+**Last updated:** 2026-07-15 (boss plan written; understrength + balance A+ shipped)  
 **Repo:** `ctroy978/dark-grader` (local path often `/home/tcoop/Work/darker`)  
 **Owner:** Troy / ctroy978 — classroom only (LAN, firewall, no public SaaS)
 
-Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `Dungeon_Grades_UI_Spec.md`, `docs/DESIGN.md`. **Code + this handoff + README ability section win** when they disagree with older docs.
+Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `Dungeon_Grades_UI_Spec.md`, `docs/DESIGN.md`.  
+**Boss / 6-room campaign plan:** [`docs/BOSS_PLAN.md`](./BOSS_PLAN.md) — refer here for the ladder, thrall rules, Dominated, and build slices.  
+**Code + this handoff + README ability section win** when they disagree with older docs; update `BOSS_PLAN.md` when boss design ships or changes.
 
 ---
 
