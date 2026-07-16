@@ -54,7 +54,7 @@ client/
   src/combat/        CombatActor, PlaceholderPortrait, poses, SpeechBubble, StatusChips
   src/screens/       CombatScreen (playback + visualHold), Lobby, Teacher, Join
   public/art/        {key}/{pose}.png
-docs/                DESIGN.md, this HANDOFF.md
+docs/                DESIGN.md, HANDOFF.md, **BOSS_PLAN.md** (campaign ladder + new boss mechanics)
 README.md            Full ability reference for design review (keep in sync with specialists.ts)
 ```
 
@@ -71,7 +71,7 @@ README.md            Full ability reference for design review (keep in sync with
 | Round advance | Explicit **Drop Tokens**; boss telegraph then resolve-boss |
 | UI teaching | Board first (poses, labels, playbook); log is secondary |
 | Party size | 6 of **22** roster |
-| Campaign | Default **3 rooms**: Ash Wraith → Bone Colossus → Bone Colossus |
+| Campaign | **Runtime default still 3 rooms** (Ash → Colossus → Colossus). **Target:** 6 rooms per `docs/BOSS_PLAN.md` (Grub → Ash → Herald → Captain → Warden → Colossus) |
 | Damage priority | Party hits **minions first**, then boss (`hitEnemies`) |
 
 ---
@@ -225,15 +225,14 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Balance pass** after playtests with new kits + magnet guarantee (Colossus + minions especially)  
-2. Finish missing art poses if any (commit under `public/art/`)  
-3. Classroom deploy (serve built client from server, one command)  
-4. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
-5. Image bubble frames  
-6. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
-7. ~~Optional: skip minions when boss stunned~~ — done (stun skips adds too)  
-8. ~~Soft-lock when living &lt; 6~~ — fixed: understrength parties allowed  
-9. Cascade / FireMage FF fine-tune if still too hard after A+ package
+1. **Boss plan Slice A** — see `docs/BOSS_PLAN.md`: parameterized summon, Moss Grub, default 6-room path  
+2. Slices B–C — Herald, Captain, Warden (thrall + Dominated)  
+3. Finish missing art poses / new boss art (commit under `public/art/`)  
+4. Classroom deploy (serve built client from server, one command)  
+5. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
+6. Image bubble frames  
+7. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
+8. Cascade / FireMage FF fine-tune if still too hard after more rooms exist
 
 ---
 
