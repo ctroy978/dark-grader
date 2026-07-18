@@ -128,6 +128,8 @@ export type EnrichedTeam = {
   livingCount?: number;
   nextBossId?: string;
   nextBossName?: string;
+  /** Student-facing scout card for the next room's boss (lobby hover). */
+  nextBossScout?: import("@dungeon-grades/shared").BossScout | null;
   roomBossIds?: string[];
 };
 

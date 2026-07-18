@@ -39,6 +39,7 @@ import {
   createTokenPool,
   preparePendingForRound,
 } from "./tokens.js";
+import { resolveSfxId } from "../audio/resolveSfx.js";
 
 function pushLog(team: TeamState, text: string, tags?: string[]): void {
   team.log.push({ round: team.round, text, tags });
@@ -516,6 +517,10 @@ export function resolveBoss(team: TeamState): TeamState {
         if (!isStunSkip) hurtVictims.push(...info.victimIds);
       },
       onMinionAttack: (info) => {
+        // Per-kind shot (minion_moss_mite, …) with generic minion_shot fallback
+        const sfxId = resolveSfxId(
+          [info.sfxId, "minion_shot"].filter(Boolean) as string[],
+        );
         pushCue(team, {
           kind: "minion",
           focusIds: [info.minionId, info.targetId],
@@ -523,10 +528,10 @@ export function resolveBoss(team: TeamState): TeamState {
             speakerId: info.minionId,
             speakerName: info.minionName,
             side: "minion",
-            text: "Loose!",
+            text: info.bubbleText ?? "Hit!",
           },
           fx: ["minion-shot"],
-          sfxId: "minion_shot",
+          sfxId,
           durationMs: 750,
         });
         hurtVictims.push(info.targetId);

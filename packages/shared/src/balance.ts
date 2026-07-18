@@ -57,14 +57,22 @@ export const MAGNET_WEIGHT = 0;
 export const PARTY_SIZE = 6;
 
 /**
- * DoT defaults — tuned so ticks hurt even after floor-split.
- * Poison is one party splash (max stacks); magnet takes the largest share.
+ * DoT defaults — base per stack before boss escalation.
+ *
+ * Party Poison is one splash (max stacks × intensity across the line), not
+ * per carrier; magnet takes the largest share.
+ *
+ * Boss-sourced party DoTs (see `escalationStep` on DotInstance) tick as:
+ *   base × stacks × intensity
+ * Intensity starts at 1 and +1 after each tick while the DoT remains.
+ * Example Poison (base 8, 4 rounds, intensity 1→4): 8 + 16 + 24 + 32 = 80
+ * if never cleansed. Player/ally DoTs stay flat (intensity 1 forever).
  */
 export const DOT_STATS = {
   Fire: { tick: 6, duration: 3 },
   Ice: { tick: 3, duration: 3 },
-  /** Party splash total per stack (split across living line) */
-  Poison: { tick: 9, duration: 4 },
+  /** Party splash total per stack at intensity 1 (split across living line) */
+  Poison: { tick: 8, duration: 4 },
   Slime: { tick: 2, duration: 5 },
 } as const;
 

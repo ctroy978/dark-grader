@@ -7,7 +7,7 @@ name = "Bone Colossus"
 max_hp = 230
 traits = ["Undead", "Enrage"]
 difficulty = "Hard"
-summary = "Lower HP but Bone Archers tax damage (minions die first). Cascade, poison, magnet crush. Enrages below 40% HP."
+summary = "Summons Bone Archers that keep firing when maxed out. Cascade, poison, and magnet crush — enrages when low."
 recommended_rounds = "10–16"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.3
@@ -136,6 +136,8 @@ minion_damage = 4
 minion_max_count = 2
 free_volley = true
 open_count = 0
+minion_shot_sfx = "minion_bone_archer"
+minion_shot_bubble = "Loose!"
 
 [[attacks]]
 id = "PoisonCloud"

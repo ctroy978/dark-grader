@@ -4,6 +4,8 @@ export * from "./magnet.js";
 export * from "./grades.js";
 export * from "./rng.js";
 export * from "./playbook.js";
+export * from "./bossScout.js";
+export * from "./archetypeScout.js";
 export * from "./statusUi.js";
 export * from "./presentation.js";
 export * from "./audioRoles.js";

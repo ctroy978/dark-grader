@@ -26,6 +26,8 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     maxCount: 2,
     freeVolley: true,
     openCount: 0,
+    shotSfx: "minion_bone_archer",
+    shotBubble: "Loose!",
   },
   SummonMossMites: {
     minionId: "moss_mite",
@@ -35,6 +37,8 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
+    shotSfx: "minion_moss_mite",
+    shotBubble: "Nibble!",
   },
   SummonCinderImps: {
     minionId: "cinder_imp",
@@ -45,6 +49,8 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     freeVolley: false,
     openCount: 1,
     onHitDot: { type: "Fire", stacks: 1 },
+    shotSfx: "minion_cinder_imp",
+    shotBubble: "Spit!",
   },
 };
 
@@ -58,6 +64,9 @@ function minionFromSpec(
     maxHp: spec.maxHp,
     currentHp: spec.maxHp,
     damage: spec.damage,
+    kind: spec.minionId,
+    shotSfx: spec.shotSfx ?? `minion_${spec.minionId}`,
+    shotBubble: spec.shotBubble,
     ...(spec.onHitDot ? { onHitDot: { ...spec.onHitDot } } : {}),
   };
 }
@@ -73,9 +82,9 @@ function resolveMinionShot(
   const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
   log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
   if (minion.onHitDot && minion.onHitDot.stacks > 0) {
-    applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks);
+    applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
     log(
-      `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks})`,
+      `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks}, ramps)`,
     );
   }
   return hpLost;
@@ -125,6 +134,9 @@ export interface MinionAttackPresent {
   minionId: string;
   minionName: string;
   targetId: string;
+  /** Preferred catalog SFX (per minion kind); client/server fall back to minion_shot */
+  sfxId?: string;
+  bubbleText?: string;
 }
 
 export interface BossPresentHooks {
@@ -341,6 +353,8 @@ export function resolveBossPhase(
       minionId: minion.id,
       minionName: minion.name,
       targetId: target.id,
+      sfxId: minion.shotSfx,
+      bubbleText: minion.shotBubble,
     });
   }
 }
@@ -465,9 +479,9 @@ function performAttack(
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
-          applyDot(s, "Poison", 1);
+          applyDot(s, "Poison", 1, undefined, true);
           victims.add(s.id);
-          log(`  ${s.name} is poisoned`);
+          log(`  ${s.name} is poisoned (ramps each round if left up)`);
         }
       }
       break;
@@ -478,9 +492,9 @@ function performAttack(
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
-          applyDot(s, "Fire", 1);
+          applyDot(s, "Fire", 1, undefined, true);
           victims.add(s.id);
-          log(`  ${s.name} is burning`);
+          log(`  ${s.name} is burning (ramps each round if left up)`);
         }
       }
       break;
@@ -533,9 +547,9 @@ function performSummon(
       if (hpLost > 0) victims.add(target.id);
       log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
       if (minion.onHitDot && minion.onHitDot.stacks > 0) {
-        applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks);
+        applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
         log(
-          `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks})`,
+          `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks}, ramps)`,
         );
         victims.add(target.id);
       }

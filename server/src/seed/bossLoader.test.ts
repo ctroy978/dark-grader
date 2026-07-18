@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildBossScout } from "./bosses.js";
 import { getBossTemplate, loadBossTemplates } from "./bossLoader.js";
 
 describe("boss TOML loader", () => {
@@ -48,6 +49,8 @@ describe("boss TOML loader", () => {
       maxCount: 2,
       freeVolley: false,
       openCount: 1,
+      shotSfx: "minion_moss_mite",
+      shotBubble: "Nibble!",
     });
   });
 
@@ -80,7 +83,47 @@ describe("boss TOML loader", () => {
       freeVolley: false,
       openCount: 1,
       onHitDot: { type: "Fire", stacks: 1 },
+      shotSfx: "minion_cinder_imp",
+      shotBubble: "Spit!",
     });
+  });
+
+  it("loads Bone Archer shot SFX from Colossus summon row", () => {
+    const colossus = getBossTemplate("bone_colossus");
+    const summon = colossus!.attacks.find((a) => a.id === "SummonBoneArchers");
+    expect(summon?.summon).toMatchObject({
+      minionId: "bone_archer",
+      shotSfx: "minion_bone_archer",
+      shotBubble: "Loose!",
+    });
+  });
+
+  it("builds student scout cards with attacks and minions (no party advice)", () => {
+    const ash = buildBossScout("ash_wraith");
+    expect(ash).toBeDefined();
+    expect(ash!.name).toBe("Ash Wraith");
+    expect(ash!.minions).toEqual([]);
+    expect(ash!.attacks.map((a) => a.id)).toEqual(
+      expect.arrayContaining(["Cascade", "PoisonCloud", "CrushMagnet"]),
+    );
+    expect(ash!.attacks.every((a) => a.name && a.description)).toBe(true);
+    expect(ash!.enrageBelowHpPct).toBe(0.4);
+    expect(ash!.enrageNote).toMatch(/Enrages below 40%/);
+
+    const herald = buildBossScout("cinder_herald");
+    expect(herald!.minions).toHaveLength(1);
+    expect(herald!.minions[0]).toMatchObject({
+      id: "cinder_imp",
+      name: "Cinder Imp",
+      opensFight: true,
+      onHitDot: "Fire",
+    });
+    expect(herald!.attacks.map((a) => a.id)).toContain("FireCloud");
+    expect(herald!.attacks.map((a) => a.id)).not.toContain("SummonCinderImps");
+
+    const grub = buildBossScout("moss_grub");
+    expect(grub!.enrageBelowHpPct).toBeNull();
+    expect(grub!.minions[0]?.name).toBe("Moss Mite");
   });
 });
 

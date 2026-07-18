@@ -88,7 +88,7 @@ This section is for design review — update it when abilities change.
 | Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
 | Friendly fire | Many backfires **bypass** shield + block |
 | Ice DoT | On claim: **downgrade grade one step** (A→B … D→F; F stays) before resolve |
-| DoT ticks | Fire 6 / Ice 3 / Poison splash 9 per stack / Slime 2 — see `DOT_STATS` |
+| DoT ticks | Fire 6 / Ice 3 / Poison splash **8** per stack / Slime 2 — see `DOT_STATS`. Boss party DoTs (clouds, minion on-hit) **ramp** (×1, ×2, ×3…) while left up |
 | Inter-room | Living Vanguard heals party 20% max HP if any living Vanguard; reform 6 |
 
 ### Roster & HP

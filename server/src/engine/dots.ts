@@ -14,20 +14,40 @@ import {
   soldierAt,
 } from "./damage.js";
 
+/**
+ * Apply / stack a DoT on a party soldier.
+ * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / minion on-hit).
+ */
 export function applyDot(
   soldier: Soldier,
   type: DotType,
   stacks = 1,
   durationOverride?: number,
+  fromBoss = false,
 ): void {
   const existing = soldier.statuses.find((s) => s.kind === "Dot" && s.type === type);
   const duration = durationOverride ?? DOT_STATS[type].duration;
   if (existing && existing.kind === "Dot") {
     existing.stacks += stacks;
     existing.duration = Math.max(existing.duration, duration);
+    // Promote or keep ramping — intensity does not reset on re-apply
+    if (fromBoss && existing.escalationStep == null) {
+      existing.escalationStep = 1;
+    }
   } else {
-    soldier.statuses.push({ kind: "Dot", type, stacks, duration });
+    soldier.statuses.push({
+      kind: "Dot",
+      type,
+      stacks,
+      duration,
+      ...(fromBoss ? { escalationStep: 1 } : {}),
+    });
   }
+}
+
+/** Intensity multiplier for a DoT (1 if not boss-ramping). */
+export function dotIntensity(dot: { escalationStep?: number }): number {
+  return Math.max(1, dot.escalationStep ?? 1);
 }
 
 /** Apply / stack a DoT on the boss (Doomcaller transfer, death poison). */
@@ -160,44 +180,70 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     log(`— DoT phase — boss marks only —`);
   }
 
-  // --- Poison: single party splash ---
-  let maxPoisonStacks = 0;
+  // --- Poison: single party splash (max stacks × intensity among carriers) ---
+  let maxPoisonWeight = 0;
+  let reportStacks = 0;
+  let reportIntensity = 1;
   const poisonCarriers: Soldier[] = [];
   for (const soldier of party) {
     const poison = soldier.statuses.find((s) => s.kind === "Dot" && s.type === "Poison");
     if (poison && poison.kind === "Dot") {
-      maxPoisonStacks = Math.max(maxPoisonStacks, poison.stacks);
+      const intensity = dotIntensity(poison);
+      const weight = poison.stacks * intensity;
+      if (weight > maxPoisonWeight) {
+        maxPoisonWeight = weight;
+        reportStacks = poison.stacks;
+        reportIntensity = intensity;
+      }
       poisonCarriers.push(soldier);
     }
   }
-  if (maxPoisonStacks > 0) {
-    const total = DOT_STATS.Poison.tick * maxPoisonStacks;
+  if (maxPoisonWeight > 0) {
+    const total = DOT_STATS.Poison.tick * maxPoisonWeight;
+    const rampNote =
+      reportIntensity > 1 ||
+      poisonCarriers.some(
+        (s) =>
+          s.statuses.find((st) => st.kind === "Dot" && st.type === "Poison")
+            ?.escalationStep != null,
+      )
+        ? ` · intensity ${reportIntensity}`
+        : "";
     log(
-      `  [Poison] ${maxPoisonStacks} stack(s) → ${total} splash dmg (magnet-weighted)`,
+      `  [Poison] ${reportStacks} stack(s)${rampNote} → ${total} splash dmg (magnet-weighted)`,
     );
     distributePoison(team, total, log);
     for (const soldier of poisonCarriers) {
       const poison = soldier.statuses.find((s) => s.kind === "Dot" && s.type === "Poison");
       if (poison && poison.kind === "Dot") {
         poison.duration -= 1;
+        if (poison.escalationStep != null) {
+          poison.escalationStep += 1;
+        }
       }
     }
   }
 
-  // --- Other DoTs: per-soldier ---
+  // --- Other DoTs: per-soldier (Fire/Ice/Slime; boss Fire ramps via escalationStep) ---
   for (const soldier of party) {
     const dots = soldier.statuses.filter(
       (s) => s.kind === "Dot" && s.type !== "Poison",
     );
     for (const dot of dots) {
       if (dot.kind !== "Dot") continue;
-      const perTick = DOT_STATS[dot.type].tick * dot.stacks;
+      const intensity = dotIntensity(dot);
+      const perTick = DOT_STATS[dot.type].tick * dot.stacks * intensity;
       const result = applyPartyDamage(soldier, perTick, team.partyShield);
+      const rampNote =
+        dot.escalationStep != null ? ` · intensity ${intensity}` : "";
       log(
-        `  [${dot.type}] ${soldier.name}: ${perTick} raw → ${formatPartyHit(soldier, result)} · ${dot.duration - 1}r left after tick`,
+        `  [${dot.type}] ${soldier.name}: ${perTick} raw${rampNote} → ${formatPartyHit(soldier, result)} · ${dot.duration - 1}r left after tick`,
       );
       if (dot.type === "Slime") slimeActive = true;
       dot.duration -= 1;
+      if (dot.escalationStep != null) {
+        dot.escalationStep += 1;
+      }
     }
 
     soldier.statuses = soldier.statuses.filter(

@@ -6,7 +6,7 @@ name = "Cinder Herald"
 max_hp = 170
 traits = ["Fire", "Herald", "Summoner"]
 difficulty = "Standard"
-summary = "Primary add lesson. Cinder Imps tax the gap (no free-volley). Fire Cloud burns the line; slam and line pressure — no Cascade or poison. Clear minions first."
+summary = "Summons Cinder Imps that leave Fire on hit. Fire Cloud burns the line; slam and line pressure — no cascade or poison."
 recommended_rounds = "8–12"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.2
@@ -105,6 +105,8 @@ minion_damage = 3
 minion_max_count = 2
 free_volley = false
 open_count = 1
+minion_shot_sfx = "minion_cinder_imp"
+minion_shot_bubble = "Spit!"
 # Option A: full hit damage + Fire stack on the magnet-biased target
 minion_on_hit_dot = "Fire"
 minion_on_hit_dot_stacks = 1

@@ -19,7 +19,7 @@ Each file defines one boss for the classroom campaign.
 **Attack mechanics** (damage tables, summons, dots) live in `server/src/engine/bosses.ts` under an attack-id registry.  
 Shared DoT clouds: `PoisonCloud` (party Poison), `FireCloud` (party Fire — Cinder Herald).  
 **New boss from existing moves:** add a TOML that only lists those attack ids + new audio/lines.  
-**Parameterized summons:** set `minion_id`, `minion_name`, `minion_max_hp`, `minion_damage`, `minion_max_count`, `free_volley`, `open_count` on a summon attack row (see `moss_grub`, `cinder_herald`, `bone_colossus`). Optional on-hit DoT: `minion_on_hit_dot = "Fire"` and `minion_on_hit_dot_stacks = 1` (Cinder Imps).  
+**Parameterized summons:** set `minion_id`, `minion_name`, `minion_max_hp`, `minion_damage`, `minion_max_count`, `free_volley`, `open_count` on a summon attack row (see `moss_grub`, `cinder_herald`, `bone_colossus`). Optional on-hit DoT: `minion_on_hit_dot = "Fire"` and `minion_on_hit_dot_stacks = 1` (Cinder Imps). Optional volley SFX/bubble: `minion_shot_sfx` (default `minion_{minion_id}`, falls back to `minion_shot` if the file is missing), `minion_shot_bubble` (e.g. `"Nibble!"`).  
 **New attack type:** implement once in the registry, then reference it from any TOML.
 
 Regenerate audio after adding `[[audio]]` entries:

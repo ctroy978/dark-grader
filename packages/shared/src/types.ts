@@ -22,6 +22,13 @@ export interface DotInstance {
   type: DotType;
   stacks: number;
   duration: number;
+  /**
+   * Boss-sourced party DoTs only (PoisonCloud, FireCloud, minion on-hit, …).
+   * Intensity starts at 1 and rises by 1 after each DoT phase tick while the
+   * status remains. Tick damage multiplies by this value — light at first,
+   * punishing if left unchecked. Absent / undefined = flat player-side DoT.
+   */
+  escalationStep?: number;
 }
 
 export interface MarkStatus {
@@ -100,6 +107,15 @@ export interface Minion {
    * (e.g. Cinder Imps apply Fire). Optional for older saves / plain adds.
    */
   onHitDot?: { type: DotType; stacks: number };
+  /**
+   * Stable kind key from TOML `minion_id` (e.g. moss_mite) — art + default SFX.
+   * Optional for older saves; fall back to parsing `id` / generic shot.
+   */
+  kind?: string;
+  /** Catalog SFX id when this minion volleys (e.g. minion_moss_mite). */
+  shotSfx?: string;
+  /** Short comic bubble on volley (e.g. "Nibble!"). */
+  shotBubble?: string;
 }
 
 export interface BossState {

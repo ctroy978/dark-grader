@@ -143,6 +143,7 @@ Mistakes (F on FireMage, bad magnet) should still usually win.
 | Adds | **None** (keep pure boss readability after Grub) |
 | Attacks | Full current kit minus summons: Line, Slam, **Cascade**, Crush, Poison, light Regen |
 | Feel | First fight that can kill someone; still clearer than add tax |
+| Boss DoTs | **PoisonCloud ramps** (intensity ×1→×4 while left up). Cleanse / heal pressure. |
 
 Optional later: slight HP drop to 180–190 if room 1→2 still too steep.
 
@@ -316,13 +317,27 @@ Do **not** ship all six fantasy kits + Dominated in one PR.
 
 - Art under `client/public/art/{key}/`  
 - Audio packs / ElevenLabs  
-- FX tags (optional)  
+- FX tags — **not optional for DoTs** (see below)  
 - Balance sim pass per room targets in §4  
+
+### When visual FX work starts — DoT readability (required)
+
+Boss DoTs (especially **ramping** Poison/Fire) only teach if the class notices them. Chips alone are too weak for shared-screen play.
+
+| Need | Notes |
+|------|--------|
+| **Persistent on-body signal** | Portrait/card tint or aura for each active DoT type while duration &gt; 0 |
+| **Type color** | Poison lime/green, Fire orange, Ice blue, and later Slime — match `statusUi` |
+| **Ramp intensity** | Aura/pulse strength scales with `escalationStep` so “getting worse” is visible without reading `⬆3` |
+| **Apply / tick / cleanse** | Distinct pops; tick can reuse existing `poison-tint` / `fire-flash` tags but idle state must also show |
+| **Boss-held DoTs** | Transfer success should be obvious on the boss portrait too |
+
+Defer full particles; prefer CSS/class tints + short cue FX driven by status + presentation tags.
 
 ### Explicitly deferred
 
 - Overflow damage through minions onto boss  
-- Full particle FX  
+- Full particle FX (beyond DoT readability + light combat pops)  
 - FireMage FF redesign (unless sims demand)  
 - Cascade global retune (unless sims demand)  
 - Dominated on Colossus / tutorial  

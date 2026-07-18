@@ -133,11 +133,6 @@ export function PlaceholderPortrait({
     : isMinion
       ? "m"
       : ARCHETYPE_MARK[kind.archetype];
-  const label = isBoss
-    ? "BOSS"
-    : isMinion
-      ? "ADD"
-      : kind.archetype.slice(0, 8);
 
   const artKey = artKeyFor(kind);
   const imgSrc = artUrlFor(artKey, pose);
@@ -159,7 +154,6 @@ export function PlaceholderPortrait({
         className={`portrait-frame relative overflow-hidden rounded bg-navy border border-parchment/20 ${className}`}
         data-pose={pose}
         data-art-key={artKey}
-        title={`${label} · ${pose}`}
       >
         <img
           src={imgSrc}
@@ -184,7 +178,6 @@ export function PlaceholderPortrait({
       className={`portrait-frame relative overflow-hidden rounded bg-navy border border-parchment/20 ${className}`}
       data-pose={pose}
       data-art-placeholder="true"
-      title={`Placeholder · ${label} · ${pose}`}
     >
       <svg
         viewBox="0 0 100 120"

@@ -181,9 +181,30 @@ const CORE_CATALOG: AudioClipDef[] = [
   {
     id: "minion_shot",
     kind: "sfx",
-    text: "bone arrow or small projectile whoosh, short, skeletal archer feel, no voice",
+    text: "generic small enemy attack whoosh, short fantasy add hit, classroom safe, no voice",
     durationSeconds: 0.5,
     volume: 0.45,
+  },
+  {
+    id: "minion_moss_mite",
+    kind: "sfx",
+    text: "tiny insect nibble chitter soft squelch, moss mite bite, short fantasy, classroom safe, no voice",
+    durationSeconds: 0.55,
+    volume: 0.5,
+  },
+  {
+    id: "minion_cinder_imp",
+    kind: "sfx",
+    text: "small fire spit ember puff, cinder imp attack, short fantasy, classroom safe, no voice",
+    durationSeconds: 0.6,
+    volume: 0.5,
+  },
+  {
+    id: "minion_bone_archer",
+    kind: "sfx",
+    text: "bone arrow whoosh and soft impact, skeletal archer, short fantasy, classroom safe, no voice",
+    durationSeconds: 0.55,
+    volume: 0.5,
   },
   {
     id: "fizzle",

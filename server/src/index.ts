@@ -18,7 +18,11 @@ import {
   listCachedClips,
   probePermissions,
 } from "./audio/elevenlabs.js";
-import { listBossTemplatesForApi, loadBossTemplates } from "./seed/bosses.js";
+import {
+  buildBossScout,
+  listBossTemplatesForApi,
+  loadBossTemplates,
+} from "./seed/bosses.js";
 import {
   commitFullRound,
   commitRound,
@@ -67,6 +71,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
   const roomNum = currentRoomNumber(roomsCleared);
   const nextBossId = store.bossForRoom(roomsCleared);
   const nextBoss = loadBossTemplates().find((b) => b.id === nextBossId);
+  const nextBossScout = nextBossId ? buildBossScout(nextBossId) : null;
   return {
     ...team,
     cloud: cloudPreview(team),
@@ -80,6 +85,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
     livingCount: team.roster.filter((s) => s.alive).length,
     nextBossId,
     nextBossName: nextBoss?.name ?? nextBossId,
+    nextBossScout,
     roomBossIds: c.roomBossIds,
   };
 }

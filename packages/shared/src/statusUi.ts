@@ -23,11 +23,17 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
   if (st.kind === "Dot") {
     const m = DOT_META[st.type];
     const stacks = st.stacks > 1 ? `×${st.stacks}` : "";
+    const intensity = st.escalationStep ?? 0;
+    const ramp = intensity > 0 ? ` ⬆${intensity}` : "";
+    const rampTitle =
+      intensity > 0
+        ? ` · boss ramp intensity ${intensity} (damage ×${intensity} this tick; grows if left up)`
+        : "";
     return {
       key: `dot-${st.type}-${index}`,
       icon: m.icon,
-      label: `${m.short}${stacks}`,
-      title: `${st.type} DoT · ${st.stacks} stack(s) · ${st.duration} round(s) left`,
+      label: `${m.short}${stacks}${ramp}`,
+      title: `${st.type} DoT · ${st.stacks} stack(s) · ${st.duration} round(s) left${rampTitle}`,
       colorClass: m.colorClass,
     };
   }

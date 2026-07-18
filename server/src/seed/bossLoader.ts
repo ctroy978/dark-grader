@@ -26,6 +26,32 @@ export interface BossSummonDef {
   openCount: number;
   /** On minion volley hit: apply this DoT to the target (e.g. Fire for Cinder Imps). */
   onHitDot?: { type: DotType; stacks: number };
+  /**
+   * Catalog SFX when this minion volleys.
+   * Default: `minion_{minion_id}` (falls back to `minion_shot` if file missing).
+   */
+  shotSfx?: string;
+  /** Short comic bubble on volley (defaults by minion kind). */
+  shotBubble?: string;
+}
+
+/** Default volley bubble when TOML omits minion_shot_bubble. */
+export function defaultMinionShotBubble(minionId: string): string {
+  switch (minionId) {
+    case "moss_mite":
+      return "Nibble!";
+    case "cinder_imp":
+      return "Spit!";
+    case "bone_archer":
+      return "Loose!";
+    default:
+      return "Hit!";
+  }
+}
+
+/** Preferred shot SFX id for a minion kind. */
+export function defaultMinionShotSfx(minionId: string): string {
+  return `minion_${minionId}`;
 }
 
 export interface BossAttackDef {
@@ -94,6 +120,10 @@ interface RawBossToml {
     /** e.g. "Fire" — applied to the soldier the minion hits */
     minion_on_hit_dot?: string;
     minion_on_hit_dot_stacks?: number;
+    /** Catalog id for this add's volley SFX */
+    minion_shot_sfx?: string;
+    /** Comic bubble when this add volleys */
+    minion_shot_bubble?: string;
   }>;
 }
 
@@ -134,19 +164,24 @@ function parseBossFile(filePath: string): BossTemplate {
       a.minion_max_count != null ||
       a.free_volley != null ||
       a.open_count != null ||
-      a.minion_on_hit_dot != null
+      a.minion_on_hit_dot != null ||
+      a.minion_shot_sfx != null ||
+      a.minion_shot_bubble != null
     ) {
       const onHitType = parseDotType(a.minion_on_hit_dot);
+      const minionId =
+        a.minion_id ??
+        (a.id.replace(/^Summon/i, "").toLowerCase() || "minion");
       base.summon = {
-        minionId:
-          a.minion_id ??
-          (a.id.replace(/^Summon/i, "").toLowerCase() || "minion"),
+        minionId,
         minionName: a.minion_name ?? "Minion",
         maxHp: a.minion_max_hp ?? 10,
         damage: a.minion_damage ?? 3,
         maxCount: a.minion_max_count ?? 2,
         freeVolley: a.free_volley ?? false,
         openCount: a.open_count ?? 0,
+        shotSfx: a.minion_shot_sfx ?? defaultMinionShotSfx(minionId),
+        shotBubble: a.minion_shot_bubble ?? defaultMinionShotBubble(minionId),
         ...(onHitType
           ? {
               onHitDot: {

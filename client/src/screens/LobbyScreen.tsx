@@ -1,12 +1,349 @@
-import { useEffect, useMemo, useState } from "react";
-import { ARCHETYPE_ICONS, ARCHETYPE_MAX_HP } from "@dungeon-grades/shared";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
+import {
+  ARCHETYPE_ICONS,
+  ARCHETYPE_MAX_HP,
+  getArchetypeScout,
+  type Archetype,
+  type BossScout,
+  type Grade,
+} from "@dungeon-grades/shared";
 import { api, getSocket, type EnrichedTeam } from "../api";
+import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
 
 const PARTY_SIZE = 6;
+
+const GRADE_TEXT: Record<Grade, string> = {
+  A: "text-grade-a",
+  B: "text-grade-b",
+  C: "text-grade-c",
+  D: "text-grade-d",
+  F: "text-grade-f",
+};
+
+const INTEL_PANEL_W = 320; // ~20rem; used for viewport clamping
+
+/**
+ * Click-to-open ability intel for a specialist (no hover on the roster).
+ * Standing portrait in a portaled panel. Closes when the pointer leaves the
+ * panel or when the player adds/removes via the lineup button.
+ */
+function CharacterIntel({
+  open,
+  onClose,
+  archetype,
+  soldierName,
+  currentHp,
+  maxHp,
+  inLine,
+  onAddToLineup,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  archetype: Archetype;
+  soldierName?: string;
+  /** Live HP for this soldier (after fights). Falls back to class max. */
+  currentHp?: number;
+  maxHp?: number;
+  /** Already placed in the formation line */
+  inLine?: boolean;
+  /** Place or remove from the formation line */
+  onAddToLineup: () => void;
+  children: ReactNode;
+}) {
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const scout = useMemo(() => getArchetypeScout(archetype), [archetype]);
+  const hpMax = maxHp ?? scout.maxHp;
+  const hpNow = currentHp ?? hpMax;
+
+  const placePanel = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const margin = 8;
+    const panelH = 360;
+    let top = r.bottom + 6;
+    if (top + Math.min(panelH, window.innerHeight * 0.7) > window.innerHeight - margin) {
+      top = Math.max(margin, r.top - 6 - Math.min(panelH, window.innerHeight * 0.65));
+    }
+    let left = r.left;
+    if (left + INTEL_PANEL_W > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - INTEL_PANEL_W - margin);
+    }
+    if (left < margin) left = margin;
+    setCoords({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+    placePanel();
+    const onMove = () => placePanel();
+    window.addEventListener("scroll", onMove, true);
+    window.addEventListener("resize", onMove);
+    return () => {
+      window.removeEventListener("scroll", onMove, true);
+      window.removeEventListener("resize", onMove);
+    };
+  }, [open, placePanel]);
+
+  const panel =
+    open &&
+    coords &&
+    createPortal(
+      <div
+        role="dialog"
+        aria-label={`${scout.displayName} abilities`}
+        className="fixed z-[200] w-[min(20rem,calc(100vw-1rem))] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-parchment/25 bg-navy/98 p-3 shadow-xl shadow-black/50 ring-1 ring-rune/15"
+        style={{ top: coords.top, left: coords.left }}
+        onMouseLeave={onClose}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex gap-3">
+          <PlaceholderPortrait
+            kind={{ role: "party", archetype }}
+            pose="standing"
+            className="h-24 w-16 shrink-0 shadow-md ring-1 ring-parchment/30"
+          />
+          <div className="min-w-0 flex-1 space-y-1">
+            {soldierName && (
+              <div className="font-semibold text-parchment leading-tight truncate">
+                {soldierName}
+              </div>
+            )}
+            <div
+              className={`text-sm leading-tight ${
+                soldierName ? "text-parchment-dim" : "font-semibold text-parchment"
+              }`}
+            >
+              <span className="mr-1">{ARCHETYPE_ICONS[archetype]}</span>
+              {scout.displayName}
+            </div>
+            <div className="text-xs text-parchment-dim">
+              <span className="text-parchment">
+                {hpNow} of {hpMax}
+              </span>
+              {" HP"}
+              {hpNow < hpMax && (
+                <span className="text-grade-d"> · wounded</span>
+              )}
+            </div>
+            <p className="text-xs text-parchment/90 leading-snug">{scout.summary}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 space-y-1.5">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-rune">
+            Grade effects
+          </h3>
+          <ul className="space-y-1">
+            {scout.grades.map((g) => (
+              <li key={g.grade} className="text-xs leading-snug">
+                <span className={`font-bold ${GRADE_TEXT[g.grade]}`}>{g.grade}</span>
+                <span className="text-parchment-dim"> — {g.effect}</span>
+                {g.risk && (
+                  <span className="block pl-4 text-[11px] text-grade-f/90">
+                    Risk: {g.risk}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <button
+          type="button"
+          className={`mt-3 w-full rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            inLine
+              ? "border border-parchment/25 bg-navy-light hover:bg-navy"
+              : "bg-rune/20 text-rune border border-rune/40 hover:bg-rune/30"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToLineup();
+            onClose();
+          }}
+        >
+          {inLine ? "Remove from lineup" : "Add to lineup"}
+        </button>
+      </div>,
+      document.body,
+    );
+
+  return (
+    <div ref={wrapRef} className="relative">
+      {children}
+      {panel}
+    </div>
+  );
+}
 
 /** Empty formation slots: index 0 = position 1 (front), index 5 = position 6 (back). */
 function emptySlots(): (string | null)[] {
   return Array.from({ length: PARTY_SIZE }, () => null);
+}
+
+/**
+ * Next-boss chip in the campaign bar: small standing portrait + name.
+ * Hover (or tap/focus) reveals attacks and minions — no party-comp advice.
+ */
+function NextBossIntel({
+  scout,
+  fallbackName,
+}: {
+  scout: BossScout | null | undefined;
+  fallbackName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const name = scout?.name ?? fallbackName ?? "—";
+  const bossId = scout?.id;
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-lg border border-transparent px-1.5 py-0.5 text-left text-parchment-dim transition hover:border-parchment/20 hover:bg-navy-light/60 focus:border-rune/40 focus:outline-none focus:ring-1 focus:ring-rune/40"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="shrink-0 text-sm">Next boss:</span>
+        {bossId ? (
+          <PlaceholderPortrait
+            kind={{ role: "boss", bossId }}
+            pose="standing"
+            className="h-10 w-8 shrink-0 shadow-md ring-1 ring-parchment/25"
+          />
+        ) : null}
+        <strong className="text-parchment underline decoration-parchment/30 decoration-dotted underline-offset-2">
+          {name}
+        </strong>
+        <span className="text-[10px] uppercase tracking-wide text-rune/80">
+          intel
+        </span>
+      </button>
+
+      {open && scout && (
+        <div
+          role="dialog"
+          aria-label={`${scout.name} fight intel`}
+          className="absolute right-0 top-full z-40 mt-1.5 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-parchment/25 bg-navy/98 p-3 shadow-xl shadow-black/50 ring-1 ring-rune/15"
+        >
+          <div className="flex gap-3">
+            <PlaceholderPortrait
+              kind={{ role: "boss", bossId: scout.id }}
+              pose="standing"
+              className="h-24 w-16 shrink-0 shadow-md ring-1 ring-parchment/30"
+            />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="font-semibold text-parchment leading-tight">
+                {scout.name}
+              </div>
+              <div className="text-xs text-parchment-dim">
+                {scout.difficulty}
+                {" · "}
+                <span className="text-parchment">{scout.maxHp} HP</span>
+                {scout.traits.length > 0 && (
+                  <>
+                    {" · "}
+                    {scout.traits.join(", ")}
+                  </>
+                )}
+              </div>
+              {scout.summary && (
+                <p className="text-xs text-parchment/90 leading-snug">
+                  {scout.summary}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {scout.attacks.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-rune">
+                Attacks
+              </h3>
+              <ul className="space-y-1.5">
+                {scout.attacks.map((a) => (
+                  <li key={a.id} className="text-xs leading-snug">
+                    <span className="font-semibold text-parchment">{a.name}</span>
+                    <span className="text-parchment-dim"> — {a.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-3 space-y-1.5">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-rune">
+              Minions
+            </h3>
+            {scout.minions.length === 0 ? (
+              <p className="text-xs text-parchment-dim">
+                No minions — the boss does not summon adds.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {scout.minions.map((m) => (
+                  <li key={m.id} className="flex gap-2 text-xs leading-snug">
+                    <PlaceholderPortrait
+                      kind={{ role: "minion", name: m.name }}
+                      pose="standing"
+                      className="h-9 w-7 shrink-0 ring-1 ring-parchment/20"
+                    />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-parchment">
+                        {m.name}
+                        <span className="ml-1 font-normal text-parchment-dim">
+                          (up to {m.maxCount} · {m.maxHp} HP · {m.damage} dmg)
+                        </span>
+                      </div>
+                      <p className="text-parchment-dim">{m.note}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {scout.enrageNote && (
+            <p className="mt-3 text-xs text-grade-d border-t border-parchment/10 pt-2">
+              {scout.enrageNote}
+            </p>
+          )}
+
+          <p className="mt-2 text-[10px] text-parchment-dim/80">
+            Hover or tap for intel. Plan positions for what this boss actually does.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function slotsFromTeam(team: EnrichedTeam): (string | null)[] {
@@ -40,6 +377,8 @@ export default function LobbyScreen({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
+  /** Roster ability popup — click to open; only one at a time */
+  const [intelSoldierId, setIntelSoldierId] = useState<string | null>(null);
 
   useEffect(() => {
     const s = getSocket();
@@ -241,12 +580,10 @@ export default function LobbyScreen({
               <span className="text-grade-f ml-2">Final room</span>
             ) : null}
           </span>
-          <span className="text-parchment-dim">
-            Next boss:{" "}
-            <strong className="text-parchment">
-              {team.nextBossName ?? "—"}
-            </strong>
-          </span>
+          <NextBossIntel
+            scout={team.nextBossScout}
+            fallbackName={team.nextBossName}
+          />
         </div>
         <div className="flex gap-1">
           {Array.from({ length: team.campaignLength ?? 3 }).map((_, i) => {
@@ -333,6 +670,7 @@ export default function LobbyScreen({
             const id = slots[slotIndex];
             const s = id ? soldierById.get(id) : undefined;
             const isActive = activeSlot === slotIndex;
+            // No ability popup on the line — hover must not block select/remove.
             return (
               <button
                 key={pos}
@@ -344,7 +682,7 @@ export default function LobbyScreen({
                     setActiveSlot(slotIndex);
                   }
                 }}
-                className={`relative min-h-[7.5rem] rounded-lg border-2 p-1.5 text-center transition flex flex-col items-center justify-center gap-0.5 ${
+                className={`relative min-h-[7.5rem] w-full rounded-lg border-2 p-1.5 text-center transition flex flex-col items-center justify-center gap-0.5 ${
                   isActive
                     ? "border-rune bg-rune/10 ring-2 ring-rune/40"
                     : s
@@ -366,7 +704,9 @@ export default function LobbyScreen({
                     <span className="text-[11px] font-medium leading-tight truncate w-full">
                       {s.name}
                     </span>
-                    <span className="text-[9px] text-parchment-dim">{s.archetype}</span>
+                    <span className="text-[9px] text-parchment-dim">
+                      {getArchetypeScout(s.archetype).displayName}
+                    </span>
                     <span className="text-[9px] text-parchment-dim">
                       {s.currentHp}/{s.maxHp} HP
                     </span>
@@ -399,26 +739,34 @@ export default function LobbyScreen({
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">2. Roster — click to place</h2>
+        <h2 className="text-lg font-semibold">2. Roster — click for abilities</h2>
         <p className="text-xs text-parchment-dim">
-          Grayed-out soldiers are already in the line (click again to remove) or dead.
+          Click a soldier to see grade abilities, then use <strong className="text-parchment">Add to lineup</strong> in
+          the popup. Grayed-out soldiers are dead. Soldiers already in the line can be removed from the popup.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {team.roster.map((s) => {
             const inLine = slots.includes(s.id);
             const linePos = inLine ? slots.indexOf(s.id) + 1 : 0;
-            return (
+            const intelOpen = intelSoldierId === s.id;
+            const card = (
               <button
-                key={s.id}
                 type="button"
                 disabled={!s.alive}
-                onClick={() => placeSoldier(s.id)}
-                className={`text-left rounded-lg border p-3 transition ${
+                title={s.alive ? "Click for abilities" : undefined}
+                onClick={() => {
+                  if (!s.alive) return;
+                  // Click opens abilities; place only via the popup button
+                  setIntelSoldierId((cur) => (cur === s.id ? null : s.id));
+                }}
+                className={`group w-full text-left rounded-lg border p-3 transition ${
                   !s.alive
                     ? "opacity-30 border-parchment/10 cursor-not-allowed"
-                    : inLine
-                      ? "border-rune/60 bg-navy-light/80"
-                      : "border-parchment/15 bg-navy/60 hover:border-rune/50 hover:bg-navy-light"
+                    : intelOpen
+                      ? "border-rune bg-rune/10 ring-1 ring-rune/40"
+                      : inLine
+                        ? "border-rune/60 bg-navy-light/80"
+                        : "border-parchment/15 bg-navy/60 hover:border-rune/50 hover:bg-navy-light"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -431,13 +779,47 @@ export default function LobbyScreen({
                       {s.name}
                     </div>
                     <div className="text-xs text-parchment-dim">
-                      {s.archetype} · {s.currentHp}/
+                      {getArchetypeScout(s.archetype).displayName} · {s.currentHp}/
                       {s.maxHp || ARCHETYPE_MAX_HP[s.archetype]} HP
                       {!s.alive && " · fallen"}
                     </div>
                   </div>
+                  {s.alive && (
+                    <span
+                      className={`shrink-0 self-center rounded-full border text-[10px] font-semibold leading-none w-5 h-5 inline-flex items-center justify-center transition ${
+                        intelOpen
+                          ? "border-rune/50 text-rune bg-rune/10"
+                          : "border-parchment/20 text-parchment-dim/55 group-hover:border-parchment/35 group-hover:text-parchment-dim"
+                      }`}
+                      aria-hidden
+                    >
+                      i
+                    </span>
+                  )}
                 </div>
               </button>
+            );
+            return (
+              <div key={s.id} className="min-w-0">
+                {s.alive ? (
+                  <CharacterIntel
+                    open={intelOpen}
+                    onClose={() =>
+                      setIntelSoldierId((cur) => (cur === s.id ? null : cur))
+                    }
+                    archetype={s.archetype}
+                    soldierName={s.name}
+                    currentHp={s.currentHp}
+                    maxHp={s.maxHp || ARCHETYPE_MAX_HP[s.archetype]}
+                    inLine={inLine}
+                    onAddToLineup={() => placeSoldier(s.id)}
+                  >
+                    {card}
+                  </CharacterIntel>
+                ) : (
+                  card
+                )}
+              </div>
             );
           })}
         </div>

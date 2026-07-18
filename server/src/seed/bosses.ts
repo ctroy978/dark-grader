@@ -1,4 +1,8 @@
-import type { BossState } from "@dungeon-grades/shared";
+import type { BossScout, BossState } from "@dungeon-grades/shared";
+import {
+  describeMinionScout,
+  scoutAttack,
+} from "@dungeon-grades/shared";
 import {
   getBossTemplate,
   loadBossTemplates,
@@ -24,6 +28,70 @@ export function listBossTemplatesForApi() {
     summary: t.summary,
     recommendedRounds: t.recommendedRounds,
   }));
+}
+
+/**
+ * Student lobby scout card for a boss template.
+ * Surfaces attacks + minions without party-comp recommendations.
+ */
+export function buildBossScout(templateId: string): BossScout | null {
+  const t = getBossTemplate(templateId);
+  if (!t) return null;
+
+  const attacks: BossScout["attacks"] = [];
+  const minions: BossScout["minions"] = [];
+  const seenMinion = new Set<string>();
+
+  for (const atk of t.attacks) {
+    if (atk.summon) {
+      const s = atk.summon;
+      if (seenMinion.has(s.minionId)) continue;
+      seenMinion.add(s.minionId);
+      const opensFight = s.openCount > 0;
+      minions.push({
+        id: s.minionId,
+        name: s.minionName,
+        maxHp: s.maxHp,
+        damage: s.damage,
+        maxCount: s.maxCount,
+        opensFight,
+        freeVolley: s.freeVolley,
+        onHitDot: s.onHitDot?.type,
+        note: describeMinionScout({
+          name: s.minionName,
+          opensFight,
+          freeVolley: s.freeVolley,
+          onHitDot: s.onHitDot?.type,
+        }),
+      });
+      continue;
+    }
+    const info = scoutAttack(atk.id);
+    attacks.push({
+      id: atk.id,
+      name: info.name,
+      description: info.description,
+    });
+  }
+
+  const enrages =
+    t.enrageDamageMult > 1.001 && t.enrageHpPct > 0 && t.enrageHpPct < 1;
+  const pctLabel = Math.round(t.enrageHpPct * 100);
+
+  return {
+    id: t.id,
+    name: t.name,
+    maxHp: t.maxHp,
+    difficulty: t.difficulty,
+    traits: [...t.traits],
+    summary: t.summary,
+    attacks,
+    minions,
+    enrageBelowHpPct: enrages ? t.enrageHpPct : null,
+    enrageNote: enrages
+      ? `Enrages below ${pctLabel}% HP — attacks hit harder.`
+      : null,
+  };
 }
 
 export function instantiateBoss(templateId: string): BossState {

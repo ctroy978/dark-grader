@@ -4,6 +4,12 @@ import {
   type StatusTag,
 } from "@dungeon-grades/shared";
 
+/**
+ * Chip row under portraits. Easy to miss in classroom play.
+ * When visual FX work starts: add strong persistent on-body DoT signals
+ * (type tint/aura + ramp intensity) — see docs/HANDOFF.md open item 7
+ * and docs/BOSS_PLAN.md “When visual FX work starts — DoT readability”.
+ */
 export function StatusChips({
   statuses,
   compact,

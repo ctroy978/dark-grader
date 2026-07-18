@@ -146,9 +146,11 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
 
 ### DoTs
-- Fire 6 / Ice 3 / Poison party splash 9/stack / Slime 2 — `DOT_STATS`  
-- Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash)  
+- Fire 6 / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime 2 — `DOT_STATS`  
+- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs stay flat.  
+- Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
 - Doomcaller transfers party DoTs → boss  
+- **UI today:** small status chips only (`statusUi` / `StatusChips`). Easy to miss on a Chromebook from across the table.  
 
 ### Bosses
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
@@ -231,7 +233,12 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 4. Expand default path to full 6 rooms when Captain/Warden ship  
 5. Finish missing art poses / new boss art (commit under `public/art/`)  
 6. Classroom deploy (serve built client from server, one command)  
-7. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
+7. **FX overlays (when we start visual FX)** — tag-driven, not full particle engine. **Priority must-include:**  
+   - **Strong on-portrait DoT signal** — players must *instantly* see that someone is poisoned / burning / iced / slimed (not chip-only). Classroom read from a few feet away.  
+   - Per-type tint/aura (poison green, fire orange, etc.) while the DoT is active, not only on tick flash.  
+   - **Boss ramp intensity** should read on the body/FX (stronger pulse / thicker aura as `escalationStep` rises), not only as `⬆N` on a tiny chip.  
+   - Apply/cleanse moments need a clear pop (cloud land, cleanse wash).  
+   - Also: Thundercaller lightning stage arcs, etc.  
 8. Image bubble frames  
 9. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
 10. Cascade / FireMage FF fine-tune if still too hard after more rooms exist
@@ -254,6 +261,10 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `hurt_male` | Party hurt bubble (male art) | short male hit grunt, classroom-safe |
 | `hurt_female` | Party hurt bubble (female art) | short female hit grunt, classroom-safe |
 | `fizzle` | **Any** archetype plays an **F** token | spell fail / sad poof / comic fizzle (falls back to `explosion_f`) |
+| `minion_moss_mite` | Moss Mite volley | soft chitter / nibble / squelch |
+| `minion_cinder_imp` | Cinder Imp volley | small fire spit / ember |
+| `minion_bone_archer` | Bone Archer volley | bone arrow whoosh |
+| `minion_shot` | Generic add fallback | any small enemy hit |
 
 **Art gender (locked with names):** male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
 Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunts (not a second generic hit).
@@ -284,6 +295,7 @@ Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunt
 | Runesinger first + Charge + party stun | `combat.ts` action order, `specialists.ts`, `damage.ts` (`applyCharge`/`consumeCharge`) |
 | Boss DoTs / Doomcaller | `dots.ts`, `types.ts` `BossState.statuses` |
 | Progressive presentation | `presentation.ts` (shared+server), `CombatScreen.tsx` |
+| DoT chips / future body FX | `statusUi.ts`, `StatusChips.tsx`; ramp on `DotInstance.escalationStep` |
 | Outcome / stun audio-visual | `CombatScreen.tsx`, `audio.ts`, `bosses.ts`, `poses.ts` |
 | Roster / names | `balance.ts` `ROSTER_COUNTS`, `seed/names.ts`, `seed/roster.ts` |
 | Art loader | `PlaceholderPortrait.tsx`, `public/art/README.md` |
