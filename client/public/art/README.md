@@ -42,6 +42,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 |--------|------|
 | `moss_grub` | Moss Grub (room 1 worm) |
 | `ash_wraith` | Ash Wraith |
+| `cinder_herald` | Cinder Herald (room 3 add lesson) |
 | `bone_colossus` | Bone Colossus |
 
 **Minions:**
@@ -49,6 +50,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 | Folder | Unit |
 |--------|------|
 | `moss_mite` | Moss Mite (Grub adds) |
+| `cinder_imp` | Cinder Imp (Herald adds) |
 | `bone_archer` | Bone Archer |
 
 ## Example (test one character)

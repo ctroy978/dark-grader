@@ -1,4 +1,8 @@
-import { type Minion, type TeamState } from "@dungeon-grades/shared";
+import {
+  type Minion,
+  type Soldier,
+  type TeamState,
+} from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
 import { applyPartyDamage, livingParty, soldierAt } from "./damage.js";
 import { applyDot } from "./dots.js";
@@ -32,7 +36,50 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     freeVolley: false,
     openCount: 1,
   },
+  SummonCinderImps: {
+    minionId: "cinder_imp",
+    minionName: "Cinder Imp",
+    maxHp: 11,
+    damage: 3,
+    maxCount: 2,
+    freeVolley: false,
+    openCount: 1,
+    onHitDot: { type: "Fire", stacks: 1 },
+  },
 };
+
+function minionFromSpec(
+  spec: BossSummonDef,
+  id: string,
+): Minion {
+  return {
+    id,
+    name: spec.minionName,
+    maxHp: spec.maxHp,
+    currentHp: spec.maxHp,
+    damage: spec.damage,
+    ...(spec.onHitDot ? { onHitDot: { ...spec.onHitDot } } : {}),
+  };
+}
+
+/** Direct damage + optional on-hit DoT for a minion volley shot. */
+function resolveMinionShot(
+  team: TeamState,
+  minion: Minion,
+  target: Soldier,
+  amount: number,
+  log: LogFn,
+): number {
+  const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
+  log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
+  if (minion.onHitDot && minion.onHitDot.stacks > 0) {
+    applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks);
+    log(
+      `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks})`,
+    );
+  }
+  return hpLost;
+}
 
 export function resolveSummonSpec(
   template: BossTemplate | undefined,
@@ -60,13 +107,7 @@ export function openingMinionsForBoss(bossTemplateId: string): Minion[] {
     if (!spec || spec.openCount <= 0) continue;
     const n = Math.min(spec.openCount, spec.maxCount);
     for (let i = 0; i < n; i++) {
-      out.push({
-        id: `${spec.minionId}_open_${i}`,
-        name: spec.minionName,
-        maxHp: spec.maxHp,
-        currentHp: spec.maxHp,
-        damage: spec.damage,
-      });
+      out.push(minionFromSpec(spec, `${spec.minionId}_open_${i}`));
     }
   }
   return out;
@@ -295,8 +336,7 @@ export function resolveBossPhase(
     const dmg = Math.floor(
       minion.damage * (boss.outgoingDamageMult || 1) * rage,
     );
-    const { hpLost } = applyPartyDamage(target, dmg, team.partyShield);
-    log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
+    resolveMinionShot(team, minion, target, dmg, log);
     present?.onMinionAttack?.({
       minionId: minion.id,
       minionName: minion.name,
@@ -329,7 +369,7 @@ function performAttack(
   // Parameterized summons (Moss Mites, Bone Archers, future adds)
   const summonSpec = resolveSummonSpec(getBossTemplate(boss.id), attackId);
   if (summonSpec) {
-    performSummon(team, summonSpec, random, log, dmg, hit, victims);
+    performSummon(team, summonSpec, random, log, dmg, victims);
     return [...victims];
   }
 
@@ -432,6 +472,19 @@ function performAttack(
       }
       break;
     }
+    case "FireCloud": {
+      // Fire-themed party DoT (Cinder Herald, future fire bosses). Same shape as PoisonCloud.
+      log(`${boss.name} unleashes a Fire Cloud!`);
+      for (const pos of [1, 2, 3, 4, 5, 6]) {
+        const s = soldierAt(team, pos);
+        if (s) {
+          applyDot(s, "Fire", 1);
+          victims.add(s.id);
+          log(`  ${s.name} is burning`);
+        }
+      }
+      break;
+    }
     default: {
       log(`${boss.name} uses ${attackId}!`);
       for (const s of livingParty(team)) {
@@ -449,21 +502,18 @@ function performSummon(
   random: () => number,
   log: LogFn,
   dmg: (base: number) => number,
-  hit: (s: { id: string }, amount: number) => number,
   victims: Set<string>,
 ): void {
   const boss = team.boss!;
   const livingAdds = livingMinionCount(team);
   const toSpawn = Math.max(0, spec.maxCount - livingAdds);
   for (let i = 0; i < toSpawn; i++) {
-    const m: Minion = {
-      id: `${spec.minionId}_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
-      name: spec.minionName,
-      maxHp: spec.maxHp,
-      currentHp: spec.maxHp,
-      damage: spec.damage,
-    };
-    team.minions.push(m);
+    team.minions.push(
+      minionFromSpec(
+        spec,
+        `${spec.minionId}_${Date.now()}_${i}_${Math.floor(random() * 9999)}`,
+      ),
+    );
   }
   if (toSpawn > 0) {
     log(
@@ -477,9 +527,18 @@ function performSummon(
       if (minion.currentHp <= 0) continue;
       const target = magnetBiasedTarget(team, random);
       if (!target) break;
-      const hpLost = hit(target, dmg(minion.damage));
+      // free-volley still uses enraged/outgoing scaling via dmg()
+      const amount = dmg(minion.damage);
+      const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
       if (hpLost > 0) victims.add(target.id);
       log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
+      if (minion.onHitDot && minion.onHitDot.stacks > 0) {
+        applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks);
+        log(
+          `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks})`,
+        );
+        victims.add(target.id);
+      }
     }
   } else {
     log(

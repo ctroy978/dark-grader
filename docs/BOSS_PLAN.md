@@ -51,8 +51,8 @@ moss_grub
 | 5 | `barrow_warden` | Dress rehearsal + grade signatures | Grave thrall (conditional) |
 | 6 | `bone_colossus` | Final exam | Bone Archers (full) |
 
-**Shipped today:** `moss_grub`, `ash_wraith`, `bone_colossus`.  
-**Default in code today:** 3 rooms **Moss Grub → Ash → Colossus**.
+**Shipped today:** `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`.  
+**Default in code today:** 4 rooms **Moss Grub → Ash → Cinder Herald → Colossus**.
 
 Teacher may still override `campaignLength` / `roomBossIds`.
 
@@ -148,18 +148,20 @@ Optional later: slight HP drop to 180–190 if room 1→2 still too steep.
 
 ---
 
-### 5.3 Room 3 — Cinder Herald (`cinder_herald`)
+### 5.3 Room 3 — Cinder Herald (`cinder_herald`) — **shipped**
 
 **Teaching sentence:** “Clear the gap, then the boss.”
 
 | | |
 |--|--|
-| HP | **160–180** (start **170**) |
-| Adds | **Cinder Imp** ×1–2 — **10–12 HP**, **3–4 dmg**; prefer summon when 0 adds; **no free-volley** (or very weak) |
-| Attacks | Slam / Line / light fire pressure; **no full Cascade** (omit or weight 1); optional Fire-flavored DoT later |
-| Feel | First **real** add fight; magnet on Archer/Fire when imps up |
+| HP | **170** |
+| Adds | **Cinder Imp** — **11 HP**, **3 dmg** + **1 Fire** on hit; max 2; open with 1; summon when gap empty; **no free-volley** |
+| Attacks | `FrontSlam`, `LineAttack`, **`FireCloud`** (party **Fire** DoT), `SummonCinderImps`; **no Cascade**, poison, or regen |
+| Enrage | &lt;40% HP, **1.2×** |
+| Feel | First **real** add fight; fire burn pressure; magnet on Archer/Fire when imps up |
+| Art key | `cinder_herald`, imps `cinder_imp` |
 
-Primary home for learning minions-first (`hitEnemies`).
+Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / Archer). Fire Cloud teaches **🔥 Fire** chips (distinct from Ash/Colossus poison).
 
 ---
 
@@ -291,17 +293,17 @@ Within party phase:
 
 Do **not** ship all six fantasy kits + Dominated in one PR.
 
-### Slice A — Foundation (do first)
+### Slice A — Foundation (do first) — **mostly shipped**
 
-1. Parameterized summon attack (TOML: minion id/name, maxHp, damage, maxCount, freeVolley yes/no).  
-2. Default campaign: length **6**, `roomBossIds` as in §2.  
-3. **Moss Grub** TOML + weak attacks + soft mites.  
-4. Ash stays room 2; Colossus room 6.  
-5. Rooms 3–5 may temporarily stub (e.g. retuned Ash/Colossus copies) **only if** labeled as placeholders in teacher UI — prefer real Herald soon after.
+1. Parameterized summon attack (TOML: minion id/name, maxHp, damage, maxCount, freeVolley yes/no). ✅  
+2. Default campaign: length **4** (Grub → Ash → Herald → Colossus); full 6 still open.  
+3. **Moss Grub** TOML + weak attacks + soft mites. ✅  
+4. Ash stays room 2; Colossus final in default path. ✅  
+5. Prefer real mid bosses over stubs.  
 
 ### Slice B — Add ladder
 
-1. **Cinder Herald** + imps (no free-volley).  
+1. **Cinder Herald** + imps (no free-volley). ✅  
 2. **Rattle Captain** + crush-weighted kit + light scraps.
 
 ### Slice C — Signature systems
@@ -365,6 +367,9 @@ Poses: `standing`, `attack`, `hit`, `death` (death optional for adds).
 |------|------|
 | 2026-07-15 | Initial plan from playtest + design discussion: 6-room arc, A+ Colossus/Ash numbers, thrall grade heal, Dominated Option C, implementation slices |
 | 2026-07-16 | Moss Grub room 1 shipped: TOML + light attacks + parameterized mite summon; default path Grub → Ash → Colossus |
+| 2026-07-16 | Cinder Herald room 3 shipped: FrontSlam/Line + Cinder Imps (11/3, no free-volley, open 1); default path 4 rooms Grub → Ash → Herald → Colossus |
+| 2026-07-16 | Herald fire theme: `FireCloud` attack applies party Fire DoT; trait `Fire`; not poison |
+| 2026-07-16 | Cinder Imps option A: 3 dmg + 1 Fire on hit (`minion_on_hit_dot` in TOML) |
 
 ---
 

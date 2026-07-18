@@ -57,9 +57,11 @@ export function artKeyFor(kind: PortraitKind): string {
     const id = kind.bossId?.toLowerCase().replace(/\s+/g, "_");
     return id || "boss";
   }
-  // Minions: bone archer etc.
+  // Minions: named units map to art folders under public/art/
   const n = kind.name?.toLowerCase().replace(/\s+/g, "_") ?? "minion";
   if (n.includes("bone") && n.includes("archer")) return "bone_archer";
+  if (n.includes("moss") && n.includes("mite")) return "moss_mite";
+  if (n.includes("cinder") && n.includes("imp")) return "cinder_imp";
   return n;
 }
 

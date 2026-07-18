@@ -5,8 +5,11 @@ build/
 *.sqlite-journal
 .env
 .env.local
-server/data/
-data/
+# Runtime classroom/team JSON — hand-authored audio is versioned
+/server/data/*
+!/server/data/audio/
+!/server/data/audio/**
+/data/
 .DS_Store
 *.log
 coverage/

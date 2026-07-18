@@ -101,8 +101,14 @@ export function playForLogLine(text: string): void {
     play("heal");
     return;
   }
-  if (t.includes("explosion") || t.includes("overload") || t.includes("misfire")) {
-    play("explosion_f");
+  if (
+    t.includes("explosion") ||
+    t.includes("overload") ||
+    t.includes("misfire") ||
+    t.includes("backlash") ||
+    t.includes("fizzle")
+  ) {
+    play("fizzle");
     return;
   }
   if (t.includes("fires at") || t.includes("bone archer")) {

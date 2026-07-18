@@ -1,12 +1,15 @@
 import {
   actionBubbleText,
+  attackSfxCandidates,
   claimBubbleText,
   hurtBubbleText,
+  partyHurtSfxCandidates,
   type BoardReveal,
   type Grade,
   type PresentationCue,
   type TeamState,
 } from "@dungeon-grades/shared";
+import { resolveSfxId } from "../audio/resolveSfx.js";
 
 /** Kinds that change combatant HP/status — attach a board snapshot for the client. */
 const REVEAL_KINDS = new Set<PresentationCue["kind"]>([
@@ -151,6 +154,10 @@ export function cueAction(
     text = `${text} ${slain[0]} down!`;
   }
 
+  // Unique attack cast per archetype; F = backfire. Kill weight uses same cast
+  // (not a second generic hit_heavy) so each kit keeps its identity.
+  const sfxId = resolveSfxId(attackSfxCandidates(archetype, grade));
+
   pushCue(team, {
     kind: "action",
     focusIds,
@@ -166,14 +173,18 @@ export function cueAction(
       ...fxExtra,
       ...(slain.length ? ["minion-kill"] : []),
     ],
-    sfxId: grade === "F" ? "explosion_f" : slain.length ? "hit_heavy" : "hit_light",
+    sfxId,
     voId: voActionId(grade),
     playVo,
     durationMs: slain.length ? 1300 : 1100,
   });
 }
 
-/** One hurt bubble from a random living party member who took damage. */
+/**
+ * One hurt bubble from a random living party member who took damage.
+ * SFX is gendered (hurt_male / hurt_female) when those clips exist.
+ * Boss/minion impact SFX stays on the prior boss/minion cue.
+ */
 export function cueHurtMaybe(
   team: TeamState,
   victimIds: string[],
@@ -195,7 +206,7 @@ export function cueHurtMaybe(
       text: hurtBubbleText(random),
     },
     fx: ["hurt-flash"],
-    sfxId: "hit_light",
+    sfxId: resolveSfxId(partyHurtSfxCandidates(s.archetype)),
     voId: voHurtId(random),
     playVo,
     durationMs: 850,

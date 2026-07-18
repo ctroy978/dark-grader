@@ -98,6 +98,34 @@ describe("campaign progression", () => {
     );
   });
 
+  it("opens Cinder Herald with one real imp and can resolve a fight", () => {
+    const team = createTeam("c3h", "CAMP3H", "Camp", 99);
+    const living = team.roster.filter((s) => s.alive).slice(0, 6);
+    selectParty(
+      team,
+      living.map((s) => s.id),
+    );
+    startFight(team, "cinder_herald", POOL);
+    expect(team.boss?.id).toBe("cinder_herald");
+    expect(team.boss?.maxHp).toBe(170);
+    expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
+    expect(team.minions[0]?.name).toBe("Cinder Imp");
+    expect(team.minions[0]?.maxHp).toBe(11);
+    expect(team.minions[0]?.damage).toBe(3);
+    expect(team.minions[0]?.onHitDot).toEqual({ type: "Fire", stacks: 1 });
+
+    for (let i = 0; i < 60; i++) {
+      if (team.phase === "victory" || team.phase === "defeat") break;
+      if (team.phase !== "awaiting_magnet") break;
+      const pos = living.find((s) => s.alive && s.position)?.position ?? 1;
+      placeMagnet(team, pos as 1 | 2 | 3 | 4 | 5 | 6);
+      commitFullRound(team);
+    }
+    expect(["victory", "defeat", "awaiting_magnet", "boss_telegraph"]).toContain(
+      team.phase,
+    );
+  });
+
   it("returns from defeat to lobby without advancing room", () => {
     const team = createTeam("c4", "CAMP4", "Camp", 4);
     team.phase = "defeat";

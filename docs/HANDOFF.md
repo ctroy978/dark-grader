@@ -1,6 +1,6 @@
 # Dungeon Grades — Agent Handoff
 
-**Last updated:** 2026-07-15 (boss plan written; understrength + balance A+ shipped)  
+**Last updated:** 2026-07-16 (Cinder Herald + 4-room default path)  
 **Repo:** `ctroy978/dark-grader` (local path often `/home/tcoop/Work/darker`)  
 **Owner:** Troy / ctroy978 — classroom only (LAN, firewall, no public SaaS)
 
@@ -71,7 +71,7 @@ README.md            Full ability reference for design review (keep in sync with
 | Round advance | Explicit **Drop Tokens**; boss telegraph then resolve-boss |
 | UI teaching | Board first (poses, labels, playbook); log is secondary |
 | Party size | 6 of **22** roster |
-| Campaign | **Runtime default 3 rooms:** Moss Grub → Ash → Colossus. **Target:** 6 rooms per `docs/BOSS_PLAN.md` (Grub → Ash → Herald → Captain → Warden → Colossus) |
+| Campaign | **Runtime default 4 rooms:** Moss Grub → Ash → Cinder Herald → Colossus. **Target:** 6 rooms per `docs/BOSS_PLAN.md` (Grub → Ash → Herald → Captain → Warden → Colossus) |
 | Damage priority | Party hits **minions first**, then boss (`hitEnemies`) |
 
 ---
@@ -209,7 +209,7 @@ Full tables live in **`README.md` → Character abilities**. High level:
 ```
 client/public/art/{key}/{pose}.png
 ```
-Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `bone_colossus`, **`bone_archer`**, **`moss_mite`** (minions — not nested under boss folders).  
+Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`, **`bone_archer`**, **`moss_mite`**, **`cinder_imp`** (minions — not nested under boss folders).  
 Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ---
@@ -225,14 +225,38 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Boss plan Slice A (partial)** — Moss Grub shipped as room 1; parameterized summon in TOML; full 6-room path still open  
-2. Slices B–C — Herald, Captain, Warden (thrall + Dominated)  
-3. Finish missing art poses / new boss art (commit under `public/art/`)  
-4. Classroom deploy (serve built client from server, one command)  
-5. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
-6. Image bubble frames  
-7. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
-8. Cascade / FireMage FF fine-tune if still too hard after more rooms exist
+1. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.  
+2. **Boss plan Slice B.2** — Rattle Captain + light scraps (CrushMagnet tax)  
+3. **Slice C** — Barrow Warden + Grave Thrall heal-on-drop + Dominated  
+4. Expand default path to full 6 rooms when Captain/Warden ship  
+5. Finish missing art poses / new boss art (commit under `public/art/`)  
+6. Classroom deploy (serve built client from server, one command)  
+7. FX overlays (Thundercaller lightning stage arcs, etc.) — tag-driven, not full particle engine  
+8. Image bubble frames  
+9. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
+10. Cascade / FireMage FF fine-tune if still too hard after more rooms exist
+
+### Party SFX catalog (hand-authored preferred)
+
+Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light` / `heal`).
+
+| Id | Who / when | Pixabay vibe |
+|----|------------|--------------|
+| `act_healer` | Healer cast | heal chime (legacy `heal.mp3` still accepted) |
+| `act_runesinger` | Runesinger cast | rune hymn / magic chime (falls back to `heal`) |
+| `act_vanguard` | Vanguard | shield bash / armor hit |
+| `act_shieldmaiden` | Shield Maiden | sword strike |
+| `act_firemage` | Fire Mage | fire cast burst |
+| `act_archer` | Archer | bow / arrow volley |
+| `act_doomcaller` | Doomcaller | dark curse pulse |
+| `act_necromancer` | Necromancer | drain / ethereal suck |
+| `act_thundercaller` | Thundercaller | lightning crack |
+| `hurt_male` | Party hurt bubble (male art) | short male hit grunt, classroom-safe |
+| `hurt_female` | Party hurt bubble (female art) | short female hit grunt, classroom-safe |
+| `fizzle` | **Any** archetype plays an **F** token | spell fail / sad poof / comic fizzle (falls back to `explosion_f`) |
+
+**Art gender (locked with names):** male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
+Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunts (not a second generic hit).
 
 ---
 

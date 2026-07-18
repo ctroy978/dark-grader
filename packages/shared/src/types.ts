@@ -95,6 +95,11 @@ export interface Minion {
   damage: number;
   /** DoTs on adds (e.g. FireMage Wildfire). Optional for older saves. */
   statuses?: StatusTag[];
+  /**
+   * Optional on-hit DoT applied to the party soldier this minion strikes
+   * (e.g. Cinder Imps apply Fire). Optional for older saves / plain adds.
+   */
+  onHitDot?: { type: DotType; stacks: number };
 }
 
 export interface BossState {
@@ -182,7 +187,7 @@ export interface ClassroomState {
   /** Fallback boss if room sequence missing */
   bossTemplateId: string | null;
   teamIds: string[];
-  /** Total rooms in the campaign (default 3) */
+  /** Total rooms in the campaign (default 4) */
   campaignLength: number;
   /**
    * Boss template id per room index 0..campaignLength-1.
@@ -192,10 +197,11 @@ export interface ClassroomState {
 }
 
 /** Default dungeon path for a class period */
-export const DEFAULT_CAMPAIGN_LENGTH = 3;
+export const DEFAULT_CAMPAIGN_LENGTH = 4;
 export const DEFAULT_ROOM_BOSSES = [
   "moss_grub",
   "ash_wraith",
+  "cinder_herald",
   "bone_colossus",
 ] as const;
 

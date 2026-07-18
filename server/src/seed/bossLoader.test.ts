@@ -7,6 +7,7 @@ describe("boss TOML loader", () => {
     expect(list.map((b) => b.id).sort()).toEqual([
       "ash_wraith",
       "bone_colossus",
+      "cinder_herald",
       "moss_grub",
     ]);
   });
@@ -49,4 +50,38 @@ describe("boss TOML loader", () => {
       openCount: 1,
     });
   });
+
+  it("loads Cinder Herald with fire cloud, real imps, no cascade / poison", () => {
+    const herald = getBossTemplate("cinder_herald");
+    expect(herald).toBeDefined();
+    expect(herald!.maxHp).toBe(170);
+    expect(herald!.enrageDamageMult).toBe(1.2);
+    expect(herald!.traits).toContain("Fire");
+    expect(herald!.attackIds).toEqual(
+      expect.arrayContaining([
+        "FrontSlam",
+        "LineAttack",
+        "FireCloud",
+        "SummonCinderImps",
+      ]),
+    );
+    expect(herald!.attackIds).not.toContain("Cascade");
+    expect(herald!.attackIds).not.toContain("PoisonCloud");
+    expect(herald!.attackIds).not.toContain("Regenerate");
+    const fire = herald!.attacks.find((a) => a.id === "FireCloud");
+    expect(fire?.weight).toBe(3);
+    const imps = herald!.attacks.find((a) => a.id === "SummonCinderImps");
+    expect(imps?.summon).toMatchObject({
+      minionId: "cinder_imp",
+      minionName: "Cinder Imp",
+      maxHp: 11,
+      damage: 3,
+      maxCount: 2,
+      freeVolley: false,
+      openCount: 1,
+      onHitDot: { type: "Fire", stacks: 1 },
+    });
+  });
 });
+
+

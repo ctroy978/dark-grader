@@ -3,6 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseToml } from "smol-toml";
 import type { AudioClipDef } from "../audio/catalog.js";
+import type { DotType } from "@dungeon-grades/shared";
+
+const DOT_TYPES: DotType[] = ["Fire", "Ice", "Poison", "Slime"];
+
+function parseDotType(raw: string | undefined): DotType | undefined {
+  if (!raw) return undefined;
+  const t = raw.trim();
+  return DOT_TYPES.find((d) => d.toLowerCase() === t.toLowerCase());
+}
 
 /** Optional summon kit on an attack row (parameterized minions). */
 export interface BossSummonDef {
@@ -15,6 +24,8 @@ export interface BossSummonDef {
   freeVolley: boolean;
   /** Spawn this many living minions at fight start. */
   openCount: number;
+  /** On minion volley hit: apply this DoT to the target (e.g. Fire for Cinder Imps). */
+  onHitDot?: { type: DotType; stacks: number };
 }
 
 export interface BossAttackDef {
@@ -80,6 +91,9 @@ interface RawBossToml {
     minion_max_count?: number;
     free_volley?: boolean;
     open_count?: number;
+    /** e.g. "Fire" — applied to the soldier the minion hits */
+    minion_on_hit_dot?: string;
+    minion_on_hit_dot_stacks?: number;
   }>;
 }
 
@@ -119,8 +133,10 @@ function parseBossFile(filePath: string): BossTemplate {
       a.minion_damage != null ||
       a.minion_max_count != null ||
       a.free_volley != null ||
-      a.open_count != null
+      a.open_count != null ||
+      a.minion_on_hit_dot != null
     ) {
+      const onHitType = parseDotType(a.minion_on_hit_dot);
       base.summon = {
         minionId:
           a.minion_id ??
@@ -131,6 +147,14 @@ function parseBossFile(filePath: string): BossTemplate {
         maxCount: a.minion_max_count ?? 2,
         freeVolley: a.free_volley ?? false,
         openCount: a.open_count ?? 0,
+        ...(onHitType
+          ? {
+              onHitDot: {
+                type: onHitType,
+                stacks: Math.max(1, a.minion_on_hit_dot_stacks ?? 1),
+              },
+            }
+          : {}),
       };
     }
     return base;

@@ -673,7 +673,7 @@ function clearFightState(team: TeamState): void {
  */
 export function enterBetweenRooms(
   team: TeamState,
-  campaignLength = 3,
+  campaignLength = 4,
 ): void {
   if (team.phase === "between_rooms" || team.phase === "campaign_complete") {
     // Already advanced — ignore repeat continue

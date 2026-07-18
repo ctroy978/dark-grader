@@ -6,6 +6,7 @@ export * from "./rng.js";
 export * from "./playbook.js";
 export * from "./statusUi.js";
 export * from "./presentation.js";
+export * from "./audioRoles.js";
 
 export function currentRoomNumber(roomsCleared: number): number {
   return roomsCleared + 1;
