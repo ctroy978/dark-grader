@@ -4,7 +4,9 @@ import {
   GRADE_COLORS,
   describeGradeEffect,
   gradeRiskNote,
+  statusToChip,
   type Grade,
+  type StatusTag,
 } from "@dungeon-grades/shared";
 import {
   api,
@@ -39,6 +41,58 @@ const GRADE_CLASS: Record<Grade, string> = {
   D: "text-grade-d border-grade-d/50",
   F: "text-grade-f border-grade-f/50",
 };
+
+/** Status/block chips under a party seat — grows downward, not inside the card. */
+function PartySeatEffects({
+  name,
+  block,
+  statuses,
+}: {
+  name: string;
+  block?: number;
+  statuses?: StatusTag[];
+}) {
+  const chips: { key: string; text: string; title: string; className: string }[] =
+    [];
+  if (block && block > 0) {
+    chips.push({
+      key: "block",
+      text: `Block ${block}`,
+      title: "Personal block remaining this round",
+      className: "text-sky-300 border-sky-400/40 bg-sky-950/40",
+    });
+  }
+  for (let i = 0; i < (statuses?.length ?? 0); i++) {
+    const st = statuses![i]!;
+    const c = statusToChip(st, i);
+    let text = c.label;
+    if (st.kind === "Dot") {
+      text = `${st.type} ×${st.stacks}`;
+    }
+    chips.push({
+      key: c.key,
+      text,
+      title: c.title,
+      className: c.colorClass,
+    });
+  }
+  if (!chips.length) {
+    return <div className="min-h-[0.25rem]" aria-hidden />;
+  }
+  return (
+    <div className="flex flex-col items-center gap-0.5 px-0.5" title={name}>
+      {chips.map((c) => (
+        <span
+          key={c.key}
+          title={c.title}
+          className={`inline-flex text-[8px] md:text-[9px] px-1 rounded border leading-tight ${c.className}`}
+        >
+          {c.text}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /** Combatant snapshot before Drop Tokens / boss resolve (HP frozen until cues). */
 function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
@@ -644,161 +698,161 @@ export default function CombatScreen({
   const showBossTelegraphBanner =
     team.phase === "boss_telegraph" && (!playing || activeBeat?.kind === "telegraph");
 
+  const playbookGrades = (
+    pendingGrades.length
+      ? [...new Set(pendingGrades)]
+      : (["A", "B", "C", "D", "F"] as Grade[])
+  ) as Grade[];
+
   return (
-    <div className="min-h-full flex flex-col relative">
+    <div className="h-dvh max-h-dvh flex flex-col relative overflow-hidden">
       {activeBeat?.bubble &&
         (activeBeat.bubble.side !== "party" ||
           !activeBeat.bubble.speakerId) && (
           <StageBubble cue={activeBeat} />
         )}
 
-      {/* Incoming tokens — fixed height so appear/disappear never reflows the page */}
-      <div className="relative h-24 md:h-28 shrink-0 border-b border-parchment/10 bg-navy/50 overflow-hidden">
-        <div className="absolute top-2 left-3 right-3 flex justify-between text-xs text-parchment-dim z-10">
+      {/* Thin status strip — no tall token header */}
+      <div className="shrink-0 border-b border-parchment/10 bg-navy/80 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 text-parchment-dim">
           <span>
-            {team.phase === "awaiting_magnet"
-              ? "Incoming drop (plan your magnet)"
-              : playing
-                ? "Resolving…"
-                : "Tokens"}
+            Round <strong className="text-parchment">{team.round}</strong>
           </span>
+          <span className="opacity-40">·</span>
+          <span className="capitalize text-rune">
+            {playing ? "watching…" : phaseLabel}
+          </span>
+          <span className="opacity-40">·</span>
           <span>
-            Pool left: {team.tokensRemaining ?? "?"}
+            Pool {team.tokensRemaining ?? "?"}
             {team.tokensDiscard != null ? ` · used ${team.tokensDiscard}` : ""}
           </span>
         </div>
-        {/* Always reserve 3 token slots (max drop size) so the row never jumps */}
-        <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6 pt-2">
-          {([0, 1, 2] as const).map((i) => {
-            const g = pendingGrades[i];
-            if (!g) {
-              return (
-                <div
-                  key={`slot-${i}`}
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-parchment/10 opacity-40"
-                  aria-hidden
-                />
-              );
-            }
-            return (
-              <div
-                key={`${g}-${i}`}
-                className={`token-bob w-12 h-12 md:w-14 md:h-14 rounded-full border-2 flex items-center justify-center font-bold text-xl md:text-2xl bg-navy-light/90 shadow-lg ${GRADE_CLASS[g]} ${flashTokens ? "token-fall" : ""}`}
-                style={{
-                  animationDelay: `${i * 0.12}s`,
-                  color: GRADE_COLORS[g],
-                  borderColor: GRADE_COLORS[g],
-                }}
-                title="This grade will drop when you press Drop Tokens"
-              >
-                {g}
-              </div>
-            );
-          })}
+        <div className="text-parchment-dim/80">
+          {playing
+            ? "Resolving actions…"
+            : team.phase === "awaiting_magnet"
+              ? "Magnet 1–6 · Drop Tokens"
+              : "\u00a0"}
         </div>
       </div>
 
-      {/* Alert band — fixed height; content swaps without growing/shrinking the page */}
-      <div className="shrink-0 min-h-[2.75rem] border-b border-parchment/10">
-        {showBossTelegraphBanner ? (
-          <div className="bg-crimson/90 text-parchment text-center py-2.5 px-4 font-bold tracking-wide animate-pulse border-b border-crimson-bright">
-            ⚠ {team.boss?.name ?? "Boss"} is about to attack!
-          </div>
-        ) : (team.phase === "victory" || team.phase === "defeat") &&
-          !playing ? (
+      {showBossTelegraphBanner && (
+        <div className="shrink-0 bg-crimson/90 text-parchment text-center py-1.5 px-3 text-sm font-bold tracking-wide animate-pulse">
+          ⚠ {team.boss?.name ?? "Boss"} is about to attack!
+        </div>
+      )}
+      {(team.phase === "victory" || team.phase === "defeat") && !playing && (
+        <div className="shrink-0">
           <FightSummary team={team} />
-        ) : (
-          <div className="h-[2.75rem] flex items-center justify-center text-xs text-parchment-dim/50">
-            {playing
-              ? "Resolving actions…"
-              : team.phase === "awaiting_magnet"
-                ? "Set magnet (1–6), then Drop Tokens"
-                : "\u00a0"}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Magnet playbook — always mounted at fixed min-height during a fight */}
-      <div className="shrink-0 min-h-[4.75rem] border-b border-parchment/10 bg-navy-light/40 px-3 py-2">
-        {team.phase === "awaiting_magnet" && magnetSoldier && !playing ? (
-          <div className="max-w-4xl mx-auto flex flex-wrap items-start gap-3">
-            <div className="text-sm shrink-0">
-              <span className="text-parchment-dim">Magnet on </span>
-              <strong>
-                {ARCHETYPE_ICONS[magnetSoldier.archetype]} {magnetSoldier.name}
-              </strong>
-              <span className="text-parchment-dim">
-                {" "}
-                ({magnetSoldier.archetype})
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 flex-1">
-              {(pendingGrades.length
-                ? [...new Set(pendingGrades)]
-                : (["A", "B", "C", "D", "F"] as Grade[])
-              ).map((g) => {
-                const risk = gradeRiskNote(magnetSoldier.archetype, g);
-                return (
-                  <div
-                    key={g}
-                    className={`rounded-lg border px-2 py-1 text-[11px] md:text-xs bg-navy/60 ${GRADE_CLASS[g]}`}
-                    style={{ borderColor: GRADE_COLORS[g] }}
-                    title={describeGradeEffect(magnetSoldier.archetype, g)}
-                  >
-                    <span className="font-bold" style={{ color: GRADE_COLORS[g] }}>
+      {/* Battlefield — party/minions/boss share a vertical center line */}
+      <div className="flex-1 min-h-0 grid grid-cols-12 gap-2 p-2 md:p-3 items-center">
+        {/* Party + planning tools (natural height, vertically centered with gap/boss) */}
+        <div className="col-span-12 md:col-span-5 flex flex-col justify-center min-h-0 gap-1.5">
+          {/* Incoming tokens (left) + grade explainers (right of tokens) */}
+          <div className="shrink-0 flex items-start gap-2 md:gap-3 rounded-lg border border-parchment/10 bg-navy-light/50 px-2 py-1.5">
+            <div className="shrink-0">
+              <div className="text-[9px] uppercase tracking-wider text-parchment-dim mb-1">
+                Drop
+              </div>
+              <div className="flex items-center gap-1.5 md:gap-2">
+                {([0, 1, 2] as const).map((i) => {
+                  const g = pendingGrades[i];
+                  if (!g) {
+                    return (
+                      <div
+                        key={`slot-${i}`}
+                        className="w-9 h-9 md:w-11 md:h-11 rounded-full border-2 border-dashed border-parchment/15 opacity-40"
+                        aria-hidden
+                      />
+                    );
+                  }
+                  return (
+                    <div
+                      key={`${g}-${i}`}
+                      className={`token-bob w-9 h-9 md:w-11 md:h-11 rounded-full border-2 flex items-center justify-center font-bold text-base md:text-lg bg-navy/90 shadow-md ${GRADE_CLASS[g]} ${flashTokens ? "token-fall" : ""}`}
+                      style={{
+                        animationDelay: `${i * 0.12}s`,
+                        color: GRADE_COLORS[g],
+                        borderColor: GRADE_COLORS[g],
+                      }}
+                      title="Drops when you press Drop Tokens"
+                    >
                       {g}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="min-w-0 flex-1 border-l border-parchment/10 pl-2 md:pl-3">
+              {team.phase === "awaiting_magnet" && magnetSoldier && !playing ? (
+                <>
+                  <div className="text-[11px] md:text-xs mb-1 truncate">
+                    <span className="text-parchment-dim">Magnet · </span>
+                    <strong>
+                      {ARCHETYPE_ICONS[magnetSoldier.archetype]}{" "}
+                      {magnetSoldier.name}
+                    </strong>
+                    <span className="text-parchment-dim">
+                      {" "}
+                      ({magnetSoldier.archetype})
                     </span>
-                    <span className="text-parchment-dim ml-1">
-                      {describeGradeEffect(magnetSoldier.archetype, g)}
-                    </span>
-                    {risk && (
-                      <span className="block text-grade-f text-[10px]">{risk}</span>
-                    )}
                   </div>
-                );
-              })}
+                  <div className="flex flex-wrap gap-1">
+                    {playbookGrades.map((g) => {
+                      const risk = gradeRiskNote(magnetSoldier.archetype, g);
+                      return (
+                        <div
+                          key={g}
+                          className={`rounded border px-1.5 py-0.5 text-[10px] md:text-[11px] bg-navy/70 leading-snug max-w-[11rem] ${GRADE_CLASS[g]}`}
+                          style={{ borderColor: GRADE_COLORS[g] }}
+                          title={describeGradeEffect(magnetSoldier.archetype, g)}
+                        >
+                          <span
+                            className="font-bold"
+                            style={{ color: GRADE_COLORS[g] }}
+                          >
+                            {g}
+                          </span>
+                          <span className="text-parchment-dim ml-1">
+                            {describeGradeEffect(magnetSoldier.archetype, g)}
+                          </span>
+                          {risk && (
+                            <span className="block text-grade-f text-[9px]">
+                              {risk}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="text-[11px] text-parchment-dim/60 italic py-1">
+                  {team.phase === "victory" || team.phase === "defeat"
+                    ? "Fight over"
+                    : "Playbook pauses while the round resolves"}
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto h-full min-h-[3.5rem] flex items-center text-sm text-parchment-dim/60 italic">
-            {team.phase === "victory" || team.phase === "defeat"
-              ? "Fight over"
-              : "Playbook pauses while the round resolves"}
-          </div>
-        )}
-      </div>
 
-      {/* Battlefield */}
-      <div className="flex-1 grid grid-cols-12 gap-2 p-3 md:p-4 min-h-0">
-        {/* Party */}
-        <div className="col-span-12 md:col-span-5 flex flex-col">
-          <div className="text-xs uppercase tracking-widest text-parchment-dim mb-1 flex justify-between">
+          <div className="text-[10px] uppercase tracking-widest text-parchment-dim flex justify-between shrink-0">
             <span>Back (6)</span>
-            <span>Party</span>
-            <span className="text-rune">Front (1) → boss</span>
+            <span className="normal-case tracking-normal">
+              🛡{" "}
+              {view.partyShield.active && view.partyShield.remaining > 0
+                ? `Shield ${view.partyShield.remaining}`
+                : "Shield down"}
+            </span>
+            <span className="text-rune">Front (1) →</span>
           </div>
-          {/* Party shield bar */}
-          <div className="mb-2 flex items-center gap-2 text-xs">
-            <span className="text-rune shrink-0">🛡 Party shield</span>
-            {view.partyShield.active && view.partyShield.remaining > 0 ? (
-              <>
-                <div className="flex-1 h-2 rounded-full bg-navy overflow-hidden border border-rune/30">
-                  <div
-                    className="h-full bg-rune/80 transition-all"
-                    style={{
-                      width: `${Math.min(100, (view.partyShield.remaining / 6) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <span className="text-rune font-semibold tabular-nums">
-                  {view.partyShield.remaining}
-                </span>
-              </>
-            ) : (
-              <span className="text-parchment-dim/70 italic">down</span>
-            )}
-          </div>
-          <div className="relative flex-1 flex items-end gap-1 md:gap-2">
+
+          {/* Fixed-height cards — do not stretch to fill the column */}
+          <div className="relative shrink-0 flex items-end gap-1 md:gap-1.5">
             {partyVisual.map((s) => {
               const pos = (s.position ?? 1) as number;
               const claim = claimBySoldier.get(s.id);
@@ -822,7 +876,7 @@ export default function CombatScreen({
                         : `Place magnet on #${pos}`
                   }
                   onClick={() => void setMagnet(pos)}
-                  className={`relative flex-1 rounded-lg border bg-navy-light/70 p-1 md:p-1.5 text-center transition ${
+                  className={`relative flex-1 min-w-0 rounded-lg border bg-navy-light/70 p-0.5 md:p-1 text-center transition ${
                     !s.alive
                       ? "opacity-40 border-parchment/10 cursor-not-allowed"
                       : focused || isSpeaker
@@ -834,7 +888,7 @@ export default function CombatScreen({
                           : "border-parchment/15 hover:border-parchment/40"
                   }`}
                 >
-                  <div className="text-[8px] text-parchment-dim mb-0.5">
+                  <div className="text-[8px] text-parchment-dim leading-none py-0.5">
                     #{pos}
                   </div>
                   <CombatActor
@@ -845,17 +899,15 @@ export default function CombatScreen({
                     alive={s.alive}
                     currentHp={s.currentHp}
                     maxHp={s.maxHp}
-                    block={s.block}
-                    statuses={s.statuses}
                     claimGrade={claim?.effectiveGrade}
                     subtitle={s.archetype}
-                    size="md"
+                    size="sm"
                   />
                 </button>
               );
             })}
             <div
-              className={`pointer-events-none absolute bottom-0 h-2 w-[14%] rounded-full transition-all duration-200 ${
+              className={`pointer-events-none absolute bottom-0 h-1.5 w-[14%] rounded-full transition-all duration-200 ${
                 magnetLocked
                   ? "magnet-shock-lock bg-yellow-300/90"
                   : "magnet-glow bg-rune/80"
@@ -865,12 +917,24 @@ export default function CombatScreen({
               }}
             />
           </div>
+          {/* Effects rail — clearly below cards; grows down so card boxes stay equal height */}
+          <div className="shrink-0 flex items-start gap-1 md:gap-1.5 min-h-[1rem] mt-0.5 pt-1 border-t border-parchment/10">
+            {partyVisual.map((s) => (
+              <div key={`fx-${s.id}`} className="flex-1 min-w-0">
+                <PartySeatEffects
+                  name={s.name}
+                  block={s.block}
+                  statuses={s.statuses}
+                />
+              </div>
+            ))}
+          </div>
           {magnetLocked && team.phase === "awaiting_magnet" && !playing && (
-            <div className="mt-2 text-center text-xs md:text-sm font-semibold text-yellow-200">
-              Magnet Locked — shocked in place this round
+            <div className="shrink-0 text-center text-[11px] font-semibold text-yellow-200">
+              Magnet Locked — shocked this round
             </div>
           )}
-          <div className="mt-3 flex justify-center gap-1.5">
+          <div className="shrink-0 flex justify-center gap-1">
             {magnetButtons.map((n) => {
               const living = livingPositions.has(n);
               return (
@@ -891,7 +955,7 @@ export default function CombatScreen({
                         : `Position ${n} is empty or fallen`
                   }
                   onClick={() => void setMagnet(n)}
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-lg font-bold text-lg border transition ${
+                  className={`w-8 h-8 md:w-9 md:h-9 rounded-md font-bold text-sm border transition ${
                     !living
                       ? "opacity-25 border-parchment/10 cursor-not-allowed line-through"
                       : team.magnetPosition === n
@@ -909,11 +973,11 @@ export default function CombatScreen({
         </div>
 
         {/* Minions */}
-        <div className="col-span-12 md:col-span-3 flex flex-col items-center justify-center min-h-[100px]">
-          <div className="text-xs uppercase tracking-widest text-parchment-dim mb-2">
+        <div className="col-span-12 md:col-span-3 flex flex-col items-center justify-center min-h-0">
+          <div className="text-[10px] uppercase tracking-widest text-parchment-dim mb-1 shrink-0">
             Gap / Adds
           </div>
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center content-center overflow-hidden">
             {view.minions?.length ? (
               view.minions.map((m) => {
                 const focused = focusSet.has(m.id);
@@ -921,7 +985,7 @@ export default function CombatScreen({
                 return (
                   <div
                     key={m.id}
-                    className={`relative rounded-lg border px-2 py-2 min-w-[5.5rem] max-w-[7rem] transition ${
+                    className={`relative rounded-lg border px-1.5 py-1.5 min-w-[4.5rem] max-w-[6rem] transition ${
                       dead
                         ? "opacity-40 border-parchment/10"
                         : focused
@@ -940,34 +1004,32 @@ export default function CombatScreen({
                       statuses={m.statuses}
                       size="sm"
                       subtitle={dead ? "fallen" : `ATK ${m.damage ?? 7}`}
+                      showStatuses
                     />
                   </div>
                 );
               })
             ) : (
-              <div className="text-parchment-dim/50 text-sm italic text-center px-2">
+              <div className="text-parchment-dim/50 text-xs italic text-center px-2">
                 Empty corridor…
-                <div className="text-[10px] mt-1">
-                  (Colossus may summon archers)
-                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Boss */}
-        <div className="col-span-12 md:col-span-4 flex flex-col items-center justify-center">
-          <div className="text-xs uppercase tracking-widest text-parchment-dim mb-2">
+        <div className="col-span-12 md:col-span-4 flex flex-col items-center justify-center min-h-0">
+          <div className="text-[10px] uppercase tracking-widest text-parchment-dim mb-1 shrink-0">
             Boss
           </div>
           {view.boss ? (
             <div
-              className={`relative w-full max-w-xs rounded-xl border p-3 text-center transition ${
+              className={`relative w-full max-w-[14rem] md:max-w-[16rem] rounded-xl border p-2 text-center transition ${
                 focusSet.has("boss") ||
                 activeBeat?.kind === "boss" ||
                 activeBeat?.kind === "telegraph" ||
                 team.phase === "boss_telegraph"
-                  ? "border-grade-f ring-4 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light unit-focus-hostile"
+                  ? "border-grade-f ring-2 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light unit-focus-hostile"
                   : "border-crimson/40 bg-gradient-to-b from-crimson/20 to-navy-light"
               }`}
             >
@@ -1000,24 +1062,20 @@ export default function CombatScreen({
         </div>
       </div>
 
-      {/* HUD */}
-      <div className="border-t border-parchment/10 bg-navy/90 p-3 md:p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-3 justify-between">
-          <div className="text-sm">
-            <span className="text-parchment-dim">Round</span>{" "}
-            <strong>{team.round}</strong>
-            <span className="mx-2 text-parchment-dim">·</span>
+      {/* Compact action HUD — log omitted from play surface */}
+      <div className="shrink-0 border-t border-parchment/10 bg-navy/95 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="text-xs text-parchment-dim">
+            {view.partyShield.active && view.partyShield.remaining > 0 && (
+              <span className="text-rune mr-2">
+                🛡 {view.partyShield.remaining}
+              </span>
+            )}
             <span className="capitalize text-rune">
               {playing ? "watching actions" : phaseLabel}
             </span>
-            {view.partyShield.active && (
-              <>
-                <span className="mx-2 text-parchment-dim">·</span>
-                Shield {view.partyShield.remaining}
-              </>
-            )}
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-1.5 items-center flex-wrap justify-end">
             <button
               type="button"
               title={
@@ -1030,13 +1088,13 @@ export default function CombatScreen({
                 setMusicEnabled(next);
                 setMusicOn(next);
               }}
-              className={`rounded-lg border px-2.5 py-2 text-xs ${
+              className={`rounded-lg border px-2 py-1.5 text-xs ${
                 musicOn
                   ? "border-rune/50 text-rune"
                   : "border-parchment/20 text-parchment-dim"
               }`}
             >
-              {musicOn ? "🎵" : "Music off"}
+              {musicOn ? "🎵" : "Music"}
             </button>
             <button
               type="button"
@@ -1046,7 +1104,7 @@ export default function CombatScreen({
                 setMuted(next);
                 setMuteState(next);
               }}
-              className="rounded-lg border border-parchment/20 px-2.5 py-2 text-sm"
+              className="rounded-lg border border-parchment/20 px-2 py-1.5 text-sm"
             >
               {mute ? "🔇" : "🔊"}
             </button>
@@ -1058,7 +1116,7 @@ export default function CombatScreen({
                 setVoEnabled(next);
                 setVoOn(next);
               }}
-              className={`rounded-lg border px-2.5 py-2 text-xs ${
+              className={`rounded-lg border px-2 py-1.5 text-xs ${
                 voOn ? "border-rune text-rune" : "border-parchment/20"
               }`}
             >
@@ -1071,7 +1129,7 @@ export default function CombatScreen({
                   setPlayIndex(playQueue.length);
                   endPresentation();
                 }}
-                className="rounded-lg border border-parchment/30 px-3 py-2 text-sm"
+                className="rounded-lg border border-parchment/30 px-2.5 py-1.5 text-sm"
               >
                 Skip
               </button>
@@ -1081,7 +1139,7 @@ export default function CombatScreen({
                 type="button"
                 disabled={busy || playing}
                 onClick={() => void dropTokens()}
-                className="rounded-lg bg-rune/90 hover:bg-rune text-navy font-bold px-5 py-2.5 text-sm md:text-base disabled:opacity-50"
+                className="rounded-lg bg-rune/90 hover:bg-rune text-navy font-bold px-4 py-2 text-sm disabled:opacity-50"
               >
                 Drop Tokens
               </button>
@@ -1091,7 +1149,7 @@ export default function CombatScreen({
                 type="button"
                 disabled={busy || playing}
                 onClick={() => void runBossResolve()}
-                className="rounded-lg bg-crimson hover:bg-crimson-bright px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+                className="rounded-lg bg-crimson hover:bg-crimson-bright px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
                 {busy ? "Resolving…" : "Boss attacks!"}
               </button>
@@ -1101,11 +1159,11 @@ export default function CombatScreen({
                 type="button"
                 disabled={busy}
                 onClick={() => void afterVictory()}
-                className="rounded-lg bg-grade-a/90 text-navy font-bold px-5 py-2.5"
+                className="rounded-lg bg-grade-a/90 text-navy font-bold px-4 py-2 text-sm"
               >
                 {team.isFinalRoom
                   ? "Complete campaign"
-                  : "Continue → camp & reform"}
+                  : "Continue → camp"}
               </button>
             )}
             {team.phase === "defeat" && !playing && (
@@ -1113,27 +1171,25 @@ export default function CombatScreen({
                 type="button"
                 disabled={busy}
                 onClick={() => void afterDefeat()}
-                className="rounded-lg bg-crimson hover:bg-crimson-bright px-5 py-2.5 font-semibold disabled:opacity-50"
+                className="rounded-lg bg-crimson hover:bg-crimson-bright px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
-                {busy ? "…" : "Reform party & retry room"}
+                {busy ? "…" : "Reform & retry"}
               </button>
             )}
             <button
               type="button"
               onClick={onLeave}
-              className="rounded-lg border border-parchment/20 px-3 py-2 text-sm"
+              className="rounded-lg border border-parchment/20 px-2.5 py-1.5 text-sm"
             >
               Leave
             </button>
           </div>
         </div>
 
-        {error && <p className="text-grade-f text-sm">{error}</p>}
+        {error && <p className="text-grade-f text-sm mt-1">{error}</p>}
 
-        <div
-          ref={logEndRef}
-          className="h-20 overflow-y-auto rounded-lg bg-navy-light/50 border border-parchment/10 p-2 text-xs md:text-sm font-mono space-y-0.5"
-        >
+        {/* Hidden log sink keeps auto-scroll ref valid without eating viewport */}
+        <div ref={logEndRef} className="sr-only" aria-hidden>
           {team.log.map((entry, i) => (
             <div
               key={`${entry.round}-${i}-${entry.text.slice(0, 24)}`}
@@ -1153,13 +1209,12 @@ export default function CombatScreen({
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-parchment-dim text-center">
-          Bubbles = who acts · playbook under magnet · Front nearest
-          boss · Keys{" "}
+        <p className="text-[10px] text-parchment-dim text-center mt-1 leading-tight">
+          Front nearest boss ·{" "}
           <kbd className="px-1 border border-parchment/30 rounded">1</kbd>–
           <kbd className="px-1 border border-parchment/30 rounded">6</kbd> magnet ·{" "}
           <kbd className="px-1 border border-parchment/30 rounded">Space</kbd>{" "}
-          drops
+          drop
         </p>
       </div>
     </div>

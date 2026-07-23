@@ -141,6 +141,8 @@ export function CombatActor({
   claimGrade,
   size = "md",
   showName = true,
+  /** Default off — party line uses the effects rail under cards. */
+  showStatuses = false,
   subtitle,
   className = "",
 }: {
@@ -158,6 +160,11 @@ export function CombatActor({
   claimGrade?: Grade;
   size?: "sm" | "md" | "lg";
   showName?: boolean;
+  /**
+   * When true, render StatusLabels (block/DoTs) under HP.
+   * Party combat cards leave this false; effects live in the under-row rail.
+   */
+  showStatuses?: boolean;
   subtitle?: string;
   className?: string;
 }) {
@@ -233,7 +240,9 @@ export function CombatActor({
       <div className="text-[9px] md:text-[10px] text-parchment-dim tabular-nums">
         {currentHp}/{maxHp}
       </div>
-      <StatusLabels statuses={statuses} block={block} />
+      {showStatuses ? (
+        <StatusLabels statuses={statuses} block={block} />
+      ) : null}
     </div>
   );
 }
