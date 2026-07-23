@@ -171,6 +171,11 @@ export interface TeamState {
    * on Commit. Drawn from the pool when the phase begins; empty during resolve.
    */
   pendingTokens: Grade[];
+  /**
+   * Attack id chosen at boss_telegraph (so wind-up can name the threat).
+   * Consumed in resolveBoss; null when idle / stunned / after resolve.
+   */
+  pendingBossAttackId?: string | null;
   boss: BossState | null;
   minions: Minion[];
   phase: FightPhase;

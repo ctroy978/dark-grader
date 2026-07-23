@@ -200,13 +200,12 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   }
   if (maxPoisonWeight > 0) {
     const total = DOT_STATS.Poison.tick * maxPoisonWeight;
+    const anyBossPoison = poisonCarriers.some((s) => {
+      const p = s.statuses.find((st) => st.kind === "Dot" && st.type === "Poison");
+      return p?.kind === "Dot" && p.escalationStep != null;
+    });
     const rampNote =
-      reportIntensity > 1 ||
-      poisonCarriers.some(
-        (s) =>
-          s.statuses.find((st) => st.kind === "Dot" && st.type === "Poison")
-            ?.escalationStep != null,
-      )
+      reportIntensity > 1 || anyBossPoison
         ? ` · intensity ${reportIntensity}`
         : "";
     log(

@@ -8,6 +8,7 @@ export * from "./bossScout.js";
 export * from "./archetypeScout.js";
 export * from "./statusUi.js";
 export * from "./presentation.js";
+export * from "./bossPresentation.js";
 export * from "./audioRoles.js";
 
 export function currentRoomNumber(roomsCleared: number): number {

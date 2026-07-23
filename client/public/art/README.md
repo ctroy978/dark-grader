@@ -13,9 +13,13 @@ Served as: `/art/{key}/{pose}.png`
 | Pose | File | When used |
 |------|------|-----------|
 | Idle | `standing.png` | Default |
-| Acting | `attack.png` | Token actions, boss attacks |
+| **Wind-up** | **`windup.png`** | **Boss telegraph only** — charge pose with telegraph SFX (not the strike) |
+| Acting | `attack.png` | Party casts, boss **impact** after wind-up |
 | Taking damage | `hit.png` | Getting hit |
 | Fallen | `death.png` | Dead |
+
+**Boss art set (recommended):** `standing` + **`windup`** + `attack` + `hit`.  
+`windup` is boss-facing; party units ignore it. Missing `windup.png` shows the SVG placeholder until you drop the file — do **not** reuse `attack.png` as wind-up or the charge will look like the hit already landed.
 
 If a pose file is missing, the client falls back to the SVG placeholder for that pose.  
 **Minimum for a test:** only `standing.png` is enough for idle; other poses still show placeholders until you add them.

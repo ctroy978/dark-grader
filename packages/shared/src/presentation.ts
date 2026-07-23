@@ -61,6 +61,13 @@ export interface PresentationCue {
   fx?: string[];
   /** Catalog SFX id (always try if present) */
   sfxId?: string;
+  /**
+   * Second one-shot layered under the primary (e.g. party groan under boss impact).
+   * Same beat — does not add a separate hurt cue / wait.
+   */
+  secondarySfxId?: string;
+  /** Delay before secondary SFX (ms). Default client ~200 if omitted. */
+  secondarySfxDelayMs?: number;
   /** Catalog VO id — only play when VO enabled / occasional */
   voId?: string;
   /** Whether server wants VO this time (client still respects VO toggle) */

@@ -1,7 +1,13 @@
 import {
+  BOSS_VOICE_DURATION_MS,
+  bossImpactDurationMs,
+  bossTelegraphDurationMs,
+  bossThreatTier,
   createRng,
+  defaultTelegraphLines,
   INTER_ROOM_VANGUARD_HEAL_PCT,
   MAX_LOG_ENTRIES,
+  PARTY_HURT_LAYER_DELAY_MS,
   PARTY_SIZE,
   randomInt,
   type Grade,
@@ -12,7 +18,12 @@ import {
 import { instantiateBoss } from "../seed/bosses.js";
 import { getBossTemplate } from "../seed/bossLoader.js";
 import { createCampaignRoster } from "../seed/roster.js";
-import { openingMinionsForBoss, resolveBossPhase } from "./bosses.js";
+import {
+  openingMinionsForBoss,
+  pickBossAttackId,
+  pickBossVoiceSfx,
+  resolveBossPhase,
+} from "./bosses.js";
 import { resolveClaims, setMagnet } from "./claims.js";
 import {
   activeParty,
@@ -24,7 +35,7 @@ import { tickDots } from "./dots.js";
 import {
   cueAction,
   cueClaim,
-  cueHurtMaybe,
+  pickPartyHurt,
   pushCue,
 } from "./presentation.js";
 import {
@@ -64,6 +75,7 @@ export function createTeam(
     partyShield: { remaining: 0, active: false },
     tokens: { remaining: [], discard: [] },
     pendingTokens: [],
+    pendingBossAttackId: null,
     boss: null,
     minions: [],
     phase: "lobby",
@@ -428,6 +440,7 @@ export function commitRound(team: TeamState): TeamState {
     const stunned = (team.boss!.stunRoundsLeft ?? 0) > 0;
     if (stunned) {
       // Already stunned by party this drop — do not wind up / play attack SFX
+      team.pendingBossAttackId = null;
       pushLog(
         team,
         `${team.boss!.name} is reeling (stunned)…`,
@@ -447,10 +460,35 @@ export function commitRound(team: TeamState): TeamState {
         durationMs: 900,
       });
     } else {
+      // Pre-pick attack so wind-up pose/bubble match the coming impact
+      const telegraphRng = createRng(
+        team.rngSeed + team.round * 10007 + team.magnetPosition * 13 + 555,
+      );
+      const attackId = pickBossAttackId(team, telegraphRng);
+      team.pendingBossAttackId = attackId;
+      const tier = bossThreatTier(attackId);
+      const windupMs = bossTelegraphDurationMs(tier);
+
+      // Optional creature voice (grunt/laugh) — standing pose, before wind-up
+      const voiceSfx = pickBossVoiceSfx(tpl, attackId, telegraphRng);
+      if (voiceSfx) {
+        pushCue(team, {
+          kind: "telegraph",
+          focusIds: ["boss"],
+          fx: ["boss-voice"],
+          sfxId: voiceSfx,
+          durationMs: BOSS_VOICE_DURATION_MS,
+        });
+      }
+
+      const lines = defaultTelegraphLines(attackId);
+      const line =
+        lines[Math.floor(telegraphRng() * lines.length)] ?? "…";
+
       pushLog(
         team,
-        `${team.boss!.name} gathers power…`,
-        ["boss", "telegraph"],
+        `${team.boss!.name} winds up (${attackId})…`,
+        ["boss", "telegraph", attackId],
       );
       pushCue(team, {
         kind: "telegraph",
@@ -459,11 +497,11 @@ export function commitRound(team: TeamState): TeamState {
           speakerId: "boss",
           speakerName: team.boss!.name,
           side: "boss",
-          text: "…",
+          text: line,
         },
-        fx: ["boss-windup"],
+        fx: ["boss-windup", `threat-${tier}`],
         sfxId: tpl?.telegraphSfx ?? "boss_attack",
-        durationMs: 1100,
+        durationMs: windupMs,
       });
     }
   }
@@ -488,7 +526,11 @@ export function resolveBoss(team: TeamState): TeamState {
     team.rngSeed + team.round * 10007 + team.magnetPosition * 13 + 777,
   );
 
-  const hurtVictims: string[] = [];
+  /**
+   * Party groan layers under the first damaging impact (boss preferred).
+   * One reaction max per boss phase — never a second timed hurt cue.
+   */
+  let layeredHurt = false;
   if (team.boss.currentHp > 0 && livingParty(team).length > 0) {
     resolveBossPhase(team, random, (text) => pushLog(team, text, ["boss"]), {
       onBossAttack: (info) => {
@@ -496,9 +538,21 @@ export function resolveBoss(team: TeamState): TeamState {
           info.attackId === "StunSkip" ||
           (info.fx ?? []).includes("stun-skip") ||
           (info.fx ?? []).includes("stunned");
+        const tier = bossThreatTier(info.attackId);
+        const hurt =
+          !isStunSkip && !layeredHurt && info.victimIds.length
+            ? pickPartyHurt(team, info.victimIds, random)
+            : null;
+        if (hurt) layeredHurt = true;
         pushCue(team, {
           kind: isStunSkip ? "system" : "boss",
-          focusIds: isStunSkip ? ["boss"] : ["boss", ...info.victimIds],
+          focusIds: isStunSkip
+            ? ["boss"]
+            : [
+                "boss",
+                ...info.victimIds,
+                ...(hurt ? [hurt.victimId] : []),
+              ],
           bubble: info.bubbleText
             ? {
                 speakerId: "boss",
@@ -510,17 +564,34 @@ export function resolveBoss(team: TeamState): TeamState {
           // Stun skip: no boss-attack flash (that looked like a hit)
           fx: isStunSkip
             ? [...(info.fx ?? ["stunned"])]
-            : ["boss-attack", ...(info.fx ?? [])],
+            : [
+                "boss-attack",
+                `threat-${tier}`,
+                ...(hurt ? ["hurt-flash"] : []),
+                ...(info.fx ?? []),
+              ],
           sfxId: info.sfxId,
-          durationMs: isStunSkip ? 1000 : 1300,
+          // Impact + groan in one moment (secondary delayed slightly)
+          ...(hurt
+            ? {
+                secondarySfxId: hurt.sfxId,
+                secondarySfxDelayMs: PARTY_HURT_LAYER_DELAY_MS,
+              }
+            : {}),
+          durationMs: isStunSkip ? 1000 : bossImpactDurationMs(tier),
         });
-        if (!isStunSkip) hurtVictims.push(...info.victimIds);
       },
       onMinionAttack: (info) => {
         // Per-kind shot (minion_moss_mite, …) with generic minion_shot fallback
         const sfxId = resolveSfxId(
           [info.sfxId, "minion_shot"].filter(Boolean) as string[],
         );
+        // Groan only if boss didn't already layer one this phase
+        const hurt =
+          !layeredHurt
+            ? pickPartyHurt(team, [info.targetId], random)
+            : null;
+        if (hurt) layeredHurt = true;
         pushCue(team, {
           kind: "minion",
           focusIds: [info.minionId, info.targetId],
@@ -530,15 +601,18 @@ export function resolveBoss(team: TeamState): TeamState {
             side: "minion",
             text: info.bubbleText ?? "Hit!",
           },
-          fx: ["minion-shot"],
+          fx: ["minion-shot", ...(hurt ? ["hurt-flash"] : [])],
           sfxId,
-          durationMs: 750,
+          ...(hurt
+            ? {
+                secondarySfxId: hurt.sfxId,
+                secondarySfxDelayMs: PARTY_HURT_LAYER_DELAY_MS,
+              }
+            : {}),
+          durationMs: 850,
         });
-        hurtVictims.push(info.targetId);
       },
     });
-    // One party member reacts when attacked (bubble + rare VO)
-    cueHurtMaybe(team, [...new Set(hurtVictims)], random);
   }
 
   // Defensive window closed: leftover personal block expires after the boss/add
@@ -653,6 +727,7 @@ function clearFightState(team: TeamState): void {
   team.minions = [];
   team.round = 0;
   team.pendingTokens = [];
+  team.pendingBossAttackId = null;
   team.playback = [];
   team.lastClaims = [];
   team.partyShield = { remaining: 0, active: false };

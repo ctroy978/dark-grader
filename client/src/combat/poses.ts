@@ -1,7 +1,7 @@
 import type { PresentationCue } from "../api";
 
 /** Darkest Dungeon–style combat poses. */
-export type CombatPose = "standing" | "attack" | "hit" | "death";
+export type CombatPose = "standing" | "windup" | "attack" | "hit" | "death";
 
 /**
  * Derive pose for a unit from the active presentation cue.
@@ -9,6 +9,8 @@ export type CombatPose = "standing" | "attack" | "hit" | "death";
  *
  * Rules (DD-style):
  * - Speaker / actor → attack (or claim = brief standing flex)
+ * - Boss telegraph → windup (charge pose + telegraph SFX)
+ * - Boss impact → attack
  * - Targets of enemy damage → hit
  * - Dead → death (sticky)
  * - Else → standing
@@ -23,6 +25,7 @@ export function poseForUnit(
 
   const isSpeaker = cue.bubble?.speakerId === unitId;
   const inFocus = cue.focusIds?.includes(unitId) ?? false;
+  const fx = cue.fx ?? [];
 
   switch (cue.kind) {
     case "claim":
@@ -35,12 +38,27 @@ export function poseForUnit(
       if (inFocus) return "hit";
       return "standing";
 
-    case "boss":
     case "telegraph":
-      // Stunned boss reels — do not use attack pose (looked like they still struck)
+      // Stunned boss reels — do not wind up as if attacking
       if (
         unitId === "boss" &&
-        cue.fx?.some((f) => f.includes("stun") || f === "stunned")
+        fx.some((f) => f.includes("stun") || f === "stunned")
+      ) {
+        return "hit";
+      }
+      // Optional creature-voice beat before wind-up — still idle, not striking
+      if (unitId === "boss" && fx.includes("boss-voice")) {
+        return "standing";
+      }
+      // Real wind-up: windup.png + telegraph SFX
+      if (unitId === "boss" || isSpeaker) return "windup";
+      return "standing";
+
+    case "boss":
+      // Stunned skip presentation
+      if (
+        unitId === "boss" &&
+        fx.some((f) => f.includes("stun") || f === "stunned")
       ) {
         return "hit";
       }
@@ -83,7 +101,9 @@ export function fxClassesForUnit(
       if (f === "heal-glow" || f.includes("heal")) return "fx-heal-glow";
       if (f === "hurt-flash") return "fx-hurt-flash";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
-      if (f === "boss-attack" || f === "boss-windup") return "fx-boss-attack";
+      if (f === "boss-windup") return "fx-boss-windup";
+      if (f === "boss-voice") return "fx-boss-voice";
+      if (f === "boss-attack") return "fx-boss-attack";
       return "";
     })
     .filter(Boolean)

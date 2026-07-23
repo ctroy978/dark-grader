@@ -66,6 +66,9 @@ export type PresentationCue = {
   grade?: Grade;
   fx?: string[];
   sfxId?: string;
+  /** Layered under primary (e.g. party groan on boss impact) */
+  secondarySfxId?: string;
+  secondarySfxDelayMs?: number;
   voId?: string;
   playVo?: boolean;
   durationMs?: number;

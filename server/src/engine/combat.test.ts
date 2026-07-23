@@ -153,4 +153,45 @@ describe("combat loop", () => {
     }
     expect(team.lastClaims.every((c) => c.soldierId && c.token)).toBe(true);
   });
+
+  it("pre-picks boss attack and wind-up cue for Ash Wraith", () => {
+    const team = createTeam("t-ash", "ASH01", "Ash Test", 42);
+    const living = team.roster.filter((s) => s.alive).slice(0, 6);
+    selectParty(
+      team,
+      living.map((s) => s.id),
+    );
+    startFight(team, "ash_wraith", SAMPLE_POOL);
+    placeMagnet(team, 1);
+    commitRound(team);
+    if (team.phase !== "boss_telegraph") return;
+
+    expect(team.pendingBossAttackId).toBeTruthy();
+    const windup = team.playback.filter(
+      (c) => c.kind === "telegraph" && c.fx?.includes("boss-windup"),
+    );
+    expect(windup.length).toBe(1);
+    expect(windup[0]!.sfxId).toMatch(/telegraph|boss_attack/);
+    expect(windup[0]!.durationMs).toBeGreaterThanOrEqual(1600);
+    expect(windup[0]!.bubble?.text).toBeTruthy();
+    expect(windup[0]!.bubble!.text).not.toBe("…");
+
+    const pending = team.pendingBossAttackId!;
+    resolveBoss(team);
+    expect(team.pendingBossAttackId == null || team.pendingBossAttackId === null).toBe(
+      true,
+    );
+    // Impact used the pre-picked attack (logged or cue sfx still attack-themed)
+    expect(team.log.some((l) => l.tags?.includes(pending))).toBe(true);
+
+    // No separate timed hurt beat after boss — groan layers on impact if any
+    expect(team.playback.some((c) => c.kind === "hurt")).toBe(false);
+    const bossHit = team.playback.find((c) => c.kind === "boss");
+    if (bossHit && (bossHit.focusIds?.length ?? 0) > 1) {
+      // Victims present → expect layered secondary groan (or empty if no living)
+      // secondary is optional when pick fails; duration still long enough for audio
+      expect(bossHit.durationMs ?? 0).toBeGreaterThanOrEqual(1400);
+    }
+  });
 });
+

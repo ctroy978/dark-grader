@@ -17,6 +17,16 @@ import {
   type Grade,
 } from "@dungeon-grades/shared";
 import { api, getSocket, type EnrichedTeam } from "../api";
+import {
+  isMusicEnabled,
+  isMuted,
+  loadAudioManifest,
+  loadAudioPrefs,
+  setAmbientDesired,
+  setMusicEnabled,
+  setMuted,
+  unlockAmbientFromGesture,
+} from "../audio";
 import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
 
 const PARTY_SIZE = 6;
@@ -379,6 +389,20 @@ export default function LobbyScreen({
   const [savedOk, setSavedOk] = useState(false);
   /** Roster ability popup — click to open; only one at a time */
   const [intelSoldierId, setIntelSoldierId] = useState<string | null>(null);
+  const [mute, setMuteState] = useState(false);
+  const [musicOn, setMusicOn] = useState(true);
+
+  useEffect(() => {
+    loadAudioPrefs();
+    setMuteState(isMuted());
+    setMusicOn(isMusicEnabled());
+    void loadAudioManifest().then(() => {
+      setAmbientDesired(true);
+    });
+    return () => {
+      setAmbientDesired(false);
+    };
+  }, []);
 
   useEffect(() => {
     const s = getSocket();
@@ -543,7 +567,10 @@ export default function LobbyScreen({
   const visualOrder = [5, 4, 3, 2, 1, 0]; // slot indices
 
   return (
-    <div className="min-h-full p-4 md:p-6 max-w-5xl mx-auto space-y-5">
+    <div
+      className="min-h-full p-4 md:p-6 max-w-5xl mx-auto space-y-5"
+      onPointerDown={unlockAmbientFromGesture}
+    >
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{team.name}</h1>
@@ -561,13 +588,43 @@ export default function LobbyScreen({
             )}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onLeave}
-          className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5 hover:bg-navy-light"
-        >
-          Leave
-        </button>
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            title={musicOn ? "Turn lobby music off" : "Turn lobby music on"}
+            onClick={() => {
+              const next = !musicOn;
+              setMusicEnabled(next);
+              setMusicOn(next);
+            }}
+            className={`rounded-lg border px-2.5 py-1.5 text-xs ${
+              musicOn
+                ? "border-rune/50 text-rune"
+                : "border-parchment/20 text-parchment-dim"
+            }`}
+          >
+            {musicOn ? "🎵 Music" : "Music off"}
+          </button>
+          <button
+            type="button"
+            title="Mute all sound"
+            onClick={() => {
+              const next = !mute;
+              setMuted(next);
+              setMuteState(next);
+            }}
+            className="rounded-lg border border-parchment/20 px-2.5 py-1.5 text-sm"
+          >
+            {mute ? "🔇" : "🔊"}
+          </button>
+          <button
+            type="button"
+            onClick={onLeave}
+            className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5 hover:bg-navy-light"
+          >
+            Leave
+          </button>
+        </div>
       </header>
 
       {/* Campaign progress */}

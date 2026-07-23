@@ -33,53 +33,56 @@ text = "short smoky ethereal chuckle, ash wraith, not scary for classroom, no wo
 duration_seconds = 0.85
 volume = 0.5
 
+# duration_seconds = target length when regenerating clips (presentation holds are longer).
+# Heavy/ultimate need multi-second stings — not sub-1s pin-hammer whooshes.
+
 [[audio]]
 id = "boss_ash_telegraph"
 kind = "sfx"
-text = "embers swirl wind-up for a spirit attack, short tension, no voice"
-duration_seconds = 0.8
+text = "embers swirl wind-up for a spirit attack, building tension, dark fantasy, no voice"
+duration_seconds = 2.2
 volume = 0.55
 
 [[audio]]
 id = "boss_ash_line"
 kind = "sfx"
-text = "line of ash and cinder blast short whoosh, no voice"
-duration_seconds = 0.75
+text = "line of ash and cinder blast whoosh, medium fantasy hit, no voice"
+duration_seconds = 1.0
 volume = 0.55
 
 [[audio]]
 id = "boss_ash_slam"
 kind = "sfx"
-text = "fiery ash slam impact short, spirit fist of cinders, no voice"
-duration_seconds = 0.75
+text = "fiery ash slam impact, spirit fist of cinders, solid medium hit, no voice"
+duration_seconds = 1.0
 volume = 0.55
 
 [[audio]]
 id = "boss_ash_cascade"
 kind = "sfx"
-text = "cascading ash impacts front to back, short dramatic, no voice"
-duration_seconds = 0.95
-volume = 0.6
+text = "epic cascading ash impacts front to back, rising dramatic hits, long sting, dark fantasy, no voice"
+duration_seconds = 3.0
+volume = 0.65
 
 [[audio]]
 id = "boss_ash_crush"
 kind = "sfx"
-text = "ash crush focused impact on glowing target, short, no voice"
-duration_seconds = 0.75
-volume = 0.55
+text = "heavy ash crush focused impact on glowing target, weighty dramatic thud, no voice"
+duration_seconds = 2.0
+volume = 0.6
 
 [[audio]]
 id = "boss_ash_poison"
 kind = "sfx"
-text = "toxic ash cloud release short whoosh, no voice"
-duration_seconds = 0.8
-volume = 0.5
+text = "toxic ash cloud billowing release, ominous whoosh and hiss, sustained, no voice"
+duration_seconds = 2.0
+volume = 0.55
 
 [[audio]]
 id = "boss_ash_regen"
 kind = "sfx"
-text = "embers reforming regenerate soft whoosh, short, no voice"
-duration_seconds = 0.75
+text = "embers reforming regenerate soft whoosh, short heal-like, no voice"
+duration_seconds = 1.0
 volume = 0.45
 
 [[attacks]]

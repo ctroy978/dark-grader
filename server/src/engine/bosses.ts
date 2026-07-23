@@ -14,6 +14,30 @@ import {
   type BossTemplate,
 } from "../seed/bossLoader.js";
 
+function fallbackTemplateFromBoss(team: TeamState): BossTemplate {
+  const boss = team.boss!;
+  return {
+    id: boss.id,
+    name: boss.name,
+    maxHp: boss.maxHp,
+    traits: boss.traits,
+    attackIds: boss.attackIds,
+    difficulty: "",
+    summary: "",
+    recommendedRounds: "",
+    enrageHpPct: 0.4,
+    enrageDamageMult: 1.3,
+    gruntPool: [],
+    laughPool: [],
+    attacks: boss.attackIds.map((id) => ({
+      id,
+      weight: 2,
+      bubble_lines: [],
+    })),
+    audio: [],
+  };
+}
+
 export type LogFn = (text: string) => void;
 
 /** Legacy defaults when TOML has no summon block (older content packs). */
@@ -177,6 +201,23 @@ function magnetBiasedTarget(team: TeamState, random: () => number) {
   return living[living.length - 1];
 }
 
+/**
+ * Choose the next boss attack id (weighted / summon pressure / sequence).
+ * Call at telegraph time so wind-up can name the threat; resolve reuses the id.
+ */
+export function pickBossAttackId(
+  team: TeamState,
+  random: () => number,
+): string {
+  const boss = team.boss;
+  if (!boss) return "LineAttack";
+  if (boss.sequenceIndex >= 0) {
+    return boss.attackIds[boss.sequenceIndex % boss.attackIds.length] ?? "LineAttack";
+  }
+  const template = getBossTemplate(boss.id) ?? fallbackTemplateFromBoss(team);
+  return pickWeightedAttack(template, random, team);
+}
+
 function pickWeightedAttack(
   template: BossTemplate,
   random: () => number,
@@ -231,31 +272,45 @@ function pickBubble(lines: string[], random: () => number): string | undefined {
   return lines[Math.floor(random() * lines.length)];
 }
 
-function resolveBossAudio(
+/**
+ * Impact SFX only — never replace with grunt/laugh (those are a separate voice beat).
+ */
+function resolveBossImpactAudio(
   template: BossTemplate | undefined,
   attackId: string,
   random: () => number,
 ): { sfxId?: string; bubbleText?: string } {
   if (!template) return { sfxId: "boss_attack" };
   const def = attackDef(template, attackId);
-  let sfxId = def?.sfx ?? template.telegraphSfx ?? "boss_attack";
-  // Layer grunt/laugh as primary flavor when no specific sfx — prefer attack sfx,
-  // but if use_grunt/laugh, client plays attack sfx; we can swap to grunt occasionally
-  if (def?.use_laugh && random() < 0.35) {
-    sfxId = pickFromPool(template.laughPool, random) ?? sfxId;
-  } else if (def?.use_grunt && random() < 0.45) {
-    // Play grunt *instead* of generic hit sometimes; attack sfx still preferred if set
-    // Actually: play attack sfx always when set; grunt is alternate for variety
-    if (!def.sfx) {
-      sfxId = pickFromPool(template.gruntPool, random) ?? sfxId;
-    } else if (random() < 0.4) {
-      sfxId = pickFromPool(template.gruntPool, random) ?? def.sfx;
-    }
-  }
   return {
-    sfxId,
+    sfxId: def?.sfx ?? template.telegraphSfx ?? "boss_attack",
     bubbleText: pickBubble(def?.bubble_lines ?? [], random),
   };
+}
+
+/**
+ * Optional creature voice (grunt/laugh) before wind-up.
+ * ~32% of non-stun turns. Laugh favored when attack asks for use_laugh.
+ * Returns undefined when silent (no pool or roll fails).
+ */
+export function pickBossVoiceSfx(
+  template: BossTemplate | undefined,
+  attackId: string,
+  random: () => number,
+): string | undefined {
+  if (!template) return undefined;
+  if (random() >= 0.32) return undefined;
+  const def = attackDef(template, attackId);
+  if (def?.use_laugh && template.laughPool.length) {
+    return pickFromPool(template.laughPool, random);
+  }
+  if (template.gruntPool.length) {
+    return pickFromPool(template.gruntPool, random);
+  }
+  if (template.laughPool.length) {
+    return pickFromPool(template.laughPool, random);
+  }
+  return undefined;
 }
 
 export function resolveBossPhase(
@@ -286,6 +341,7 @@ export function resolveBossPhase(
   // Boss stun: boss and minions both skip (stun should feel like a full turn of safety)
   if (boss.stunRoundsLeft > 0) {
     boss.stunRoundsLeft -= 1;
+    team.pendingBossAttackId = null;
     log(`${boss.name} is stunned and skips its turn!`);
     if (livingMinionCount(team) > 0) {
       log(`Minions falter while ${boss.name} is stunned — no volley this round.`);
@@ -302,36 +358,15 @@ export function resolveBossPhase(
     return;
   }
 
-  const attackId =
-    boss.sequenceIndex >= 0
-      ? boss.attackIds[boss.sequenceIndex % boss.attackIds.length]
-      : pickWeightedAttack(
-          template ?? {
-            id: boss.id,
-            name: boss.name,
-            maxHp: boss.maxHp,
-            traits: boss.traits,
-            attackIds: boss.attackIds,
-            difficulty: "",
-            summary: "",
-            recommendedRounds: "",
-            enrageHpPct: 0.4,
-            enrageDamageMult: 1.3,
-            gruntPool: [],
-            laughPool: [],
-            attacks: boss.attackIds.map((id) => ({
-              id,
-              weight: 2,
-              bubble_lines: [],
-            })),
-            audio: [],
-          },
-          random,
-          team,
-        );
+  // Prefer attack pre-picked at telegraph (threat-aware wind-up). Fall back if missing.
+  let attackId = team.pendingBossAttackId ?? undefined;
+  if (!attackId) {
+    attackId = pickBossAttackId(team, random);
+  }
+  team.pendingBossAttackId = null;
   if (boss.sequenceIndex >= 0) boss.sequenceIndex += 1;
   const victims = performAttack(team, attackId, random, log, rage);
-  const audio = resolveBossAudio(template, attackId, random);
+  const audio = resolveBossImpactAudio(template, attackId, random);
   present?.onBossAttack?.({
     attackId,
     victimIds: victims,

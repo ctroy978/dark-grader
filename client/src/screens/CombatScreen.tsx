@@ -14,6 +14,7 @@ import {
   type EnrichedTeam,
 } from "../api";
 import {
+  isMusicEnabled,
   isMuted,
   isVoEnabled,
   loadAudioManifest,
@@ -22,6 +23,8 @@ import {
   playCommit,
   playForLogLine,
   playMagnetMove,
+  setAmbientDesired,
+  setMusicEnabled,
   setMuted,
   setVoEnabled,
 } from "../audio";
@@ -145,6 +148,7 @@ function latestReveal(
 /**
  * Cue timings — readable for classroom (pose + bubble), still not story-mode.
  * Server durationMs is a hint; client clamps and applies a slight slowdown.
+ * Boss telegraph/impact may run longer than party beats (threat buildup).
  */
 function cueDurationMs(cue: PresentationCue): number {
   const base = (() => {
@@ -165,15 +169,17 @@ function cueDurationMs(cue: PresentationCue): number {
       case "death":
         return 1000;
       case "telegraph":
-        return 1100;
+        return 1400;
       case "drop":
         return 650;
       default:
         return 800;
     }
   })();
-  // Soft floor/ceiling so VO + bubble can land
-  return Math.min(1800, Math.max(500, Math.round(base * 1.15)));
+  // Boss wind-up / impact need headroom for multi-second epic stings
+  const isBossBeat = cue.kind === "telegraph" || cue.kind === "boss";
+  const ceiling = isBossBeat ? 5500 : 1800;
+  return Math.min(ceiling, Math.max(500, Math.round(base * 1.15)));
 }
 
 function playCueAudio(cue: PresentationCue): void {
@@ -182,10 +188,16 @@ function playCueAudio(cue: PresentationCue): void {
   if (cue.sfxId && cue.sfxId !== "victory" && cue.sfxId !== "defeat") {
     play(cue.sfxId);
   }
+  // Layered party groan under boss/minion impact (same beat, slight delay)
+  if (cue.secondarySfxId) {
+    const delay = cue.secondarySfxDelayMs ?? 200;
+    window.setTimeout(() => play(cue.secondarySfxId!), delay);
+  }
   if (cue.playVo && cue.voId) play(cue.voId);
 }
 
-const BOSS_TELEGRAPH_AFTER_PLAYBACK_MS = 1100;
+/** Short breath after wind-up playback before impact resolve (wind-up duration is already in the cue). */
+const BOSS_TELEGRAPH_AFTER_PLAYBACK_MS = 350;
 
 function FightSummary({ team }: { team: EnrichedTeam }) {
   const party = team.activePartyIds
@@ -260,6 +272,7 @@ export default function CombatScreen({
   const [flashTokens, setFlashTokens] = useState(false);
   const [mute, setMuteState] = useState(false);
   const [voOn, setVoOn] = useState(false);
+  const [musicOn, setMusicOn] = useState(true);
   const logLenRef = useRef(0);
   const phaseRef = useRef(team.phase);
   const bossResolveLock = useRef(false);
@@ -341,7 +354,13 @@ export default function CombatScreen({
     loadAudioPrefs();
     setMuteState(isMuted());
     setVoOn(isVoEnabled());
+    setMusicOn(isMusicEnabled());
+    // Combat: stop ambient so SFX stay clear; music pref still toggles for lobby
+    setAmbientDesired(false);
     void loadAudioManifest();
+    return () => {
+      /* lobby remount will re-enable ambient */
+    };
   }, []);
 
   useEffect(() => {
@@ -957,7 +976,27 @@ export default function CombatScreen({
           <div className="flex gap-2 items-center">
             <button
               type="button"
-              title="Mute sound effects"
+              title={
+                musicOn
+                  ? "Lobby music on (silent in combat) — click to disable"
+                  : "Lobby music off — click to enable for camp"
+              }
+              onClick={() => {
+                const next = !musicOn;
+                setMusicEnabled(next);
+                setMusicOn(next);
+              }}
+              className={`rounded-lg border px-2.5 py-2 text-xs ${
+                musicOn
+                  ? "border-rune/50 text-rune"
+                  : "border-parchment/20 text-parchment-dim"
+              }`}
+            >
+              {musicOn ? "🎵" : "Music off"}
+            </button>
+            <button
+              type="button"
+              title="Mute all sound"
               onClick={() => {
                 const next = !mute;
                 setMuted(next);

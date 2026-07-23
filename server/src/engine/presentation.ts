@@ -181,9 +181,32 @@ export function cueAction(
 }
 
 /**
- * One hurt bubble from a random living party member who took damage.
- * SFX is gendered (hurt_male / hurt_female) when those clips exist.
- * Boss/minion impact SFX stays on the prior boss/minion cue.
+ * Pick one living victim for a party-hurt reaction (SFX only by default).
+ * Used to *layer* a groan under boss/minion impact — not a second timed beat.
+ */
+export function pickPartyHurt(
+  team: TeamState,
+  victimIds: string[],
+  random: () => number,
+): { victimId: string; sfxId: string } | null {
+  // Include just-killed victims — they still groan on the impact that dropped them
+  const candidates = [
+    ...new Set(
+      victimIds.filter((id) => team.roster.some((x) => x.id === id)),
+    ),
+  ];
+  if (!candidates.length) return null;
+  const id = candidates[Math.floor(random() * candidates.length)]!;
+  const s = team.roster.find((x) => x.id === id);
+  if (!s) return null;
+  const sfxId = resolveSfxId(partyHurtSfxCandidates(s.archetype));
+  if (!sfxId) return null;
+  return { victimId: id, sfxId };
+}
+
+/**
+ * Legacy standalone hurt cue — prefer layering via secondarySfxId on impact.
+ * Kept for rare cases where damage has no host impact beat.
  */
 export function cueHurtMaybe(
   team: TeamState,
@@ -192,23 +215,25 @@ export function cueHurtMaybe(
   chance = 0.55,
 ): void {
   if (!victimIds.length || random() >= chance) return;
-  const id = victimIds[Math.floor(random() * victimIds.length)]!;
-  const s = team.roster.find((x) => x.id === id);
+  const pick = pickPartyHurt(team, victimIds, random);
+  if (!pick) return;
+  const s = team.roster.find((x) => x.id === pick.victimId);
   if (!s) return;
   const playVo = maybePlayVo(random, 0.22);
   pushCue(team, {
     kind: "hurt",
-    focusIds: [id],
+    focusIds: [pick.victimId],
     bubble: {
-      speakerId: id,
+      speakerId: pick.victimId,
       speakerName: s.name,
       side: "party",
       text: hurtBubbleText(random),
     },
     fx: ["hurt-flash"],
-    sfxId: resolveSfxId(partyHurtSfxCandidates(s.archetype)),
+    sfxId: pick.sfxId,
     voId: voHurtId(random),
     playVo,
-    durationMs: 850,
+    // Short — should almost never run if impact layering works
+    durationMs: 500,
   });
 }

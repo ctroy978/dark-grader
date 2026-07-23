@@ -85,6 +85,14 @@ export async function ensureClip(id: string, force = false): Promise<string> {
     return out;
   }
 
+  // Music loops are hand-authored only (not ElevenLabs).
+  if (clip.kind === "music") {
+    if (fs.existsSync(out) && fs.statSync(out).size > 500) return out;
+    throw new Error(
+      `Music clip ${id} missing — drop server/data/audio/${id}.mp3 (hand-authored loop)`,
+    );
+  }
+
   const buf = clip.kind === "sfx" ? await generateSfx(clip) : await generateVo(clip);
   fs.writeFileSync(out, buf);
   return out;
@@ -96,6 +104,23 @@ export async function ensureAllClips(
 ): Promise<{ id: string; ok: boolean; error?: string }[]> {
   const results: { id: string; ok: boolean; error?: string }[] = [];
   for (const clip of AUDIO_CATALOG) {
+    if (clip.kind === "music") {
+      const p = clipPath(clip.id);
+      const ok = fs.existsSync(p) && fs.statSync(p).size > 500;
+      results.push({
+        id: clip.id,
+        ok,
+        error: ok
+          ? undefined
+          : `hand-authored only — drop server/data/audio/${clip.id}.mp3`,
+      });
+      onProgress?.(
+        clip.id,
+        ok,
+        ok ? undefined : "skipped (music — install mp3 manually)",
+      );
+      continue;
+    }
     try {
       await ensureClip(clip.id, force);
       results.push({ id: clip.id, ok: true });
@@ -116,16 +141,30 @@ export function listCachedClips(): {
   kind: string;
   cached: boolean;
   bytes: number;
+  /** File mtime ms — client uses as ?v= cache-buster when mp3s are replaced. */
+  v: number;
   volume: number;
 }[] {
   return AUDIO_CATALOG.map((c) => {
     const p = clipPath(c.id);
     const cached = fs.existsSync(p);
+    if (!cached) {
+      return {
+        id: c.id,
+        kind: c.kind,
+        cached: false,
+        bytes: 0,
+        v: 0,
+        volume: c.volume ?? 0.5,
+      };
+    }
+    const st = fs.statSync(p);
     return {
       id: c.id,
       kind: c.kind,
-      cached,
-      bytes: cached ? fs.statSync(p).size : 0,
+      cached: true,
+      bytes: st.size,
+      v: Math.floor(st.mtimeMs),
       volume: c.volume ?? 0.5,
     };
   });

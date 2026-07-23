@@ -9,6 +9,7 @@ import {
   type Grade,
   type Position,
 } from "@dungeon-grades/shared";
+import { getClip } from "./audio/catalog.js";
 import {
   audioCacheDir,
   clipPath,
@@ -124,36 +125,44 @@ app.get("/api/health", async () => ({
 }));
 
 // --- Audio (ElevenLabs-generated, cached on disk) ---
-app.get("/api/audio/manifest", async () => ({
-  clips: listCachedClips(),
-  elevenlabsConfigured: hasApiKey(),
-}));
+app.get("/api/audio/manifest", async (_req, reply) => {
+  // Always fresh — client needs current mtime versions for cache-busting.
+  return reply
+    .header("Cache-Control", "no-store")
+    .send({
+      clips: listCachedClips(),
+      elevenlabsConfigured: hasApiKey(),
+    });
+});
 
 app.get<{ Params: { id: string } }>("/api/audio/:id", async (req, reply) => {
   const id = req.params.id.replace(/[^a-z0-9_]/gi, "");
   const file = clipPath(id);
   if (!fs.existsSync(file)) {
-    // Lazy-generate if key present
-    if (hasApiKey()) {
-      try {
-        await ensureClip(id);
-      } catch (e) {
-        const err = new Error(
-          e instanceof Error ? e.message : "Audio generate failed",
-        ) as Error & { statusCode: number };
-        err.statusCode = 502;
-        throw err;
-      }
-    } else {
+    const def = getClip(id);
+    // Music loops are hand-authored only — never lazy-generate
+    if (def?.kind === "music" || !hasApiKey()) {
       const err = new Error("Clip not found") as Error & { statusCode: number };
       err.statusCode = 404;
       throw err;
     }
+    // Lazy-generate SFX/VO if key present
+    try {
+      await ensureClip(id);
+    } catch (e) {
+      const err = new Error(
+        e instanceof Error ? e.message : "Audio generate failed",
+      ) as Error & { statusCode: number };
+      err.statusCode = 502;
+      throw err;
+    }
   }
   const buf = fs.readFileSync(file);
+  // Client appends ?v=<mtime> from the manifest so replaced mp3s bust cache.
+  // Long max-age is safe only with that versioned URL.
   return reply
     .header("Content-Type", "audio/mpeg")
-    .header("Cache-Control", "public, max-age=86400")
+    .header("Cache-Control", "public, max-age=31536000, immutable")
     .send(buf);
 });
 

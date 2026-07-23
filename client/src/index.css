@@ -108,6 +108,12 @@ body {
 .fx-attack-flash {
   box-shadow: 0 0 12px rgba(110, 198, 255, 0.7);
 }
+.fx-boss-windup {
+  box-shadow: 0 0 20px rgba(185, 28, 28, 0.55), 0 0 36px rgba(255, 120, 40, 0.25);
+}
+.fx-boss-voice {
+  box-shadow: 0 0 12px rgba(160, 80, 40, 0.4);
+}
 .fx-boss-attack {
   box-shadow: 0 0 22px rgba(185, 28, 28, 0.75);
 }
@@ -119,6 +125,10 @@ body {
   background:
     radial-gradient(ellipse at 50% 30%, rgba(40, 30, 50, 0.9), #0b1220 70%);
   transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.portrait-frame[data-pose="windup"] {
+  transform: translateY(-3px) scale(1.02);
 }
 
 .portrait-frame[data-pose="attack"] {

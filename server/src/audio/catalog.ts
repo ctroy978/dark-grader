@@ -5,7 +5,7 @@
  */
 import { allBossAudioClips } from "../seed/bossLoader.js";
 
-export type AudioKind = "sfx" | "vo";
+export type AudioKind = "sfx" | "vo" | "music";
 
 export interface AudioClipDef {
   id: string;
@@ -19,6 +19,16 @@ export interface AudioClipDef {
 }
 
 const CORE_CATALOG: AudioClipDef[] = [
+  // --- Ambient music (hand-authored loops only; not ElevenLabs) ---
+  {
+    id: "music_ambient_lobby",
+    kind: "music",
+    text: "soft dark fantasy ambient loop for lobby / camp — low drone, no melody peaks, no voice, seamless",
+    durationSeconds: 90,
+    /** Kept quiet under classroom talk and SFX (× master ~0.7 → ~0.14) */
+    volume: 0.2,
+  },
+
   // --- Core UI / magnet ---
   {
     id: "ui_click",

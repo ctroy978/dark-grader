@@ -6,7 +6,11 @@ import type { CombatPose } from "./poses";
  * Portrait: real PNG if present under /art/{key}/{pose}.png, else SVG stub.
  *
  *   /art/vanguard/standing.png
+ *   /art/ash_wraith/windup.png   (boss charge pose)
  *   /art/ash_wraith/attack.png
+ *
+ * Missing windup.png: browser 404 → SVG placeholder until you drop the file.
+ * Prefer a real windup over reusing attack.png so wind-up never looks like impact.
  */
 
 const ARCHETYPE_KEY: Record<Archetype, string> = {
@@ -80,6 +84,14 @@ function poseTransform(pose: CombatPose): {
   filter: string;
 } {
   switch (pose) {
+    case "windup":
+      // Charge / coil — tense, not yet striking (SVG placeholder only)
+      return {
+        body: "translate(0, -3) rotate(-4)",
+        arm: "rotate(-50 70 55)",
+        opacity: 1,
+        filter: "brightness(1.08) saturate(1.1)",
+      };
     case "attack":
       return {
         body: "translate(4, -2) rotate(6)",
@@ -165,6 +177,9 @@ export function PlaceholderPortrait({
         />
         {pose === "hit" && (
           <div className="pointer-events-none absolute inset-0 bg-crimson/25 mix-blend-overlay" />
+        )}
+        {pose === "windup" && (
+          <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-crimson-bright/50" />
         )}
         {pose === "attack" && (
           <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-rune/40" />

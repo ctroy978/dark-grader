@@ -228,6 +228,7 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 ## Open / next phase
 
 1. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.  
+   - **Lobby music:** drop `server/data/audio/music_ambient_lobby.mp3` (60–90s loop). Catalog volume **0.2**. Pref `dg_music` (default on); **Music / Music off** button on lobby + combat chrome. Ambient plays in lobby/camp only; combat stops the bed. Master mute also stops music.  
 2. **Boss plan Slice B.2** — Rattle Captain + light scraps (CrushMagnet tax)  
 3. **Slice C** — Barrow Warden + Grave Thrall heal-on-drop + Dominated  
 4. Expand default path to full 6 rooms when Captain/Warden ship  
@@ -265,6 +266,7 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `minion_cinder_imp` | Cinder Imp volley | small fire spit / ember |
 | `minion_bone_archer` | Bone Archer volley | bone arrow whoosh |
 | `minion_shot` | Generic add fallback | any small enemy hit |
+| `music_ambient_lobby` | Lobby / between rooms loop | soft dark ambient, seamless 60–90s, **hand-authored only** |
 
 **Art gender (locked with names):** male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
 Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunts (not a second generic hit).

@@ -38,7 +38,8 @@ function poisonOnFront(team: TeamState) {
   const s = team.roster.find(
     (x) => x.position === 1 && team.activePartyIds.includes(x.id),
   );
-  return s?.statuses.find((st) => st.kind === "Dot" && st.type === "Poison");
+  const st = s?.statuses.find((x) => x.kind === "Dot" && x.type === "Poison");
+  return st?.kind === "Dot" ? st : undefined;
 }
 
 describe("boss DoT escalation", () => {
