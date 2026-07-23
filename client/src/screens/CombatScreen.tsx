@@ -651,21 +651,57 @@ export default function CombatScreen({
     }
   }
 
+  /**
+   * Arrow keys step the magnet one living seat (screen-left = back/higher pos).
+   * e.repeat ignored so holding a key does not slide.
+   * Number keys removed — keyboard layout fights the visual line order.
+   * Mouse still uses the 1–6 pad under the party.
+   */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (playing) return;
-      if (e.key >= "1" && e.key <= "6") {
-        void setMagnet(Number(e.key));
-      }
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
         void dropTokens();
+        return;
       }
+      if (e.repeat) return;
+      if (team.phase !== "awaiting_magnet") return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      // Living seats ordered by position number (1 front … 6 back)
+      const living = ([1, 2, 3, 4, 5, 6] as const).filter((p) =>
+        livingPositions.has(p),
+      );
+      if (!living.length) return;
+      const cur = team.magnetPosition;
+      let idx = living.indexOf(cur as (typeof living)[number]);
+      if (idx < 0) {
+        // Magnet on empty seat — snap to nearest living
+        idx = living.reduce(
+          (best, p, i) =>
+            Math.abs(p - cur) < Math.abs(living[best]! - cur) ? i : best,
+          0,
+        );
+      }
+      // UI: left = back (higher #), right = front (lower #)
+      const nextIdx = e.key === "ArrowLeft" ? idx + 1 : idx - 1;
+      if (nextIdx < 0 || nextIdx >= living.length) return;
+      const next = living[nextIdx]!;
+      if (next === cur) return;
+      void setMagnet(next);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setMagnet, team.phase, busy, playing]);
+  }, [
+    setMagnet,
+    team.phase,
+    team.magnetPosition,
+    livingPositions,
+    busy,
+    playing,
+  ]);
 
   async function afterVictory() {
     setBusy(true);
@@ -732,7 +768,7 @@ export default function CombatScreen({
           {playing
             ? "Resolving actions…"
             : team.phase === "awaiting_magnet"
-              ? "Magnet 1–6 · Drop Tokens"
+              ? "← → magnet · click pad · Space drop"
               : "\u00a0"}
         </div>
       </div>
@@ -934,41 +970,59 @@ export default function CombatScreen({
               Magnet Locked — shocked this round
             </div>
           )}
-          <div className="shrink-0 flex justify-center gap-1">
-            {magnetButtons.map((n) => {
-              const living = livingPositions.has(n);
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  disabled={
-                    team.phase !== "awaiting_magnet" ||
-                    !living ||
-                    playing ||
-                    magnetLocked
-                  }
-                  title={
-                    magnetLocked
-                      ? "Magnet shocked — locked this round"
-                      : living
-                        ? `Magnet → position ${n}`
-                        : `Position ${n} is empty or fallen`
-                  }
-                  onClick={() => void setMagnet(n)}
-                  className={`w-8 h-8 md:w-9 md:h-9 rounded-md font-bold text-sm border transition ${
-                    !living
-                      ? "opacity-25 border-parchment/10 cursor-not-allowed line-through"
-                      : team.magnetPosition === n
-                        ? magnetLocked
-                          ? "bg-yellow-300/20 border-yellow-300 text-yellow-200"
-                          : "bg-rune/20 border-rune text-rune"
-                        : "bg-navy-light border-parchment/20 hover:border-rune/50"
-                  } disabled:opacity-40`}
-                >
-                  {n}
-                </button>
-              );
-            })}
+          <div className="shrink-0 flex flex-col items-center gap-0.5">
+            <div className="flex justify-center gap-1">
+              {magnetButtons.map((n) => {
+                const living = livingPositions.has(n);
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={
+                      team.phase !== "awaiting_magnet" ||
+                      !living ||
+                      playing ||
+                      magnetLocked
+                    }
+                    title={
+                      magnetLocked
+                        ? "Magnet shocked — locked this round"
+                        : living
+                          ? `Magnet → position ${n}`
+                          : `Position ${n} is empty or fallen`
+                    }
+                    onClick={() => void setMagnet(n)}
+                    className={`w-8 h-8 md:w-9 md:h-9 rounded-md font-bold text-sm border transition ${
+                      !living
+                        ? "opacity-25 border-parchment/10 cursor-not-allowed line-through"
+                        : team.magnetPosition === n
+                          ? magnetLocked
+                            ? "bg-yellow-300/20 border-yellow-300 text-yellow-200"
+                            : "bg-rune/20 border-rune text-rune"
+                          : "bg-navy-light border-parchment/20 hover:border-rune/50"
+                    } disabled:opacity-40`}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Keyboard hint: arrows match screen (left = back, right = front) */}
+            <div
+              className="flex items-center justify-between w-[calc(6*2rem+5*0.25rem)] md:w-[calc(6*2.25rem+5*0.25rem)] text-parchment-dim/70 select-none"
+              aria-hidden
+              title="Arrow keys move the magnet one seat"
+            >
+              <span className="text-sm leading-none font-semibold text-rune/80">
+                ←
+              </span>
+              <span className="text-[9px] uppercase tracking-wider">
+                keys
+              </span>
+              <span className="text-sm leading-none font-semibold text-rune/80">
+                →
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1210,9 +1264,10 @@ export default function CombatScreen({
           ))}
         </div>
         <p className="text-[10px] text-parchment-dim text-center mt-1 leading-tight">
-          Front nearest boss ·{" "}
-          <kbd className="px-1 border border-parchment/30 rounded">1</kbd>–
-          <kbd className="px-1 border border-parchment/30 rounded">6</kbd> magnet ·{" "}
+          Front nearest boss · magnet{" "}
+          <kbd className="px-1 border border-parchment/30 rounded">←</kbd>{" "}
+          <kbd className="px-1 border border-parchment/30 rounded">→</kbd>{" "}
+          or click pad ·{" "}
           <kbd className="px-1 border border-parchment/30 rounded">Space</kbd>{" "}
           drop
         </p>
