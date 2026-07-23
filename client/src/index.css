@@ -16,6 +16,14 @@
   --font-display: "Segoe UI", system-ui, sans-serif;
 }
 
+/* Marketing / codex helpers */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 html,
 body,
 #root {

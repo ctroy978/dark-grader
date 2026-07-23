@@ -1,8 +1,12 @@
-# Dungeon Grades
+# GradeForge
 
 Browser-based classroom dungeon crawler. Test letter grades (A–F) become power tokens that a party of fantasy soldiers claim via the **Token Magnet**.
 
+**Product name:** GradeForge (G and F capitalized). Package names may still say `dungeon-grades`.
+
 Built for a single classroom server (LAN / firewall). One shared Chromebook per team.
+
+Marketing site (no code required): **How to Play**, **Characters**, and **Bosses** codex pages on the client home experience.
 
 ## Stack
 

@@ -213,7 +213,9 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
           onSubmit={login}
           className="w-full max-w-sm rounded-xl border border-crimson/30 bg-navy-light p-6 space-y-4"
         >
-          <h1 className="text-xl font-bold">Teacher Login</h1>
+          <h1 className="text-xl font-bold">
+            <span className="text-grade-a">Grade</span>Forge · Teacher
+          </h1>
           <p className="text-sm text-parchment-dim">
             Default PIN is <code className="text-rune">teacher</code> (set{" "}
             <code>TEACHER_PIN</code> on the server).

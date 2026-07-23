@@ -222,9 +222,47 @@ function beginFight(team: TeamState): void {
 // --- Health ---
 app.get("/api/health", async () => ({
   ok: true,
-  service: "dungeon-grades",
+  service: "gradeforge",
   elevenlabs: hasApiKey(),
 }));
+
+/** Public codex for the marketing site (no PIN). Campaign bosses + scouts. */
+app.get("/api/codex/bosses", async () => {
+  const { DEFAULT_ROOM_BOSSES } = await import("@dungeon-grades/shared");
+  const campaignIds: string[] = [...DEFAULT_ROOM_BOSSES];
+  const all = loadBossTemplates();
+  const byId = new Map(all.map((t) => [t.id, t]));
+  const seen = new Set<string>();
+  const ordered = [];
+  for (const id of campaignIds) {
+    const t = byId.get(id);
+    if (t) {
+      ordered.push(t);
+      seen.add(id);
+    }
+  }
+  for (const t of all) {
+    if (!seen.has(t.id)) ordered.push(t);
+  }
+  return {
+    campaignBossIds: campaignIds,
+    bosses: ordered.map((t) => {
+      const scout = buildBossScout(t.id);
+      const roomIndex = campaignIds.indexOf(t.id);
+      return {
+        id: t.id,
+        name: t.name,
+        maxHp: t.maxHp,
+        difficulty: t.difficulty,
+        summary: t.summary,
+        recommendedRounds: t.recommendedRounds,
+        traits: t.traits ?? [],
+        roomIndex,
+        scout,
+      };
+    }),
+  };
+});
 
 // --- Audio (ElevenLabs-generated, cached on disk) ---
 app.get("/api/audio/manifest", async (_req, reply) => {
@@ -695,5 +733,5 @@ await app.ready();
 io.attach(app.server);
 
 await app.listen({ port: PORT, host: HOST });
-console.log(`Dungeon Grades server on http://${HOST}:${PORT}`);
+console.log(`GradeForge server on http://${HOST}:${PORT}`);
 console.log(`Teacher PIN: ${TEACHER_PIN}`);

@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import JoinScreen from "./screens/JoinScreen";
 import LobbyScreen from "./screens/LobbyScreen";
 import CombatScreen from "./screens/CombatScreen";
 import TeacherDashboard from "./screens/TeacherDashboard";
 import type { EnrichedTeam } from "./api";
+import LandingPage from "./site/LandingPage";
+import HowToPlayPage from "./site/HowToPlayPage";
+import { CharactersListPage, CharacterDetailPage } from "./site/CharactersPage";
+import { BossesListPage, BossDetailPage } from "./site/BossesPage";
+import SiteChrome from "./site/SiteChrome";
+import { navigate, parseHash, type SiteRoute } from "./site/siteNav";
 
 function CampaignComplete({
   team,
@@ -34,7 +40,8 @@ function CampaignComplete({
           </p>
         )}
         <p className="text-xs text-parchment-dim">
-          Ask your teacher to reset the team (or create a new code) for the next test day.
+          Ask your teacher to reset the team (or create a new code) for the next
+          test day.
         </p>
         <button
           type="button"
@@ -48,28 +55,37 @@ function CampaignComplete({
   );
 }
 
-type Mode = "home" | "student" | "teacher";
+function useSiteRoute(): SiteRoute {
+  const [route, setRoute] = useState<SiteRoute>(() =>
+    parseHash(window.location.hash),
+  );
+
+  useEffect(() => {
+    const onHash = () => setRoute(parseHash(window.location.hash));
+    window.addEventListener("hashchange", onHash);
+    // Normalize empty hash to home
+    if (!window.location.hash || window.location.hash === "#") {
+      window.location.hash = "#/";
+    }
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  return route;
+}
 
 export default function App() {
-  const [mode, setMode] = useState<Mode>("home");
+  const route = useSiteRoute();
   const [team, setTeam] = useState<EnrichedTeam | null>(null);
 
-  if (mode === "teacher") {
-    return (
-      <TeacherDashboard
-        onBack={() => setMode("home")}
-      />
-    );
-  }
-
-  if (mode === "student" && team) {
+  // In-session play overrides marketing when a team is active
+  if (team) {
     if (team.phase === "campaign_complete") {
       return (
         <CampaignComplete
           team={team}
           onLeave={() => {
             setTeam(null);
-            setMode("home");
+            navigate({ page: "home" });
           }}
         />
       );
@@ -87,7 +103,7 @@ export default function App() {
           onTeamUpdate={setTeam}
           onLeave={() => {
             setTeam(null);
-            setMode("home");
+            navigate({ page: "home" });
           }}
         />
       );
@@ -98,57 +114,61 @@ export default function App() {
         onTeamUpdate={setTeam}
         onLeave={() => {
           setTeam(null);
-          setMode("home");
+          navigate({ page: "home" });
         }}
       />
     );
   }
 
-  return (
-    <div className="min-h-full flex flex-col items-center justify-center p-6 gap-8">
-      <header className="text-center space-y-2">
-        <p className="text-rune tracking-[0.3em] text-xs uppercase">Classroom Campaign</p>
-        <h1 className="text-4xl md:text-5xl font-bold text-parchment drop-shadow">
-          Dungeon Grades
-        </h1>
-        <p className="text-parchment-dim max-w-md mx-auto">
-          Turn test scores into power tokens. Guide your soldiers. Survive the dungeon.
-        </p>
-      </header>
+  if (route.page === "teacher") {
+    return (
+      <TeacherDashboard
+        onBack={() => navigate({ page: "home" })}
+      />
+    );
+  }
 
-      <div className="grid md:grid-cols-2 gap-4 w-full max-w-2xl">
-        <button
-          type="button"
-          className="rounded-xl border border-rune/30 bg-navy-light/80 p-6 text-left hover:border-rune hover:bg-navy-light transition"
-          onClick={() => setMode("student")}
-        >
-          <div className="text-2xl mb-2">⚔️</div>
-          <div className="font-semibold text-lg">Student / Team</div>
-          <div className="text-sm text-parchment-dim mt-1">
-            Enter invite code, form a party of 6, then enter the dungeon.
+  if (route.page === "join") {
+    return (
+      <SiteChrome active="join">
+        <div className="mx-auto max-w-md px-4 py-16 space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">
+              Join a <span className="text-grade-a">Grade</span>Forge team
+            </h1>
+            <p className="text-sm text-parchment-dim">
+              Enter the invite code from your teacher. One computer per table.
+            </p>
           </div>
-        </button>
-        <button
-          type="button"
-          className="rounded-xl border border-crimson/40 bg-navy-light/80 p-6 text-left hover:border-crimson-bright hover:bg-navy-light transition"
-          onClick={() => setMode("teacher")}
-        >
-          <div className="text-2xl mb-2">📜</div>
-          <div className="font-semibold text-lg">Teacher Dashboard</div>
-          <div className="text-sm text-parchment-dim mt-1">
-            Periods, grades per room, open rooms, and teams.
-          </div>
-        </button>
-      </div>
+          <JoinScreen
+            onJoined={(t) => {
+              setTeam(t);
+            }}
+            onCancel={() => navigate({ page: "home" })}
+          />
+          <p className="text-center text-xs text-parchment-dim">
+            New here?{" "}
+            <button
+              type="button"
+              className="text-rune underline underline-offset-2"
+              onClick={() => navigate({ page: "how-to" })}
+            >
+              Learn how to play
+            </button>{" "}
+            first.
+          </p>
+        </div>
+      </SiteChrome>
+    );
+  }
 
-      {mode === "student" && !team && (
-        <JoinScreen
-          onJoined={(t) => {
-            setTeam(t);
-          }}
-          onCancel={() => setMode("home")}
-        />
-      )}
-    </div>
-  );
+  if (route.page === "how-to") return <HowToPlayPage />;
+  if (route.page === "characters") return <CharactersListPage />;
+  if (route.page === "character") {
+    return <CharacterDetailPage archetypeKey={route.archetype} />;
+  }
+  if (route.page === "bosses") return <BossesListPage />;
+  if (route.page === "boss") return <BossDetailPage bossId={route.bossId} />;
+
+  return <LandingPage />;
 }
