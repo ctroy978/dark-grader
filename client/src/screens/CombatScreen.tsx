@@ -876,8 +876,21 @@ export default function CombatScreen({
             <span className="text-rune">Front (1) →</span>
           </div>
 
-          {/* Fixed-height cards — do not stretch to fill the column */}
-          <div className="relative shrink-0 flex items-end gap-1 md:gap-1.5">
+          {/* Fixed-height cards — do not stretch to fill the column.
+              When party shield is up: soft silver envelope around the whole strip
+              (dead seats included — still inside the ward). On/off only. */}
+          <div
+            className={`relative shrink-0 flex items-end gap-1 md:gap-1.5 p-1 ${
+              view.partyShield.active && view.partyShield.remaining > 0
+                ? "party-shield-ward"
+                : ""
+            }`}
+            aria-label={
+              view.partyShield.active && view.partyShield.remaining > 0
+                ? `Party shield active, ${view.partyShield.remaining} remaining`
+                : undefined
+            }
+          >
             {partyVisual.map((s) => {
               const pos = (s.position ?? 1) as number;
               const claim = claimBySoldier.get(s.id);
