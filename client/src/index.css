@@ -85,6 +85,26 @@ body {
   animation: fall-token 0.7s ease-in forwards;
 }
 
+/* Viking-rune grade tokens (combat drop + claims) */
+.grade-token {
+  filter: drop-shadow(0 0 6px rgba(255, 160, 60, 0.35));
+}
+
+.grade-token.token-claimed {
+  filter: drop-shadow(0 0 10px rgba(110, 198, 255, 0.55))
+    drop-shadow(0 0 4px rgba(255, 200, 100, 0.4));
+}
+
+.grade-token.token-bob {
+  /* keep filter while bobbing — bob only transforms */
+  will-change: transform;
+}
+
+.grade-token-hint {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
 @keyframes speech-pop {
   0% {
     opacity: 0;

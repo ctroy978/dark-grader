@@ -1,3 +1,5 @@
+import type { Grade } from "@dungeon-grades/shared";
+import GradeToken from "../combat/GradeToken";
 import SiteChrome from "./SiteChrome";
 import { navigate } from "./siteNav";
 
@@ -113,23 +115,9 @@ export default function HowToPlayPage() {
             {GRADES.map((g) => (
               <li
                 key={g.g}
-                className="rounded-xl border border-parchment/15 bg-navy-light/50 p-3 text-center"
+                className="rounded-xl border border-parchment/15 bg-navy-light/50 p-3 text-center flex flex-col items-center"
               >
-                <div
-                  className={`text-2xl font-black ${
-                    g.g === "A"
-                      ? "text-grade-a"
-                      : g.g === "B"
-                        ? "text-grade-b"
-                        : g.g === "C"
-                          ? "text-grade-c"
-                          : g.g === "D"
-                            ? "text-grade-d"
-                            : "text-grade-f"
-                  }`}
-                >
-                  {g.g}
-                </div>
+                <GradeToken grade={g.g as Grade} size="lg" />
                 <p className="mt-2 text-[11px] text-parchment-dim leading-snug">
                   {g.note}
                 </p>

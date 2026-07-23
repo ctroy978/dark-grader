@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Grade } from "@dungeon-grades/shared";
 import {
   api,
   getSocket,
   type ClassroomSummary,
   type Overview,
 } from "../api";
+import GradeToken from "../combat/GradeToken";
 
 function bossLabel(bossId: string, bosses: Overview["bosses"]): string {
   const b = bosses.find((x) => x.id === bossId);
@@ -433,12 +435,23 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                   </div>
 
                   {room.tokenPool.length > 0 && (
-                    <p
-                      className="font-mono text-sm text-parchment break-words leading-relaxed rounded-lg border border-parchment/15 bg-navy/50 px-3 py-2"
+                    <div
+                      className="rounded-lg border border-parchment/15 bg-navy/50 px-3 py-2 space-y-2"
                       title="Current token pool for this room"
                     >
-                      {room.tokenPool.join(", ")}
-                    </p>
+                      <p className="font-mono text-sm text-parchment break-words leading-relaxed">
+                        {room.tokenPool.join(", ")}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {room.tokenPool.map((g, i) => (
+                          <GradeToken
+                            key={`${g}-${i}`}
+                            grade={g as Grade}
+                            size="sm"
+                          />
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   <textarea

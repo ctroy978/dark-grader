@@ -4,6 +4,7 @@ import {
   type Archetype,
   type Grade,
 } from "@dungeon-grades/shared";
+import GradeToken from "../combat/GradeToken";
 import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
 import SiteChrome from "./SiteChrome";
 import { navigate } from "./siteNav";
@@ -174,14 +175,13 @@ export function CharacterDetailPage({ archetypeKey }: { archetypeKey: string }) 
               </div>
               <ul className="divide-y divide-parchment/10">
                 {scout.grades.map((g) => (
-                  <li key={g.grade} className="px-4 py-3 flex gap-3">
-                    <span
-                      className={`text-xl font-black w-8 shrink-0 ${GRADE_CLASS[g.grade]}`}
-                    >
-                      {g.grade}
-                    </span>
+                  <li key={g.grade} className="px-4 py-3 flex gap-3 items-start">
+                    <GradeToken grade={g.grade} size="sm" className="shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm text-parchment leading-snug">
+                        <span className={`font-bold mr-1.5 ${GRADE_CLASS[g.grade]}`}>
+                          {g.grade}
+                        </span>
                         {g.effect}
                       </p>
                       {g.risk && (

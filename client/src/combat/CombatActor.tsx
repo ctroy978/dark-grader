@@ -1,11 +1,11 @@
 import type { CSSProperties } from "react";
 import {
-  GRADE_COLORS,
   statusToChip,
   type Grade,
   type StatusTag,
 } from "@dungeon-grades/shared";
 import type { PresentationCue } from "../api";
+import GradeToken from "./GradeToken";
 import { SpeechBubble } from "./SpeechBubble";
 import { PlaceholderPortrait, type PortraitKind } from "./PlaceholderPortrait";
 import {
@@ -191,16 +191,13 @@ export function CombatActor({
   return (
     <div className={`relative flex flex-col items-center ${className} ${fx}`}>
       {claimGrade && (
-        <span
-          className="absolute -top-1.5 -right-0.5 z-10 w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center text-[10px] md:text-xs font-black bg-navy"
-          style={{
-            color: GRADE_COLORS[claimGrade],
-            borderColor: GRADE_COLORS[claimGrade],
-          }}
+        <GradeToken
+          grade={claimGrade}
+          size="xs"
+          claimed
+          className="absolute -top-2 -right-1 z-10"
           title={`Claimed ${claimGrade}`}
-        >
-          {claimGrade}
-        </span>
+        />
       )}
       {speaking && cue && <SpeechBubble cue={cue} anchor="top" />}
       <div

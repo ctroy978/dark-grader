@@ -26,23 +26,53 @@ npm run dev:client   # http://localhost:5173
 
 Default teacher PIN: `teacher` (override with `TEACHER_PIN` env var).
 
-### Audio (ElevenLabs)
+## Windows
 
-Put your key in the **repo-root** `.env` (see `.env.example`):
+The server and client are plain Node/TypeScript and run on Windows. Use **Node.js 20+**. Install dependencies **on the Windows machine** (`npm install` pulls the correct platform binaries). Do not copy `node_modules` from Linux or macOS.
+
+`npm run dev` starts both processes with a Unix-style `&` background, which does not work reliably in **cmd.exe**. On Windows, use two terminals instead:
+
+**Terminal 1 — API + game engine**
+
+```bat
+npm install
+npm run build -w @dungeon-grades/shared
+npm run dev:server
+```
+
+**Terminal 2 — UI**
+
+```bat
+npm run dev:client
+```
+
+Then open **http://localhost:5173**. The Vite dev server proxies `/api` and Socket.IO to **http://localhost:3001**.
+
+| Need | How |
+|------|-----|
+| Teacher PIN / other env | Put vars in a repo-root `.env` (same as other platforms), or set them in the shell before starting the server |
+| Production | `npm run build` then `npm start` (serves the compiled server; client is built under `client/dist`) |
+| Classroom LAN | Server listens on `0.0.0.0:3001` by default; allow Node through Windows Firewall on ports **3001** and **5173** (dev) if stations cannot connect |
+| Same workflow as Linux | Optional: run the repo under **WSL** and follow the Quick start section as written |
+
+No ElevenLabs key is required to run the game. SFX/VO are served from the checked-in files under `server/data/audio/`.
+
+### Audio generation (development only)
+
+Classroom runtime does **not** need an ElevenLabs API key. Clips live on disk under `server/data/audio/` and are served as static MP3s.
+
+Use a key only when **authoring or regenerating** those assets:
 
 ```bash
+# repo-root .env (see .env.example) — developers only
 ELEVENLABS_API_KEY=...
 # optional:
 # ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
-```
 
-Pre-generate all SFX + short VO clips (cached under `server/data/audio/`):
-
-```bash
 npm run audio:generate
 ```
 
-The server also lazy-generates a clip on first request if the cache is empty. The API key stays on the server only.
+If a clip is missing and a key is configured, the server can also generate it on first request. Without a key, missing clips simply 404; the game still runs.
 
 ### Classroom flow
 

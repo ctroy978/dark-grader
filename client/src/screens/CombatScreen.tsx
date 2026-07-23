@@ -31,6 +31,7 @@ import {
   setVoEnabled,
 } from "../audio";
 import { CombatActor } from "../combat/CombatActor";
+import GradeToken, { GradeTokenSlot } from "../combat/GradeToken";
 import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
 
@@ -798,27 +799,18 @@ export default function CombatScreen({
                 {([0, 1, 2] as const).map((i) => {
                   const g = pendingGrades[i];
                   if (!g) {
-                    return (
-                      <div
-                        key={`slot-${i}`}
-                        className="w-9 h-9 md:w-11 md:h-11 rounded-full border-2 border-dashed border-parchment/15 opacity-40"
-                        aria-hidden
-                      />
-                    );
+                    return <GradeTokenSlot key={`slot-${i}`} size="md" />;
                   }
                   return (
-                    <div
-                      key={`${g}-${i}`}
-                      className={`token-bob w-9 h-9 md:w-11 md:h-11 rounded-full border-2 flex items-center justify-center font-bold text-base md:text-lg bg-navy/90 shadow-md ${GRADE_CLASS[g]} ${flashTokens ? "token-fall" : ""}`}
-                      style={{
-                        animationDelay: `${i * 0.12}s`,
-                        color: GRADE_COLORS[g],
-                        borderColor: GRADE_COLORS[g],
-                      }}
-                      title="Drops when you press Drop Tokens"
-                    >
-                      {g}
-                    </div>
+                    <GradeToken
+                      key={`${g}-${i}-${flashTokens ? "fall" : "idle"}`}
+                      grade={g}
+                      size="md"
+                      bob={!flashTokens}
+                      falling={flashTokens}
+                      delaySec={i * 0.12}
+                      title={`${g} token — drops when you press Drop Tokens`}
+                    />
                   );
                 })}
               </div>
@@ -843,24 +835,21 @@ export default function CombatScreen({
                       return (
                         <div
                           key={g}
-                          className={`rounded border px-1.5 py-0.5 text-[10px] md:text-[11px] bg-navy/70 leading-snug max-w-[11rem] ${GRADE_CLASS[g]}`}
+                          className={`rounded border px-1.5 py-0.5 text-[10px] md:text-[11px] bg-navy/70 leading-snug max-w-[12rem] flex items-start gap-1 ${GRADE_CLASS[g]}`}
                           style={{ borderColor: GRADE_COLORS[g] }}
                           title={describeGradeEffect(magnetSoldier.archetype, g)}
                         >
-                          <span
-                            className="font-bold"
-                            style={{ color: GRADE_COLORS[g] }}
-                          >
-                            {g}
-                          </span>
-                          <span className="text-parchment-dim ml-1">
-                            {describeGradeEffect(magnetSoldier.archetype, g)}
-                          </span>
-                          {risk && (
-                            <span className="block text-grade-f text-[9px]">
-                              {risk}
+                          <GradeToken grade={g} size="xs" className="mt-0.5" />
+                          <div className="min-w-0">
+                            <span className="text-parchment-dim">
+                              {describeGradeEffect(magnetSoldier.archetype, g)}
                             </span>
-                          )}
+                            {risk && (
+                              <span className="block text-grade-f text-[9px]">
+                                {risk}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
