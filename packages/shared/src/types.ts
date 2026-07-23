@@ -161,6 +161,8 @@ export interface TeamState {
   teamId: string;
   inviteCode: string;
   name: string;
+  /** Classroom (period) this team belongs to — set on create / migration. */
+  classroomId: string;
   roster: Soldier[];
   activePartyIds: string[];
   magnetPosition: Position;
@@ -220,12 +222,27 @@ export interface TeamState {
   lastClearedBossName?: string | null;
 }
 
+/** Per-room grade pool + teacher open gate for one classroom. */
+export interface ClassroomRoomSlot {
+  /** Letter grades that seed the token bag when a team starts this room. */
+  tokenPool: Grade[];
+  /** When true, teams in this classroom may start this room (if grades present). */
+  open: boolean;
+}
+
 export interface ClassroomState {
-  masterTokenPool: Grade[];
+  classroomId: string;
+  /** Display name e.g. "Period 1" */
+  name: string;
+  /**
+   * @deprecated Legacy single pool. Migrated into rooms[0].tokenPool.
+   * Kept optional so old JSON still parses during migration.
+   */
+  masterTokenPool?: Grade[];
   /** Fallback boss if room sequence missing */
   bossTemplateId: string | null;
   teamIds: string[];
-  /** Total rooms in the campaign (default 4) */
+  /** Total rooms in the campaign (default 6) */
   campaignLength: number;
   /**
    * Boss template id per room index 0..campaignLength-1.
@@ -233,10 +250,25 @@ export interface ClassroomState {
    */
   roomBossIds: string[];
   /**
-   * When true, students cannot join or advance play (teacher "pause server").
+   * When true, students in this classroom cannot join or advance play.
    * Existing team state is kept; only blocked at the API.
    */
-  paused?: boolean;
+  paused: boolean;
+  /**
+   * Grade pool + open flag per room index 0..campaignLength-1.
+   * Teacher enters grades, then opens the room; next room stays locked until next test.
+   */
+  rooms: ClassroomRoomSlot[];
+}
+
+/** Summary card for teacher classroom list. */
+export interface ClassroomSummary {
+  classroomId: string;
+  name: string;
+  teamCount: number;
+  paused: boolean;
+  campaignLength: number;
+  openRoomCount: number;
 }
 
 /** Default dungeon path for a class period (6-room plan; room 5 is a stub until designed). */

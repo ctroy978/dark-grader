@@ -136,7 +136,7 @@ export default function App() {
           <div className="text-2xl mb-2">📜</div>
           <div className="font-semibold text-lg">Teacher Dashboard</div>
           <div className="text-sm text-parchment-dim mt-1">
-            Grades, bosses, teams, and classroom control.
+            Periods, grades per room, open rooms, and teams.
           </div>
         </button>
       </div>

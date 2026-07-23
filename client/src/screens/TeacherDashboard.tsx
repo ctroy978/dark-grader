@@ -1,91 +1,206 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, getSocket, type Overview } from "../api";
+import {
+  api,
+  getSocket,
+  type ClassroomSummary,
+  type Overview,
+} from "../api";
+
+function bossLabel(bossId: string, bosses: Overview["bosses"]): string {
+  const b = bosses.find((x) => x.id === bossId);
+  if (b) {
+    return bossId === "barrow_warden" ? `${b.name} (placeholder)` : b.name;
+  }
+  return bossId
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
   const [pin, setPin] = useState(
     () => sessionStorage.getItem("dg_teacher_pin") ?? "teacher",
   );
   const [authed, setAuthed] = useState(false);
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [classroomId, setClassroomId] = useState<string | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
-  const [gradesText, setGradesText] = useState("");
+  const [newClassroomName, setNewClassroomName] = useState("");
+  const [newTeamName, setNewTeamName] = useState("");
+  const [gradesByRoom, setGradesByRoom] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const o = await api.teacherOverview(pin);
-    setOverview(o);
+  const refreshList = useCallback(async () => {
+    const r = await api.listClassrooms(pin);
+    setClassrooms(r.classrooms);
     setAuthed(true);
     sessionStorage.setItem("dg_teacher_pin", pin);
   }, [pin]);
+
+  const refreshOverview = useCallback(async () => {
+    if (!classroomId) return;
+    const o = await api.teacherOverview(pin, classroomId);
+    setOverview(o);
+  }, [pin, classroomId]);
 
   useEffect(() => {
     if (!authed) return;
     const s = getSocket();
     s.emit("subscribe:teacher", pin);
-    const onOverview = (o: Overview) => setOverview(o);
+    const onList = (list: ClassroomSummary[]) => setClassrooms(list);
+    s.on("teacher:classrooms", onList);
+    return () => {
+      s.off("teacher:classrooms", onList);
+    };
+  }, [authed, pin]);
+
+  useEffect(() => {
+    if (!authed || !classroomId) return;
+    const s = getSocket();
+    s.emit("subscribe:classroom", { pin, classroomId });
+    const onOverview = (o: Overview) => {
+      if (o.classroomId === classroomId) setOverview(o);
+    };
     s.on("teacher:overview", onOverview);
+    void refreshOverview().catch((err: Error) => setError(err.message));
     return () => {
       s.off("teacher:overview", onOverview);
     };
-  }, [authed, pin]);
+  }, [authed, pin, classroomId, refreshOverview]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
-      await refresh();
+      await refreshList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Auth failed");
       setAuthed(false);
     }
   }
 
-  async function submitGrades() {
+  async function createClassroom() {
     setError(null);
     setMsg(null);
     try {
-      const r = await api.setGrades(pin, gradesText);
-      setMsg(`Token pool set: ${r.count} grades`);
-      await refresh();
+      const o = await api.createClassroom(pin, newClassroomName);
+      setNewClassroomName("");
+      setMsg(`Created classroom “${o.name}”`);
+      await refreshList();
+      setClassroomId(o.classroomId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
   }
 
-  async function pickBoss(id: string) {
+  async function openClassroom(id: string) {
     setError(null);
-    try {
-      await api.setBoss(pin, id);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    }
+    setMsg(null);
+    setClassroomId(id);
+    setGradesByRoom({});
   }
 
   async function togglePause() {
+    if (!classroomId || !overview) return;
     setError(null);
     setMsg(null);
     try {
-      const next = !overview?.paused;
-      await api.setClassroomPaused(pin, next);
+      const next = !overview.paused;
+      await api.setClassroomPaused(pin, classroomId, next);
       setMsg(
         next
           ? "Classroom paused — students cannot join or play"
           : "Classroom resumed — students can play",
       );
-      await refresh();
+      await refreshOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function submitRoomGrades(roomIndex: number) {
+    if (!classroomId) return;
+    setError(null);
+    setMsg(null);
+    try {
+      const text = gradesByRoom[roomIndex] ?? "";
+      const r = await api.setRoomGrades(pin, classroomId, roomIndex, text);
+      setMsg(
+        `Room ${roomIndex + 1}: token pool set (${r.count} grades). Open the room when ready.`,
+      );
+      setOverview(r.classroom);
+      // Show normalized grades as a horizontal comma list for easy proofreading
+      setGradesByRoom((prev) => ({
+        ...prev,
+        [roomIndex]: r.grades.join(", "),
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function toggleRoomOpen(roomIndex: number, open: boolean) {
+    if (!classroomId) return;
+    setError(null);
+    setMsg(null);
+    try {
+      const o = await api.setRoomOpen(pin, classroomId, roomIndex, open);
+      setOverview(o);
+      setMsg(
+        open
+          ? `Room ${roomIndex + 1} is open — teams may enter`
+          : `Room ${roomIndex + 1} closed`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function createTeam() {
+    if (!classroomId) return;
+    setError(null);
+    setMsg(null);
+    try {
+      const t = await api.createTeam(pin, classroomId, newTeamName);
+      setNewTeamName("");
+      setMsg(`Created team “${t.name}” — invite code ${t.inviteCode}`);
+      await refreshOverview();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
   }
 
   async function changeCode(teamId: string, teamName: string) {
+    if (!classroomId) return;
     setError(null);
     setMsg(null);
     try {
-      const t = await api.changeInviteCode(pin, teamId);
+      const t = await api.changeInviteCode(pin, classroomId, teamId);
       setMsg(`${teamName}: new invite code ${t.inviteCode}`);
-      await refresh();
+      await refreshOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function deleteClassroom() {
+    if (!classroomId || !overview) return;
+    const ok = window.confirm(
+      `Delete classroom “${overview.name}” and ALL of its teams?\n\nThis cannot be undone.`,
+    );
+    if (!ok) return;
+    const again = window.confirm(
+      `Really delete “${overview.name}”? All invite codes and progress in this period will be removed.`,
+    );
+    if (!again) return;
+    setError(null);
+    try {
+      await api.deleteClassroom(pin, classroomId);
+      setMsg(`Deleted classroom ${overview.name}`);
+      setClassroomId(null);
+      setOverview(null);
+      await refreshList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -131,21 +246,99 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
     );
   }
 
+  // --- Classroom list ---
+  if (!classroomId) {
+    return (
+      <div className="min-h-full p-4 md:p-6 max-w-3xl mx-auto space-y-6">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Classrooms</h1>
+            <p className="text-sm text-parchment-dim">
+              One classroom per period. Grades and open rooms are independent.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5"
+          >
+            Home
+          </button>
+        </header>
+
+        {error && <p className="text-grade-f text-sm">{error}</p>}
+        {msg && <p className="text-grade-a text-sm">{msg}</p>}
+
+        <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3">
+          <h2 className="font-semibold">Create classroom</h2>
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="flex-1 min-w-[12rem] rounded-lg bg-navy border border-parchment/20 px-3 py-2"
+              value={newClassroomName}
+              onChange={(e) => setNewClassroomName(e.target.value)}
+              placeholder="e.g. Period 1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void createClassroom();
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => void createClassroom()}
+              className="rounded-lg bg-crimson px-4 py-2 text-sm font-semibold"
+            >
+              Create
+            </button>
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          {classrooms.map((c) => (
+            <button
+              key={c.classroomId}
+              type="button"
+              onClick={() => void openClassroom(c.classroomId)}
+              className="w-full text-left rounded-xl border border-parchment/15 bg-navy-light/50 p-4 hover:border-rune/50 transition"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-lg">{c.name}</span>
+                {c.paused && (
+                  <span className="text-xs font-semibold text-grade-f border border-grade-f/40 rounded px-2 py-0.5">
+                    PAUSED
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-parchment-dim mt-1">
+                {c.teamCount} team{c.teamCount === 1 ? "" : "s"} ·{" "}
+                {c.campaignLength} rooms · {c.openRoomCount} open
+              </p>
+            </button>
+          ))}
+          {!classrooms.length && (
+            <p className="text-parchment-dim text-sm py-6 text-center">
+              No classrooms yet — create Period 1 to get started.
+            </p>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  // --- Classroom dashboard ---
   return (
     <div className="min-h-full p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
+          <h1 className="text-2xl font-bold">
+            {overview?.name ?? "Classroom"}
+          </h1>
           <p className="text-sm text-parchment-dim">
-            Pool: {overview?.masterTokenPool.length ?? 0} tokens · Campaign:{" "}
-            {overview?.campaignLength ?? "?"} rooms · Fallback boss:{" "}
-            {overview?.bossTemplateId ?? "none"}
+            Campaign: {overview?.campaignLength ?? "?"} rooms
             {overview?.paused ? (
               <span className="text-grade-f font-semibold"> · PAUSED</span>
             ) : null}
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           <button
             type="button"
             onClick={() => void togglePause()}
@@ -154,13 +347,20 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                 ? "border-grade-a/50 bg-grade-a/20 text-grade-a"
                 : "border-grade-f/50 bg-grade-f/15 text-grade-f"
             }`}
-            title={
-              overview?.paused
-                ? "Allow students to join and play again"
-                : "Block student join and all team actions"
-            }
           >
             {overview?.paused ? "Resume classroom" : "Pause classroom"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setClassroomId(null);
+              setOverview(null);
+              setMsg(null);
+              void refreshList();
+            }}
+            className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5"
+          >
+            All classrooms
           </button>
           <button
             type="button"
@@ -176,45 +376,127 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
       {msg && <p className="text-grade-a text-sm">{msg}</p>}
 
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Grades */}
-        <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3">
-          <h2 className="font-semibold text-lg">Grade → Token Pool</h2>
-          <p className="text-xs text-parchment-dim">
-            Paste letters A–F (spaces, commas, or new lines). Shared by all teams today.
-          </p>
-          <textarea
-            className="w-full h-28 rounded-lg bg-navy border border-parchment/20 p-3 font-mono text-sm"
-            value={gradesText}
-            onChange={(e) => setGradesText(e.target.value)}
-            placeholder="A A B B B C C C C D D F …"
-          />
-          <button
-            type="button"
-            onClick={() => void submitGrades()}
-            className="rounded-lg bg-crimson hover:bg-crimson-bright px-4 py-2 text-sm font-semibold"
-          >
-            Generate Token Pool
-          </button>
-          {overview && overview.masterTokenPool.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {overview.masterTokenPool.map((g, i) => (
-                <span
-                  key={i}
-                  className="w-7 h-7 rounded-full border border-parchment/30 flex items-center justify-center text-xs font-bold"
+        {/* Rooms — grades + open */}
+        <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-4 lg:col-span-2">
+          <div>
+            <h2 className="font-semibold text-lg">Rooms — grades &amp; open</h2>
+            <p className="text-xs text-parchment-dim mt-1">
+              After each test: paste grades for that room, then{" "}
+              <strong className="text-parchment">Open room</strong>. Students
+              see all rooms but can only start rooms you open. The next room
+              stays locked until the next test grades are entered.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {(overview?.rooms ?? []).map((room) => {
+              const label = bossLabel(room.bossId, overview?.bosses ?? []);
+              const status = room.open
+                ? "Open"
+                : room.gradeCount > 0
+                  ? "Grades ready — closed"
+                  : "Locked";
+              return (
+                <div
+                  key={room.roomIndex}
+                  className={`rounded-lg border p-3 space-y-2 ${
+                    room.open
+                      ? "border-grade-a/40 bg-grade-a/5"
+                      : "border-parchment/15 bg-navy/40"
+                  }`}
                 >
-                  {g}
-                </span>
-              ))}
-            </div>
-          )}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="font-semibold">
+                        Room {room.roomIndex + 1}
+                      </span>
+                      <span className="text-parchment-dim text-sm ml-2">
+                        {label}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold rounded px-2 py-0.5 border ${
+                        room.open
+                          ? "border-grade-a/50 text-grade-a"
+                          : room.gradeCount > 0
+                            ? "border-rune/40 text-rune"
+                            : "border-parchment/20 text-parchment-dim"
+                      }`}
+                    >
+                      {status}
+                      {room.gradeCount > 0
+                        ? ` · ${room.gradeCount} tokens`
+                        : ""}
+                    </span>
+                  </div>
+
+                  {room.tokenPool.length > 0 && (
+                    <p
+                      className="font-mono text-sm text-parchment break-words leading-relaxed rounded-lg border border-parchment/15 bg-navy/50 px-3 py-2"
+                      title="Current token pool for this room"
+                    >
+                      {room.tokenPool.join(", ")}
+                    </p>
+                  )}
+
+                  <textarea
+                    className="w-full min-h-[2.75rem] h-14 rounded-lg bg-navy border border-parchment/20 p-2 font-mono text-sm resize-y"
+                    value={gradesByRoom[room.roomIndex] ?? ""}
+                    onChange={(e) =>
+                      setGradesByRoom((prev) => ({
+                        ...prev,
+                        [room.roomIndex]: e.target.value,
+                      }))
+                    }
+                    placeholder="A, A, B, B, C, C, D, F … (commas, spaces, or new lines all work)"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void submitRoomGrades(room.roomIndex)}
+                      className="rounded-lg bg-crimson hover:bg-crimson-bright px-3 py-1.5 text-sm font-semibold"
+                    >
+                      Set grades
+                    </button>
+                    {room.open ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void toggleRoomOpen(room.roomIndex, false)
+                        }
+                        className="rounded-lg border border-grade-f/40 text-grade-f px-3 py-1.5 text-sm"
+                      >
+                        Close room
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={room.gradeCount === 0}
+                        onClick={() =>
+                          void toggleRoomOpen(room.roomIndex, true)
+                        }
+                        className="rounded-lg border border-grade-a/50 text-grade-a px-3 py-1.5 text-sm font-semibold disabled:opacity-40"
+                        title={
+                          room.gradeCount === 0
+                            ? "Enter grades before opening"
+                            : "Allow teams to start this room"
+                        }
+                      >
+                        Open room
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         {/* Campaign path */}
         <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3">
           <h2 className="font-semibold text-lg">Campaign path</h2>
           <p className="text-xs text-parchment-dim">
-            Default 6 rooms: Moss Grub → Ash → Herald → Rattle Captain → Barrow
-            Warden (placeholder) → Bone Colossus. Grades stay shared for the whole path.
+            Boss order for this period only. Grades are per room (above).
           </p>
           <div className="flex flex-wrap gap-2 items-end">
             <label className="block text-sm flex-1 min-w-[8rem]">
@@ -223,10 +505,13 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                 className="mt-1 w-full rounded-lg bg-navy border border-parchment/20 px-3 py-2"
                 value={overview?.campaignLength ?? 6}
                 onChange={(e) => {
+                  if (!classroomId) return;
                   const n = Number(e.target.value);
                   void api
-                    .setCampaign(pin, { campaignLength: n })
-                    .then(refresh)
+                    .setCampaign(pin, classroomId, { campaignLength: n })
+                    .then((o) => {
+                      setOverview(o);
+                    })
                     .catch((err: Error) => setError(err.message));
                 }}
               >
@@ -241,11 +526,12 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
               type="button"
               className="rounded-lg border border-rune/40 text-rune text-sm px-3 py-2 hover:bg-navy"
               onClick={() => {
+                if (!classroomId) return;
                 void api
-                  .resetDefaultCampaign(pin)
-                  .then(() => {
+                  .resetDefaultCampaign(pin, classroomId)
+                  .then((o) => {
+                    setOverview(o);
                     setMsg("Campaign reset to 6-room default path");
-                    return refresh();
                   })
                   .catch((err: Error) => setError(err.message));
               }}
@@ -255,9 +541,10 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {(overview?.roomBossIds ?? []).map((bossId, roomIdx) => {
-              const boss = overview?.bosses.find((b) => b.id === bossId);
               const isPlaceholder =
-                boss?.summary?.includes("PLACEHOLDER") ||
+                overview?.bosses
+                  .find((b) => b.id === bossId)
+                  ?.summary?.includes("PLACEHOLDER") ||
                 bossId === "barrow_warden";
               return (
                 <div key={roomIdx} className="flex items-center gap-2">
@@ -268,13 +555,14 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                     className="flex-1 rounded-lg bg-navy border border-parchment/20 px-2 py-1.5 text-sm"
                     value={bossId}
                     onChange={(e) => {
-                      const next = [...(overview?.roomBossIds ?? [])];
+                      if (!classroomId || !overview) return;
+                      const next = [...overview.roomBossIds];
                       next[roomIdx] = e.target.value;
                       void api
-                        .setCampaign(pin, { roomBossIds: next })
-                        .then(() => {
+                        .setCampaign(pin, classroomId, { roomBossIds: next })
+                        .then((o) => {
+                          setOverview(o);
                           setMsg(`Room ${roomIdx + 1} boss updated`);
-                          return refresh();
                         })
                         .catch((err: Error) => setError(err.message));
                     }}
@@ -297,25 +585,22 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
               );
             })}
           </div>
+        </section>
+
+        {/* Danger zone */}
+        <section className="rounded-xl border border-grade-f/25 bg-navy-light/40 p-4 space-y-2">
+          <h2 className="font-semibold text-lg text-grade-f">Danger zone</h2>
           <p className="text-xs text-parchment-dim">
-            Fallback single-boss pick (legacy): click a card to set default filler boss.
+            Deleting a classroom removes every team and invite code in this
+            period.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {overview?.bosses.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => void pickBoss(b.id)}
-                className={`text-xs rounded-lg border px-2 py-1 ${
-                  overview.bossTemplateId === b.id
-                    ? "border-rune text-rune"
-                    : "border-parchment/20"
-                }`}
-              >
-                {b.name}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => void deleteClassroom()}
+            className="text-sm border border-grade-f/50 text-grade-f rounded-lg px-3 py-1.5 hover:bg-grade-f/10"
+          >
+            Delete this classroom…
+          </button>
         </section>
 
         {/* Teams */}
@@ -329,10 +614,28 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
             )}
           </div>
           <p className="text-xs text-parchment-dim">
-            Change invite code issues a new code (old one stops working). Reset
-            clears that team’s fight progress. Delete permanently removes the
-            team after confirmation.
+            Create a team, give students the invite code. Codes only work for
+            this team (other periods cannot use them).
           </p>
+
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="flex-1 min-w-[10rem] rounded-lg bg-navy border border-parchment/20 px-3 py-2 text-sm"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              placeholder="Team name (e.g. Table 3)"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void createTeam();
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => void createTeam()}
+              className="rounded-lg bg-crimson px-4 py-2 text-sm font-semibold"
+            >
+              Create team
+            </button>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -361,6 +664,11 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                     <td className="py-2 pr-3">
                       {t.currentRoom ?? t.roomIndex + 1}/
                       {t.campaignLength ?? "?"}
+                      {t.canStartCurrentRoom === false && (
+                        <span className="block text-[10px] text-parchment-dim">
+                          room locked
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 pr-3">{t.round}</td>
                     <td className="py-2 pr-3">
@@ -371,7 +679,6 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                       <button
                         type="button"
                         className="text-xs border border-rune/40 text-rune rounded px-2 py-1 hover:bg-navy"
-                        title="Generate a new invite code for this team"
                         onClick={() => void changeCode(t.teamId, t.name)}
                       >
                         Change invite code
@@ -379,30 +686,33 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                       <button
                         type="button"
                         className="text-xs border border-grade-f/40 text-grade-f rounded px-2 py-1 hover:bg-navy"
-                        onClick={() =>
-                          void api.resetTeam(pin, t.teamId).then(refresh)
-                        }
+                        onClick={() => {
+                          if (!classroomId) return;
+                          void api
+                            .resetTeam(pin, classroomId, t.teamId)
+                            .then(refreshOverview);
+                        }}
                       >
                         Reset
                       </button>
                       <button
                         type="button"
                         className="text-xs border border-grade-f/60 bg-grade-f/10 text-grade-f rounded px-2 py-1 hover:bg-grade-f/20"
-                        title="Permanently remove this team"
                         onClick={() => {
+                          if (!classroomId) return;
                           const ok = window.confirm(
-                            `Delete team “${t.name}” (${t.inviteCode})?\n\nThis cannot be undone. All progress for this team will be permanently removed.`,
+                            `Delete team “${t.name}” (${t.inviteCode})?\n\nThis cannot be undone.`,
                           );
                           if (!ok) return;
                           const again = window.confirm(
-                            `Are you sure you want to delete “${t.name}”?\n\nType OK in the next step is not required — click OK only if you really mean to delete this team.`,
+                            `Are you sure you want to delete “${t.name}”?`,
                           );
                           if (!again) return;
                           void api
-                            .deleteTeam(pin, t.teamId)
+                            .deleteTeam(pin, classroomId, t.teamId)
                             .then(() => {
                               setMsg(`Deleted team ${t.name}`);
-                              return refresh();
+                              return refreshOverview();
                             })
                             .catch((e: Error) =>
                               setError(e.message || "Delete failed"),
@@ -417,7 +727,7 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                 {!overview?.teams.length && (
                   <tr>
                     <td colSpan={8} className="py-4 text-parchment-dim">
-                      No teams yet.
+                      No teams yet — create one and share the invite code.
                     </td>
                   </tr>
                 )}

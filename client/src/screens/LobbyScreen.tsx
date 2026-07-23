@@ -646,7 +646,9 @@ export default function LobbyScreen({
           {Array.from({ length: team.campaignLength ?? 6 }).map((_, i) => {
             const cleared = (team.roomsCleared ?? team.roomIndex) > i;
             const current = (team.roomsCleared ?? team.roomIndex) === i;
-            const bossId = team.roomBossIds?.[i];
+            const gate = team.rooms?.find((r) => r.roomIndex === i);
+            const open = gate?.open ?? false;
+            const bossId = team.roomBossIds?.[i] ?? gate?.bossId;
             const bossLabel =
               bossId === "barrow_warden"
                 ? "Warden*"
@@ -656,22 +658,34 @@ export default function LobbyScreen({
                       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                       .join(" ")
                   : `Room ${i + 1}`;
+            const barClass = cleared
+              ? "bg-grade-a"
+              : current && open
+                ? "bg-rune animate-pulse"
+                : current && !open
+                  ? "bg-grade-d/70 border border-grade-d/40"
+                  : "bg-navy-light border border-parchment/20";
+            const titleExtra = cleared
+              ? "cleared"
+              : current
+                ? open
+                  ? "open — ready"
+                  : "locked — wait for teacher"
+                : open
+                  ? "open (not your room yet)"
+                  : "locked";
             return (
               <div key={i} className="flex flex-col gap-0.5 min-w-0">
                 <div
-                  className={`h-2 w-full rounded-full ${
-                    cleared
-                      ? "bg-grade-a"
-                      : current
-                        ? "bg-rune animate-pulse"
-                        : "bg-navy-light border border-parchment/20"
-                  }`}
-                  title={`Room ${i + 1}: ${bossLabel}`}
+                  className={`h-2 w-full rounded-full ${barClass}`}
+                  title={`Room ${i + 1}: ${bossLabel} · ${titleExtra}`}
                 />
                 <div
                   className={`text-[9px] md:text-[10px] truncate text-center leading-tight ${
                     current
-                      ? "text-rune font-semibold"
+                      ? open
+                        ? "text-rune font-semibold"
+                        : "text-grade-d font-semibold"
                       : cleared
                         ? "text-grade-a/80"
                         : "text-parchment-dim/70"
@@ -679,21 +693,30 @@ export default function LobbyScreen({
                   title={bossLabel}
                 >
                   {i + 1}. {bossLabel}
+                  {current && !open ? " 🔒" : ""}
                 </div>
               </div>
             );
           })}
         </div>
         <p className="text-[10px] text-parchment-dim/60">
-          * Warden is a placeholder boss until its full kit ships.
+          * Warden is a placeholder boss until its full kit ships. Rooms stay locked
+          until your teacher opens them after entering test grades.
         </p>
+        {team.canStartCurrentRoom === false && team.startBlockedReason && (
+          <p className="text-sm text-grade-d rounded-lg border border-grade-d/30 bg-navy/60 px-3 py-2">
+            {team.startBlockedReason}
+          </p>
+        )}
         {team.phase === "between_rooms" && team.lastClearedBossName && (
           <p className="text-xs text-grade-a">
             Cleared {team.lastClearedBossName}. Living soldiers keep their HP — fallen
             stay gone.{" "}
-            {understrength
-              ? `Field all ${alive.length} survivors understrength for the next room.`
-              : `Pick ${PARTY_SIZE} living soldiers for the next room.`}
+            {team.canStartCurrentRoom
+              ? understrength
+                ? `Field all ${alive.length} survivors understrength for the next room.`
+                : `Pick ${PARTY_SIZE} living soldiers for the next room.`
+              : "Form a party when ready — the next room opens after the teacher enters the next test grades."}
           </p>
         )}
         {alive.length === 0 && (
@@ -914,18 +937,25 @@ export default function LobbyScreen({
         </p>
       )}
       {savedOk && !error && (
-        <p className="text-grade-a text-sm">Party saved on the server. Ready to start when the teacher has set grades & boss.</p>
+        <p className="text-grade-a text-sm">
+          Party saved on the server.
+          {team.canStartCurrentRoom
+            ? " Ready to enter when your lineup is set."
+            : " Waiting for the teacher to open this room."}
+        </p>
       )}
 
       <section className="sticky bottom-3 rounded-xl border border-parchment/15 bg-navy/95 p-3 flex flex-wrap gap-2 items-center shadow-lg">
         <span className="text-sm text-parchment-dim mr-auto">
           {alive.length === 0
             ? "No living soldiers — teacher reset required."
-            : complete
-              ? understrength
-                ? "Understrength lineup ready — save or enter."
-                : "Lineup complete — save or enter the dungeon."
-              : `Choose ${Math.max(0, requiredSize - filledCount)} more soldier(s).`}
+            : team.canStartCurrentRoom === false
+              ? team.startBlockedReason ?? "This room is locked."
+              : complete
+                ? understrength
+                  ? "Understrength lineup ready — save or enter."
+                  : "Lineup complete — save or enter the dungeon."
+                : `Choose ${Math.max(0, requiredSize - filledCount)} more soldier(s).`}
         </span>
         <button
           type="button"
@@ -937,15 +967,27 @@ export default function LobbyScreen({
         </button>
         <button
           type="button"
-          disabled={busy || !complete || alive.length < 1}
+          disabled={
+            busy ||
+            !complete ||
+            alive.length < 1 ||
+            team.canStartCurrentRoom === false
+          }
           onClick={() => void startFight()}
           className="rounded-lg bg-crimson hover:bg-crimson-bright px-5 py-2.5 text-sm font-semibold disabled:opacity-40"
+          title={
+            team.canStartCurrentRoom === false
+              ? (team.startBlockedReason ?? "Room locked")
+              : undefined
+          }
         >
           {busy
             ? "…"
-            : team.isFinalRoom
-              ? `Enter final room vs ${team.nextBossName ?? "boss"}`
-              : `Enter room ${team.currentRoom ?? "?"} vs ${team.nextBossName ?? "boss"}`}
+            : team.canStartCurrentRoom === false
+              ? `Room ${team.currentRoom ?? "?"} locked`
+              : team.isFinalRoom
+                ? `Enter final room vs ${team.nextBossName ?? "boss"}`
+                : `Enter room ${team.currentRoom ?? "?"} vs ${team.nextBossName ?? "boss"}`}
         </button>
       </section>
     </div>

@@ -42,12 +42,16 @@ The server also lazy-generates a clip on first request if the cache is empty. Th
 
 ### Classroom flow
 
-1. **Teacher** → login → paste grades → Generate Token Pool → set **campaign path** (rooms + bosses) → Create Invite Code(s).
-2. **Students** (one computer per team) → join → **form a party of 6** → enter room.
-3. Each round: keys **1–6** move the magnet → **Drop Tokens** (or Space).
-4. Victory → **Continue** → camp heal → reform → next room until campaign complete.
+1. **Teacher** → login → **create classrooms** (e.g. Period 1, Period 3).
+2. In a classroom → **Create team**(s) → share invite codes with student stations.
+3. After a test → paste **grades for Room N** → **Open room N**. Only that room is playable.
+4. **Students** enter the invite code (no classroom picker) → form a party of 6 → enter the open room.
+5. Victory → camp → next room stays **locked** until the teacher enters the next test’s grades and opens it.
+6. Each classroom has its own grades, open rooms, pause flag, and teams.
 
 Default path: **Moss Grub → Ash → Herald → Rattle Captain → Barrow Warden (placeholder) → Bone Colossus** (6 rooms).
+
+See [`docs/MULTI_CLASSROOM_PLAN.md`](docs/MULTI_CLASSROOM_PLAN.md) for the full multi-classroom design.
 
 ## Scripts
 

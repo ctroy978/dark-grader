@@ -67,11 +67,13 @@ export function createTeam(
   inviteCode: string,
   name: string,
   rngSeed = Date.now() % 1_000_000,
+  classroomId = "",
 ): TeamState {
   return {
     teamId,
     inviteCode,
     name,
+    classroomId,
     roster: createCampaignRoster(),
     activePartyIds: [],
     magnetPosition: 1,
