@@ -239,6 +239,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ pin }),
     }),
+  deleteTeam: (pin: string, id: string) =>
+    request(`/api/teacher/teams/${id}/delete`, {
+      method: "POST",
+      body: JSON.stringify({ pin }),
+    }),
   setClassroomPaused: (pin: string, paused: boolean) =>
     request<{ paused: boolean }>("/api/teacher/pause", {
       method: "POST",

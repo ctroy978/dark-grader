@@ -330,7 +330,8 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
           </div>
           <p className="text-xs text-parchment-dim">
             Change invite code issues a new code (old one stops working). Reset
-            clears that team’s fight progress.
+            clears that team’s fight progress. Delete permanently removes the
+            team after confirmation.
           </p>
 
           <div className="overflow-x-auto">
@@ -383,6 +384,32 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                         }
                       >
                         Reset
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs border border-grade-f/60 bg-grade-f/10 text-grade-f rounded px-2 py-1 hover:bg-grade-f/20"
+                        title="Permanently remove this team"
+                        onClick={() => {
+                          const ok = window.confirm(
+                            `Delete team “${t.name}” (${t.inviteCode})?\n\nThis cannot be undone. All progress for this team will be permanently removed.`,
+                          );
+                          if (!ok) return;
+                          const again = window.confirm(
+                            `Are you sure you want to delete “${t.name}”?\n\nType OK in the next step is not required — click OK only if you really mean to delete this team.`,
+                          );
+                          if (!again) return;
+                          void api
+                            .deleteTeam(pin, t.teamId)
+                            .then(() => {
+                              setMsg(`Deleted team ${t.name}`);
+                              return refresh();
+                            })
+                            .catch((e: Error) =>
+                              setError(e.message || "Delete failed"),
+                            );
+                        }}
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>

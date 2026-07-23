@@ -312,6 +312,24 @@ app.post<{ Body: { pin: string }; Params: { id: string } }>(
 );
 
 app.post<{ Body: { pin: string }; Params: { id: string } }>(
+  "/api/teacher/teams/:id/delete",
+  async (req) => {
+    requireTeacher(req.body.pin);
+    const team = store.getTeam(req.params.id);
+    if (!team) {
+      const err = new Error("Team not found") as Error & { statusCode: number };
+      err.statusCode = 404;
+      throw err;
+    }
+    store.deleteTeam(req.params.id);
+    io.to("teacher").emit("teacher:overview", overview());
+    // Drop any live sockets for that team room
+    io.to(`team:${req.params.id}`).emit("team:deleted", { teamId: req.params.id });
+    return { ok: true, teamId: req.params.id };
+  },
+);
+
+app.post<{ Body: { pin: string }; Params: { id: string } }>(
   "/api/teacher/teams/:id/reset",
   async (req) => {
     requireTeacher(req.body.pin);
