@@ -36,7 +36,7 @@ export function bossThreatTier(attackId: string): BossThreatTier {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
-    case "SummonBoneScraps":
+    case "SummonOhms":
       return "heavy";
     case "RattleSpark":
       return "light";
@@ -54,7 +54,7 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
-    case "SummonBoneScraps":
+    case "SummonOhms":
       return "summon";
     case "RattleSpark":
       return "shock";
@@ -131,7 +131,7 @@ export function defaultTelegraphLines(attackId: string): string[] {
     case "FireCloud":
       return ["Heat builds…", "Embers rise…", "Burn…"];
     case "RattleSpark":
-      return ["Spark…", "Magnet…", "Front arcs…"];
+      return ["Spark…", "Under the glow…", "Front arcs…"];
     case "FrontSlam":
     case "LightFrontSlam":
       return ["Rising…", "Cinders…", "Front…"];
@@ -143,8 +143,8 @@ export function defaultTelegraphLines(attackId: string): string[] {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
-    case "SummonBoneScraps":
-      return ["Calling…", "The gap…", "Rise…"];
+    case "SummonOhms":
+      return ["Calling…", "The gap…", "Ohms…"];
     default:
       return ["…"];
   }

@@ -35,13 +35,27 @@ function pickThundercaller(team: TeamState): Soldier {
   return s;
 }
 
+function nonThundercallerAt(
+  team: TeamState,
+  pos: number,
+): Soldier | undefined {
+  const s = team.roster.find(
+    (x) =>
+      team.activePartyIds.includes(x.id) &&
+      x.position === pos &&
+      x.alive &&
+      x.archetype !== "Thundercaller",
+  );
+  return s;
+}
+
 describe("Rattle Captain", () => {
-  it("loads from TOML with RattleSpark and scraps", () => {
+  it("loads from TOML with RattleSpark and Ohms", () => {
     const t = getBossTemplate("rattle_captain");
     expect(t).toBeTruthy();
     expect(t!.attackIds).toContain("RattleSpark");
     expect(t!.attackIds).toContain("Cascade");
-    expect(t!.attackIds).toContain("SummonBoneScraps");
+    expect(t!.attackIds).toContain("SummonOhms");
     expect(t!.attackIds).not.toContain("FrontSlam");
     expect(t!.maxHp).toBe(190);
   });
@@ -65,25 +79,33 @@ describe("Rattle Captain", () => {
     expect(ids.size).toBeGreaterThan(0);
   });
 
-  it("locks magnet and blocks placeMagnet", () => {
+  it("does not lock magnet movement", () => {
     const team = createTeam("t", "CODE", "Test", 7);
     fieldParty(team);
     startFight(team, "rattle_captain", POOL);
-    team.magnetStunRoundsLeft = 1;
-    expect(() => placeMagnet(team, 3)).toThrow(/locked|shocked/i);
+    team.magnetPosition = 1;
+    placeMagnet(team, 3);
+    expect(team.magnetPosition).toBe(3);
   });
 
-  it("Cascade always locks magnet on Captain", () => {
+  it("RattleSpark can stun the magnet-seat soldier", () => {
     const team = createTeam("t", "CODE", "Test", 99);
     fieldParty(team);
     startFight(team, "rattle_captain", POOL);
-    team.magnetStunRoundsLeft = 0;
-    team.pendingBossAttackId = "Cascade";
-    // Force non-stun-skip
+    // Put a non-TC under magnet seat 2
+    const target = nonThundercallerAt(team, 2);
+    expect(target).toBeTruthy();
+    team.magnetPosition = 2;
     if (team.boss) team.boss.stunRoundsLeft = 0;
-    resolveBossPhase(team, () => 0.99, () => {});
-    expect(team.magnetStunRoundsLeft).toBeGreaterThanOrEqual(1);
+    team.pendingBossAttackId = "RattleSpark";
+    // random always < 0.3 → guaranteed stun roll success
+    resolveBossPhase(team, () => 0.0, () => {});
+    const after = team.roster.find((s) => s.id === target!.id)!;
+    expect(after.statuses.some((st) => st.kind === "Stun")).toBe(true);
     expect(team.bossLastAttackWasStunKit).toBe(true);
+    // Magnet still movable
+    placeMagnet(team, 4);
+    expect(team.magnetPosition).toBe(4);
   });
 
   it("Thundercaller deals half damage to Captain", () => {
@@ -92,10 +114,10 @@ describe("Rattle Captain", () => {
     startFight(team, "rattle_captain", POOL);
     team.minions = [];
     const tc = pickThundercaller(team);
-    team.activePartyIds = [tc.id, ...team.activePartyIds.filter((id) => id !== tc.id)].slice(
-      0,
-      6,
-    );
+    team.activePartyIds = [
+      tc.id,
+      ...team.activePartyIds.filter((id) => id !== tc.id),
+    ].slice(0, 6);
     tc.position = 1;
     const before = team.boss!.currentHp;
     hitEnemies(team, 20, "single", 0, 0, tc);
@@ -103,22 +125,21 @@ describe("Rattle Captain", () => {
     expect(lost).toBe(10);
   });
 
-  it("Captain is immune to Thundercaller stun", () => {
+  it("Captain is immune to stun trait", () => {
     const team = createTeam("t", "CODE", "Test", 3);
     fieldParty(team);
     startFight(team, "rattle_captain", POOL);
-    // Simulate tryBossStun path via trait
     expect(team.boss!.traits).toContain("StunImmune");
-    team.boss!.stunRoundsLeft = 0;
-    // Force many full rounds shouldn't be needed — unit-level: traits gate
     expect(THUNDERCALLER_BOSS_STUN_CHANCE).toBe(0.3);
   });
 
-  it("can run a full commit against Captain without throwing", () => {
+  it("opens with Ohms and can full-round without throwing", () => {
     const team = createTeam("t", "CODE", "Test", 12345);
     fieldParty(team);
     startFight(team, "rattle_captain", POOL);
-    expect(team.minions.some((m) => m.name.includes("Scrap"))).toBe(true);
+    expect(team.minions.some((m) => m.name === "Ohm" || m.kind === "ohm")).toBe(
+      true,
+    );
     commitFullRound(team);
     expect(["awaiting_magnet", "boss_telegraph", "victory", "defeat"]).toContain(
       team.phase,

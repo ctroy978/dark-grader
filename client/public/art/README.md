@@ -48,7 +48,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 | `ash_wraith` | Ash Wraith |
 | `cinder_herald` | Cinder Herald (room 3 add lesson) |
 | `rattle_captain` | Rattle Captain (room 4 electric magnet tax) |
-| `bone_scrap` | Bone Scrap (Captain weak add) |
+| `ohm` | Ohm (Rattle Captain weak electric add) |
 | `bone_colossus` | Bone Colossus |
 
 **Minions:**

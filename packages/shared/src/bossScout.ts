@@ -19,7 +19,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   RattleSpark: {
     name: "Rattle Spark",
     description:
-      "Electric front slam — may lock the Token Magnet in place for the next round.",
+      "Electric front slam — may stun the soldier standing under the Token Magnet (they lose their next attack). The magnet still moves.",
   },
   LightFrontSlam: {
     name: "Front Slam",
@@ -36,7 +36,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   Cascade: {
     name: "Cascade",
     description:
-      "Hits the entire line — hardest on the front, lightest on the back. Rattle Captain also locks the magnet and may stun nearby seats.",
+      "Hits the entire line — hardest on the front, lightest on the back. Rattle Captain may also stun the magnet seat and both neighbors.",
   },
   CrushMagnet: {
     name: "Magnet Crush",
@@ -70,9 +70,9 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
     name: "Summon Archers",
     description: "Summons Bone Archers to fight alongside the boss.",
   },
-  SummonBoneScraps: {
-    name: "Summon Scraps",
-    description: "Summons weak Bone Scraps into the gap.",
+  SummonOhms: {
+    name: "Summon Ohms",
+    description: "Summons weak Ohms (electric mites) into the gap.",
   },
 };
 

@@ -32,29 +32,27 @@ function scaleBossDamageToSoldier(
   return amount;
 }
 
-function lockMagnet(team: TeamState, log: LogFn): void {
-  team.magnetStunRoundsLeft = Math.max(team.magnetStunRoundsLeft ?? 0, 1);
-  log(`  Token Magnet shocked — locked for the next magnet phase!`);
-}
-
+/** Party stun on a line seat (Rattle Captain). Magnet still moves freely. */
 function trySeatStun(
   team: TeamState,
   pos: number,
   chance: number,
   random: () => number,
   log: LogFn,
-): void {
+  always = false,
+): boolean {
   const s = soldierAt(team, pos);
-  if (!s) return;
+  if (!s) return false;
   // Thundercaller is immune to Rattle Captain seat stuns
   if (s.archetype === "Thundercaller") {
     log(`  ${s.name} (Thundercaller) shrugs off the arc`);
-    return;
+    return false;
   }
-  if (random() >= chance) return;
+  if (!always && random() >= chance) return false;
   s.statuses = s.statuses.filter((st) => st.kind !== "Stun");
   s.statuses.push({ kind: "Stun", duration: 1 });
   log(`  ${s.name} is stunned by the arc!`);
+  return true;
 }
 
 function fallbackTemplateFromBoss(team: TeamState): BossTemplate {
@@ -119,16 +117,16 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     shotSfx: "minion_cinder_imp",
     shotBubble: "Spit!",
   },
-  SummonBoneScraps: {
-    minionId: "bone_scrap",
-    minionName: "Bone Scrap",
+  SummonOhms: {
+    minionId: "ohm",
+    minionName: "Ohm",
     maxHp: 8,
     damage: 2,
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
     shotSfx: "minion_bone_archer",
-    shotBubble: "Clack!",
+    shotBubble: "Zap!",
   },
 };
 
@@ -450,9 +448,6 @@ export function resolveBossPhase(
     fx: [
       ...(rage > 1 ? ["enraged"] : []),
       ...(boss.id === "rattle_captain" ? ["shock-flash"] : []),
-      ...((team.magnetStunRoundsLeft ?? 0) > 0 && isRattleStunKitAttack(attackId)
-        ? ["magnet-lock"]
-        : []),
     ],
   });
 
@@ -517,7 +512,7 @@ function performAttack(
       break;
     }
     case "RattleSpark": {
-      // Electric Front Slam + chance to lock magnet (same % as Thundercaller stun)
+      // Electric front slam + chance to stun the soldier under the magnet
       log(`${boss.name} unleashes Rattle Spark!`);
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
@@ -526,10 +521,23 @@ function performAttack(
         const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
       }
-      if (random() < THUNDERCALLER_BOSS_STUN_CHANCE) {
-        lockMagnet(team, log);
-      } else {
-        log(`  The magnet holds — sparks miss the lock`);
+      const magnet = team.magnetPosition;
+      log(`  Sparks hunt the magnet seat (#${magnet})…`);
+      if (
+        !trySeatStun(
+          team,
+          magnet,
+          THUNDERCALLER_BOSS_STUN_CHANCE,
+          random,
+          log,
+        )
+      ) {
+        const under = soldierAt(team, magnet);
+        if (under && under.archetype !== "Thundercaller") {
+          log(`  ${under.name} shakes off the stun`);
+        } else if (!under) {
+          log(`  No one under the magnet to stun`);
+        }
       }
       break;
     }
@@ -580,9 +588,8 @@ function performAttack(
         const note = extra.length ? ` (${extra.join(", ")})` : "";
         log(`  #${pos} ${s.name}: ${hpLost} HP${note} [raw ${base}]`);
       }
-      // Rattle Captain: always lock magnet + seat stun rolls (wrap neighbors)
+      // Rattle Captain: stun rolls on magnet seat + wrap neighbors (magnet still moves)
       if (boss.id === "rattle_captain") {
-        lockMagnet(team, log);
         const magnet = team.magnetPosition;
         const [left, right] = adjacentPositions(magnet);
         const magnetChance = THUNDERCALLER_BOSS_STUN_CHANCE;

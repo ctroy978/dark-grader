@@ -1,4 +1,4 @@
-# Room 4 — electric magnet tax. Practice adds + shock control before Colossus.
+# Room 4 — electric magnet-seat tax. Practice adds + shock control before Colossus.
 # See docs/BOSS_PLAN.md §5.4 (electric revision)
 
 id = "rattle_captain"
@@ -6,7 +6,7 @@ name = "Rattle Captain"
 max_hp = 190
 traits = ["Shock", "StunImmune", "Summoner"]
 difficulty = "Standard"
-summary = "Electric bone captain. Rattle Spark and Cascade can lock the magnet; Cascade may stun seats next to it. Thundercallers trade half damage and ignore stuns both ways. Weak Bone Scraps in the gap."
+summary = "Electric captain. Rattle Spark may stun whoever stands under the Token Magnet; Cascade may stun the magnet seat and both neighbors (wrap). Magnet still moves. Thundercallers trade half damage and ignore stuns both ways. Weak Ohms in the gap."
 recommended_rounds = "8–12"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.2
@@ -18,35 +18,35 @@ telegraph_sfx = "boss_rattle_telegraph"
 [[audio]]
 id = "boss_rattle_spark_1"
 kind = "sfx"
-text = "short electric bone rattle crackle, yellow lightning snap, dark fantasy classroom safe, no words"
+text = "short electric crackle zap, yellow lightning snap, dark fantasy classroom safe, no words"
 duration_seconds = 0.65
 volume = 0.55
 
 [[audio]]
 id = "boss_rattle_spark_2"
 kind = "sfx"
-text = "short static bone rattle zap, restrained thunder, no words"
+text = "short static zap, restrained thunder rattle, no words"
 duration_seconds = 0.7
 volume = 0.55
 
 [[audio]]
 id = "boss_rattle_laugh"
 kind = "sfx"
-text = "short rattling electric chuckle, bone captain, not scary for classroom, no words"
+text = "short electric crackling chuckle, not scary for classroom, no words"
 duration_seconds = 0.85
 volume = 0.5
 
 [[audio]]
 id = "boss_rattle_telegraph"
 kind = "sfx"
-text = "building electric rattle wind-up, yellow sparks and tension, dark fantasy, no voice"
+text = "building electric wind-up, yellow sparks and tension, dark fantasy, no voice"
 duration_seconds = 2.0
 volume = 0.55
 
 [[audio]]
 id = "boss_rattle_slam"
 kind = "sfx"
-text = "electric front spark slam impact, bone and lightning, solid medium hit, no voice"
+text = "electric front spark slam impact, lightning, solid medium hit, no voice"
 duration_seconds = 1.0
 volume = 0.55
 
@@ -67,18 +67,18 @@ volume = 0.65
 [[audio]]
 id = "boss_rattle_crush"
 kind = "sfx"
-text = "focused lightning crush on the magnet, weighty electric thud, no voice"
+text = "focused lightning crush on the magnet seat, weighty electric thud, no voice"
 duration_seconds = 2.0
 volume = 0.6
 
 [[audio]]
 id = "boss_rattle_summon"
 kind = "sfx"
-text = "bone scraps rattling up with static sparks, short fantasy summon, no voice"
+text = "tiny ohm sparklings crackling into the gap, short fantasy summon, no voice"
 duration_seconds = 0.9
 volume = 0.5
 
-# Stun kits: RattleSpark (magnet lock %) + Cascade (always lock + seat stuns)
+# Stun kits: RattleSpark (magnet-seat stun %) + Cascade (magnet + neighbors %)
 # Non-stun: Line, Crush, Summon — forced after any stun kit
 
 [[attacks]]
@@ -110,17 +110,17 @@ bubble_lines = ["Magnet!", "Crush the glow!", "There!"]
 use_grunt = true
 
 [[attacks]]
-id = "SummonBoneScraps"
+id = "SummonOhms"
 weight = 3
 sfx = "boss_rattle_summon"
-bubble_lines = ["Scraps!", "Fill the gap!", "Rattle up!"]
+bubble_lines = ["Ohms!", "Fill the gap!", "Spark mites!"]
 use_laugh = true
-minion_id = "bone_scrap"
-minion_name = "Bone Scrap"
+minion_id = "ohm"
+minion_name = "Ohm"
 minion_max_hp = 8
 minion_damage = 2
 minion_max_count = 2
 free_volley = false
 open_count = 1
 minion_shot_sfx = "minion_bone_archer"
-minion_shot_bubble = "Clack!"
+minion_shot_bubble = "Zap!"
