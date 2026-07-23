@@ -280,11 +280,20 @@ function pickWeightedAttack(
   const noMinions = livingMinionCount(team) === 0;
   const summonIds = attackIds.filter((id) => isSummonAttackId(template, id));
 
-  // Prefer filling the gap when empty (tutorial mites + Colossus archers)
+  /**
+   * Empty gap: only *hard-force* summon for free-volley kits (Colossus archers).
+   * Weak adds (mites, ohms, imps) only get a weight boost — otherwise fragile
+   * minions make the boss loop "summon only" every turn after they die.
+   */
   if (summonIds.length && noMinions) {
-    const force = team.round >= 2 || random() < 0.7;
-    if (force) {
-      return summonIds[Math.floor(random() * summonIds.length)]!;
+    const freeVolleyIds = summonIds.filter(
+      (id) => resolveSummonSpec(template, id)?.freeVolley,
+    );
+    if (freeVolleyIds.length) {
+      const force = team.round >= 2 || random() < 0.7;
+      if (force) {
+        return freeVolleyIds[Math.floor(random() * freeVolleyIds.length)]!;
+      }
     }
   }
 
@@ -301,7 +310,8 @@ function pickWeightedAttack(
     }
     const summon = resolveSummonSpec(template, id);
     if (summon) {
-      if (noMinions) w *= 4;
+      // Empty gap: prefer summon, but not so hard other kits never fire
+      if (noMinions) w *= summon.freeVolley ? 4 : 2.2;
       if (living >= summon.maxCount) {
         // Free-volley kits still want occasional full-gap pressure; toy adds drop weight hard
         w = summon.freeVolley ? 0.5 : 0.05;

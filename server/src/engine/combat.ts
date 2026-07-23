@@ -632,6 +632,17 @@ export function resolveBoss(team: TeamState): TeamState {
             ? pickPartyHurt(team, [info.targetId], random)
             : null;
         if (hurt) layeredHurt = true;
+        // Ohms / Rattle Captain adds: yellow shock on the target (not red hurt)
+        const minion = team.minions.find((m) => m.id === info.minionId);
+        const shockMinion =
+          team.boss?.id === "rattle_captain" ||
+          minion?.kind === "ohm" ||
+          /ohm/i.test(info.minionName);
+        const victimFx = shockMinion
+          ? ["shock-flash"]
+          : hurt
+            ? ["hurt-flash"]
+            : [];
         pushCue(team, {
           kind: "minion",
           focusIds: [info.minionId, info.targetId],
@@ -641,7 +652,7 @@ export function resolveBoss(team: TeamState): TeamState {
             side: "minion",
             text: info.bubbleText ?? "Hit!",
           },
-          fx: ["minion-shot", ...(hurt ? ["hurt-flash"] : [])],
+          fx: ["minion-shot", ...victimFx],
           sfxId,
           ...(hurt
             ? {

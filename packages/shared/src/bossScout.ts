@@ -72,7 +72,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   },
   SummonOhms: {
     name: "Summon Ohms",
-    description: "Summons weak Ohms (electric mites) into the gap.",
+    description: "Summons weak Ohms (electric sparks) into the gap.",
   },
 };
 

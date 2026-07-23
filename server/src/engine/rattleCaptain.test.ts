@@ -79,6 +79,22 @@ describe("Rattle Captain", () => {
     expect(ids.size).toBeGreaterThan(0);
   });
 
+  it("does not hard-force summon every empty-gap turn", () => {
+    const team = createTeam("t", "CODE", "Test", 42);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    team.minions = [];
+    team.round = 5;
+    team.bossLastAttackWasStunKit = false;
+    const ids: string[] = [];
+    for (let i = 0; i < 50; i++) {
+      ids.push(pickBossAttackId(team, () => (i * 0.13 + 0.02) % 1));
+    }
+    const nonSummon = ids.filter((id) => id !== "SummonOhms");
+    expect(nonSummon.length).toBeGreaterThan(10);
+    expect(new Set(nonSummon).size).toBeGreaterThan(1);
+  });
+
   it("does not lock magnet movement", () => {
     const team = createTeam("t", "CODE", "Test", 7);
     fieldParty(team);
