@@ -367,10 +367,33 @@ export function commitRound(team: TeamState): TeamState {
         hp: m.currentHp,
       }));
 
-      resolveSpecialistAction(team, soldier, claim, random, (text, tags) =>
-        pushLog(team, text, tags ?? ["party"]),
+      const { acted } = resolveSpecialistAction(
+        team,
+        soldier,
+        claim,
+        random,
+        (text, tags) => pushLog(team, text, tags ?? ["party"]),
       );
       markClaimerResolved(soldier.id);
+
+      // Stunned claimers keep their token claim but must not play an attack beat
+      if (!acted) {
+        pushCue(team, {
+          kind: "action",
+          focusIds: [soldier.id],
+          grade: claim.effectiveGrade,
+          bubble: {
+            speakerId: soldier.id,
+            speakerName: soldier.name,
+            side: "party",
+            text: "Stunned!",
+          },
+          fx: ["party-stunned", "hurt-flash"],
+          sfxId: "fizzle",
+          durationMs: 900,
+        });
+        continue;
+      }
 
       const hitFocusIds: string[] = [];
       const slainNames: string[] = [];

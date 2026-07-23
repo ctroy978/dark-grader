@@ -33,6 +33,13 @@ export function poseForUnit(
       return isSpeaker ? "standing" : "standing";
 
     case "action":
+      // Party stun skip — reel, don't swing
+      if (
+        isSpeaker &&
+        fx.some((f) => f === "party-stunned" || f === "stunned")
+      ) {
+        return "hit";
+      }
       if (isSpeaker) return "attack";
       // Focused non-speaker = damage target (boss or minion)
       if (inFocus) return "hit";
@@ -123,6 +130,7 @@ export function fxClassesForUnit(
       if (f === "fire-flash") return !isBoss ? "fx-fire-flash" : "";
       if (f === "shock-flash") return "fx-shock-flash";
       if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
+      if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "heal-glow") return "fx-heal-glow";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
       if (f === "magnet-lock") return ""; // magnet strip handles this

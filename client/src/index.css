@@ -119,6 +119,16 @@ body {
 .fx-hurt-flash {
   animation: hurt-flash 0.45s ease-out;
 }
+/* Party stun skip — yellow crackle, not a full attack swing */
+.fx-party-stunned {
+  filter: drop-shadow(0 0 8px rgba(255, 230, 90, 0.7));
+}
+.fx-party-stunned .portrait-frame {
+  animation: boss-stun-flash 0.7s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(255, 230, 100, 0.45),
+    0 0 14px rgba(220, 180, 40, 0.4);
+}
 .fx-attack-flash {
   box-shadow: 0 0 12px rgba(110, 198, 255, 0.7);
 }

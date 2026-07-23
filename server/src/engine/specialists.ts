@@ -49,26 +49,31 @@ export function endPartyActionPhase(): void {
   unresolvedClaimers = null;
 }
 
+export type SpecialistResolveResult = {
+  /** False when stun (or death) skipped the attack — do not play attack cue. */
+  acted: boolean;
+};
+
 export function resolveSpecialistAction(
   team: TeamState,
   soldier: Soldier,
   claim: ClaimResult,
   random: () => number,
   log: LogFn,
-): void {
-  if (!soldier.alive) return;
+): SpecialistResolveResult {
+  if (!soldier.alive) return { acted: false };
 
   const g = claim.effectiveGrade;
   const label = `${soldier.name} (${soldier.archetype}) claimed ${claim.token}${
     claim.effectiveGrade !== claim.token ? `→${claim.effectiveGrade}` : ""
   }`;
 
-  // Party stun (Thundercaller F) — lose this attack, then clear stun
+  // Party stun (Thundercaller F / Rattle Captain) — lose this attack, then clear stun
   const stun = soldier.statuses.find((s) => s.kind === "Stun");
   if (stun && stun.kind === "Stun" && stun.duration > 0) {
     soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Stun");
     log(`${label}: STUNNED — loses their attack!`);
-    return;
+    return { acted: false };
   }
 
   switch (soldier.archetype) {
@@ -102,6 +107,7 @@ export function resolveSpecialistAction(
     default:
       log(`${label}: unknown archetype`);
   }
+  return { acted: true };
 }
 
 function vanguard(
