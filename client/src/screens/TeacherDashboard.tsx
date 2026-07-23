@@ -176,58 +176,89 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
         <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3">
           <h2 className="font-semibold text-lg">Campaign path</h2>
           <p className="text-xs text-parchment-dim">
-            Each team fights these rooms in order. Default: Moss Grub → Ash → Herald →
-            Rattle Captain → Bone Colossus. Grades stay shared for the whole path.
+            Default 6 rooms: Moss Grub → Ash → Herald → Rattle Captain → Barrow
+            Warden (placeholder) → Bone Colossus. Grades stay shared for the whole path.
           </p>
-          <label className="block text-sm">
-            Number of rooms
-            <select
-              className="mt-1 w-full rounded-lg bg-navy border border-parchment/20 px-3 py-2"
-              value={overview?.campaignLength ?? 3}
-              onChange={(e) => {
-                const n = Number(e.target.value);
+          <div className="flex flex-wrap gap-2 items-end">
+            <label className="block text-sm flex-1 min-w-[8rem]">
+              Number of rooms
+              <select
+                className="mt-1 w-full rounded-lg bg-navy border border-parchment/20 px-3 py-2"
+                value={overview?.campaignLength ?? 6}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  void api
+                    .setCampaign(pin, { campaignLength: n })
+                    .then(refresh)
+                    .catch((err: Error) => setError(err.message));
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>
+                    {n} room{n > 1 ? "s" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="rounded-lg border border-rune/40 text-rune text-sm px-3 py-2 hover:bg-navy"
+              onClick={() => {
                 void api
-                  .setCampaign(pin, { campaignLength: n })
-                  .then(refresh)
+                  .resetDefaultCampaign(pin)
+                  .then(() => {
+                    setMsg("Campaign reset to 6-room default path");
+                    return refresh();
+                  })
                   .catch((err: Error) => setError(err.message));
               }}
             >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n} room{n > 1 ? "s" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="space-y-2 max-h-56 overflow-y-auto">
-            {(overview?.roomBossIds ?? []).map((bossId, roomIdx) => (
-              <div key={roomIdx} className="flex items-center gap-2">
-                <span className="text-xs text-parchment-dim w-14">
-                  Room {roomIdx + 1}
-                </span>
-                <select
-                  className="flex-1 rounded-lg bg-navy border border-parchment/20 px-2 py-1.5 text-sm"
-                  value={bossId}
-                  onChange={(e) => {
-                    const next = [...(overview?.roomBossIds ?? [])];
-                    next[roomIdx] = e.target.value;
-                    void api
-                      .setCampaign(pin, { roomBossIds: next })
-                      .then(() => {
-                        setMsg(`Room ${roomIdx + 1} boss updated`);
-                        return refresh();
-                      })
-                      .catch((err: Error) => setError(err.message));
-                  }}
-                >
-                  {overview?.bosses.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.difficulty})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
+              Use default 6-room path
+            </button>
+          </div>
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {(overview?.roomBossIds ?? []).map((bossId, roomIdx) => {
+              const boss = overview?.bosses.find((b) => b.id === bossId);
+              const isPlaceholder =
+                boss?.summary?.includes("PLACEHOLDER") ||
+                bossId === "barrow_warden";
+              return (
+                <div key={roomIdx} className="flex items-center gap-2">
+                  <span className="text-xs text-parchment-dim w-14 shrink-0">
+                    Room {roomIdx + 1}
+                  </span>
+                  <select
+                    className="flex-1 rounded-lg bg-navy border border-parchment/20 px-2 py-1.5 text-sm"
+                    value={bossId}
+                    onChange={(e) => {
+                      const next = [...(overview?.roomBossIds ?? [])];
+                      next[roomIdx] = e.target.value;
+                      void api
+                        .setCampaign(pin, { roomBossIds: next })
+                        .then(() => {
+                          setMsg(`Room ${roomIdx + 1} boss updated`);
+                          return refresh();
+                        })
+                        .catch((err: Error) => setError(err.message));
+                    }}
+                  >
+                    {overview?.bosses.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                        {b.id === "barrow_warden" ? " (placeholder)" : ""}
+                        {" · "}
+                        {b.difficulty}
+                      </option>
+                    ))}
+                  </select>
+                  {isPlaceholder && (
+                    <span className="text-[10px] text-grade-d shrink-0">
+                      stub
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <p className="text-xs text-parchment-dim">
             Fallback single-boss pick (legacy): click a card to set default filler boss.

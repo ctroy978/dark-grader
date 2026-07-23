@@ -7,6 +7,7 @@ describe("boss TOML loader", () => {
     const list = loadBossTemplates(true);
     expect(list.map((b) => b.id).sort()).toEqual([
       "ash_wraith",
+      "barrow_warden",
       "bone_colossus",
       "cinder_herald",
       "moss_grub",

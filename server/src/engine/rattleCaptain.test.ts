@@ -64,6 +64,9 @@ describe("Rattle Captain", () => {
   it("is on the default campaign path", () => {
     expect(DEFAULT_ROOM_BOSSES).toContain("rattle_captain");
     expect(DEFAULT_ROOM_BOSSES[3]).toBe("rattle_captain");
+    expect(DEFAULT_ROOM_BOSSES).toHaveLength(6);
+    expect(DEFAULT_ROOM_BOSSES[4]).toBe("barrow_warden");
+    expect(DEFAULT_ROOM_BOSSES[5]).toBe("bone_colossus");
   });
 
   it("never picks two stun-kits in a row", () => {

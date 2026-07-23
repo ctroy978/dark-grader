@@ -642,25 +642,51 @@ export default function LobbyScreen({
             fallbackName={team.nextBossName}
           />
         </div>
-        <div className="flex gap-1">
-          {Array.from({ length: team.campaignLength ?? 3 }).map((_, i) => {
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${team.campaignLength ?? 6}, minmax(0, 1fr))` }}>
+          {Array.from({ length: team.campaignLength ?? 6 }).map((_, i) => {
             const cleared = (team.roomsCleared ?? team.roomIndex) > i;
             const current = (team.roomsCleared ?? team.roomIndex) === i;
+            const bossId = team.roomBossIds?.[i];
+            const bossLabel =
+              bossId === "barrow_warden"
+                ? "Warden*"
+                : bossId
+                  ? bossId
+                      .split("_")
+                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                      .join(" ")
+                  : `Room ${i + 1}`;
             return (
-              <div
-                key={i}
-                className={`h-2 flex-1 rounded-full ${
-                  cleared
-                    ? "bg-grade-a"
-                    : current
-                      ? "bg-rune animate-pulse"
-                      : "bg-navy-light border border-parchment/20"
-                }`}
-                title={`Room ${i + 1}`}
-              />
+              <div key={i} className="flex flex-col gap-0.5 min-w-0">
+                <div
+                  className={`h-2 w-full rounded-full ${
+                    cleared
+                      ? "bg-grade-a"
+                      : current
+                        ? "bg-rune animate-pulse"
+                        : "bg-navy-light border border-parchment/20"
+                  }`}
+                  title={`Room ${i + 1}: ${bossLabel}`}
+                />
+                <div
+                  className={`text-[9px] md:text-[10px] truncate text-center leading-tight ${
+                    current
+                      ? "text-rune font-semibold"
+                      : cleared
+                        ? "text-grade-a/80"
+                        : "text-parchment-dim/70"
+                  }`}
+                  title={bossLabel}
+                >
+                  {i + 1}. {bossLabel}
+                </div>
+              </div>
             );
           })}
         </div>
+        <p className="text-[10px] text-parchment-dim/60">
+          * Warden is a placeholder boss until its full kit ships.
+        </p>
         {team.phase === "between_rooms" && team.lastClearedBossName && (
           <p className="text-xs text-grade-a">
             Cleared {team.lastClearedBossName}. Living soldiers keep their HP — fallen

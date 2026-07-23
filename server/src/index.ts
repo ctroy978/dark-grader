@@ -250,6 +250,14 @@ app.post<{
   return classroom;
 });
 
+/** Reset campaign to shipped 6-room default ladder (includes Warden placeholder). */
+app.post<{ Body: { pin: string } }>("/api/teacher/campaign/default", async (req) => {
+  requireTeacher(req.body.pin);
+  const classroom = store.resetDefaultCampaign();
+  io.to("teacher").emit("teacher:overview", overview());
+  return classroom;
+});
+
 app.post<{ Body: { pin: string; name?: string } }>("/api/teacher/teams", async (req) => {
   requireTeacher(req.body.pin);
   const team = store.createTeam(req.body.name ?? "");

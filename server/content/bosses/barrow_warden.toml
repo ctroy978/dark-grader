@@ -1,0 +1,87 @@
+# Room 5 — PLACEHOLDER until Dominated / Grave Thrall kit ships.
+# See docs/BOSS_PLAN.md §5.5. Playable stub so the 6-room path is selectable.
+
+id = "barrow_warden"
+name = "Barrow Warden"
+max_hp = 200
+traits = ["Placeholder", "MindHex"]
+difficulty = "Hard"
+summary = "PLACEHOLDER boss for room 5. Full design (Dominated thralls, grade-sensitive adds) not shipped yet — temporary slam/line/poison kit so the campaign path can be six rooms."
+recommended_rounds = "8–12"
+enrage_hp_pct = 0.4
+enrage_damage_mult = 1.2
+
+grunt_pool = ["boss_warden_grunt_1", "boss_warden_grunt_2"]
+laugh_pool = ["boss_warden_laugh"]
+telegraph_sfx = "boss_warden_telegraph"
+
+[[audio]]
+id = "boss_warden_grunt_1"
+kind = "sfx"
+text = "low grave wind whoosh short, barrow warden, dark fantasy classroom safe, no words"
+duration_seconds = 0.65
+volume = 0.55
+
+[[audio]]
+id = "boss_warden_grunt_2"
+kind = "sfx"
+text = "soft stone scrape grunt short, undead warden, restrained, no words"
+duration_seconds = 0.7
+volume = 0.55
+
+[[audio]]
+id = "boss_warden_laugh"
+kind = "sfx"
+text = "short hollow ethereal chuckle, barrow warden, not scary for classroom, no words"
+duration_seconds = 0.85
+volume = 0.5
+
+[[audio]]
+id = "boss_warden_telegraph"
+kind = "sfx"
+text = "cold grave wind wind-up, short tension, dark fantasy, no voice"
+duration_seconds = 1.5
+volume = 0.55
+
+[[audio]]
+id = "boss_warden_slam"
+kind = "sfx"
+text = "heavy barrow slam impact, stone and dirt, medium hit, no voice"
+duration_seconds = 1.0
+volume = 0.55
+
+[[audio]]
+id = "boss_warden_line"
+kind = "sfx"
+text = "line of grave dust whoosh, medium fantasy hit, no voice"
+duration_seconds = 1.0
+volume = 0.55
+
+[[audio]]
+id = "boss_warden_poison"
+kind = "sfx"
+text = "toxic barrow mist release, ominous hiss, short, no voice"
+duration_seconds = 1.5
+volume = 0.55
+
+# Temporary kit — replace when full Warden design lands
+[[attacks]]
+id = "FrontSlam"
+weight = 3
+sfx = "boss_warden_slam"
+bubble_lines = ["Kneel!", "Barrow falls!", "Front!"]
+use_grunt = true
+
+[[attacks]]
+id = "LineAttack"
+weight = 2
+sfx = "boss_warden_line"
+bubble_lines = ["Dust!", "All of you!", "Wave!"]
+use_grunt = true
+
+[[attacks]]
+id = "PoisonCloud"
+weight = 2
+sfx = "boss_warden_poison"
+bubble_lines = ["Breathe…", "Grave mist!", "Toxin!"]
+use_laugh = true

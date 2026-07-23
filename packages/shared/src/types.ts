@@ -234,13 +234,14 @@ export interface ClassroomState {
   roomBossIds: string[];
 }
 
-/** Default dungeon path for a class period */
-export const DEFAULT_CAMPAIGN_LENGTH = 5;
+/** Default dungeon path for a class period (6-room plan; room 5 is a stub until designed). */
+export const DEFAULT_CAMPAIGN_LENGTH = 6;
 export const DEFAULT_ROOM_BOSSES = [
   "moss_grub",
   "ash_wraith",
   "cinder_herald",
   "rattle_captain",
+  "barrow_warden",
   "bone_colossus",
 ] as const;
 

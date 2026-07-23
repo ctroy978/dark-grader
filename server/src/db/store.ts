@@ -23,19 +23,32 @@ function defaultClassroom(): ClassroomState {
   };
 }
 
+function padRoomBosses(ids: string[], length: number): string[] {
+  const out = [...ids];
+  while (out.length < length) {
+    const i = out.length;
+    out.push(DEFAULT_ROOM_BOSSES[i] ?? "bone_colossus");
+  }
+  return out.slice(0, length);
+}
+
 function normalizeClassroom(raw: Partial<ClassroomState>): ClassroomState {
   const base = defaultClassroom();
+  const campaignLength = Math.max(
+    1,
+    Math.min(10, Number(raw.campaignLength) || base.campaignLength),
+  );
+  const roomBossIds = padRoomBosses(
+    Array.isArray(raw.roomBossIds) && raw.roomBossIds.length
+      ? raw.roomBossIds
+      : [...base.roomBossIds],
+    campaignLength,
+  );
   return {
     ...base,
     ...raw,
-    campaignLength: Math.max(
-      1,
-      Math.min(10, Number(raw.campaignLength) || base.campaignLength),
-    ),
-    roomBossIds:
-      Array.isArray(raw.roomBossIds) && raw.roomBossIds.length
-        ? raw.roomBossIds
-        : base.roomBossIds,
+    campaignLength,
+    roomBossIds,
     masterTokenPool: Array.isArray(raw.masterTokenPool) ? raw.masterTokenPool : [],
     teamIds: Array.isArray(raw.teamIds) ? raw.teamIds : [],
   };
@@ -121,16 +134,19 @@ export class GameStore {
     if (opts.roomBossIds) {
       this.classroom.roomBossIds = [...opts.roomBossIds];
     }
-    // Pad / trim sequence to length
-    while (this.classroom.roomBossIds.length < this.classroom.campaignLength) {
-      this.classroom.roomBossIds.push(
-        this.classroom.bossTemplateId || "bone_colossus",
-      );
-    }
-    this.classroom.roomBossIds = this.classroom.roomBossIds.slice(
-      0,
+    // Pad with default ladder (not always Colossus); trim to length
+    this.classroom.roomBossIds = padRoomBosses(
+      this.classroom.roomBossIds,
       this.classroom.campaignLength,
     );
+    this.saveClassroom();
+    return this.classroom;
+  }
+
+  /** Reset to the shipped 6-room default path. */
+  resetDefaultCampaign(): ClassroomState {
+    this.classroom.campaignLength = DEFAULT_CAMPAIGN_LENGTH;
+    this.classroom.roomBossIds = [...DEFAULT_ROOM_BOSSES];
     this.saveClassroom();
     return this.classroom;
   }

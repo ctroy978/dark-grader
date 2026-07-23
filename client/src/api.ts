@@ -221,6 +221,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ pin, ...opts }),
     }),
+  resetDefaultCampaign: (pin: string) =>
+    request("/api/teacher/campaign/default", {
+      method: "POST",
+      body: JSON.stringify({ pin }),
+    }),
   createTeam: (pin: string, name: string) =>
     request<EnrichedTeam>("/api/teacher/teams", {
       method: "POST",
