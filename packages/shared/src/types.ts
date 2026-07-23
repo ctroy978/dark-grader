@@ -186,6 +186,13 @@ export interface TeamState {
    * Forces the next pick into the non-stun pool.
    */
   bossLastAttackWasStunKit?: boolean;
+  /**
+   * Boss may not *spawn* minions while team.round &lt; this.
+   * Set when the gap is cleared (last minion dies) to round+2 so the party
+   * gets this boss phase + one full turn of boss access before a re-summon.
+   * Free-volley when already at max count is unaffected.
+   */
+  noSummonBeforeRound?: number;
   boss: BossState | null;
   minions: Minion[];
   phase: FightPhase;

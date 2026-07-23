@@ -85,6 +85,7 @@ describe("Rattle Captain", () => {
     startFight(team, "rattle_captain", POOL);
     team.minions = [];
     team.round = 5;
+    team.noSummonBeforeRound = 0;
     team.bossLastAttackWasStunKit = false;
     const ids: string[] = [];
     for (let i = 0; i < 50; i++) {
@@ -93,6 +94,37 @@ describe("Rattle Captain", () => {
     const nonSummon = ids.filter((id) => id !== "SummonOhms");
     expect(nonSummon.length).toBeGreaterThan(10);
     expect(new Set(nonSummon).size).toBeGreaterThan(1);
+  });
+
+  it("blocks all spawns while a minion lives or during post-clear cooldown", () => {
+    const team = createTeam("t", "CODE", "Test", 1);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    // Gap occupied
+    expect(team.minions.some((m) => m.currentHp > 0)).toBe(true);
+    for (let i = 0; i < 30; i++) {
+      expect(pickBossAttackId(team, () => (i * 0.11) % 1)).not.toBe(
+        "SummonOhms",
+      );
+    }
+    // Clear gap mid-round 3
+    team.round = 3;
+    team.minions = [];
+    team.noSummonBeforeRound = 5; // as if noteMinionSlain: round+2
+    for (let i = 0; i < 30; i++) {
+      expect(pickBossAttackId(team, () => (i * 0.11) % 1)).not.toBe(
+        "SummonOhms",
+      );
+    }
+    // After cooldown
+    team.round = 5;
+    team.noSummonBeforeRound = 5;
+    const after = new Set(
+      Array.from({ length: 40 }, (_, i) =>
+        pickBossAttackId(team, () => (i * 0.09) % 1),
+      ),
+    );
+    expect(after.has("SummonOhms") || after.has("RattleSpark")).toBe(true);
   });
 
   it("does not lock magnet movement", () => {

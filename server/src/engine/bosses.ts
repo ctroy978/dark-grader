@@ -271,21 +271,45 @@ export function pickBossAttackId(
   return pickWeightedAttack(template, random, team);
 }
 
+/**
+ * May the boss *spawn* new minions this pick?
+ * - Never while any living minion holds the gap
+ * - Never until noSummonBeforeRound (set when gap clears: +1 full turn of boss access)
+ */
+export function canBossSpawnMinions(team: TeamState): boolean {
+  if (livingMinionCount(team) > 0) return false;
+  return team.round >= (team.noSummonBeforeRound ?? 0);
+}
+
+/** Whether a Summon* attack is a legal pick (spawn or free-volley only). */
+function canPickSummonAttack(
+  team: TeamState,
+  summon: BossSummonDef,
+): boolean {
+  const living = livingMinionCount(team);
+  if (living > 0) {
+    // No top-ups. Free-volley only when already at cap (no new spawns).
+    return summon.freeVolley && living >= summon.maxCount;
+  }
+  return canBossSpawnMinions(team);
+}
+
 function pickWeightedAttack(
   template: BossTemplate,
   random: () => number,
   team: TeamState,
 ): string {
   const attackIds = template.attackIds;
-  const noMinions = livingMinionCount(team) === 0;
+  const living = livingMinionCount(team);
+  const noMinions = living === 0;
   const summonIds = attackIds.filter((id) => isSummonAttackId(template, id));
+  const spawnOk = canBossSpawnMinions(team);
 
   /**
-   * Empty gap: only *hard-force* summon for free-volley kits (Colossus archers).
-   * Weak adds (mites, ohms, imps) only get a weight boost — otherwise fragile
-   * minions make the boss loop "summon only" every turn after they die.
+   * Empty gap + spawn allowed: only *hard-force* free-volley kits (Colossus).
+   * Weak adds get a weight boost only — never a guaranteed summon loop.
    */
-  if (summonIds.length && noMinions) {
+  if (summonIds.length && spawnOk) {
     const freeVolleyIds = summonIds.filter(
       (id) => resolveSummonSpec(template, id)?.freeVolley,
     );
@@ -297,7 +321,6 @@ function pickWeightedAttack(
     }
   }
 
-  const living = livingMinionCount(team);
   // Rattle Captain: never two stun-kits in a row
   const blockStunKit =
     template.id === "rattle_captain" && !!team.bossLastAttackWasStunKit;
@@ -310,11 +333,14 @@ function pickWeightedAttack(
     }
     const summon = resolveSummonSpec(template, id);
     if (summon) {
-      // Empty gap: prefer summon, but not so hard other kits never fire
-      if (noMinions) w *= summon.freeVolley ? 4 : 2.2;
-      if (living >= summon.maxCount) {
-        // Free-volley kits still want occasional full-gap pressure; toy adds drop weight hard
-        w = summon.freeVolley ? 0.5 : 0.05;
+      if (!canPickSummonAttack(team, summon)) {
+        w = 0;
+      } else if (noMinions) {
+        // Empty gap + cooldown clear: prefer summon moderately
+        w *= summon.freeVolley ? 4 : 2.2;
+      } else if (living >= summon.maxCount && summon.freeVolley) {
+        // Full gap free-volley pressure (no spawn)
+        w = 0.5;
       }
     }
     return w;
@@ -689,7 +715,10 @@ function performSummon(
 ): void {
   const boss = team.boss!;
   const livingAdds = livingMinionCount(team);
-  const toSpawn = Math.max(0, spec.maxCount - livingAdds);
+  // Global rule: no new spawns while gap occupied or during post-clear cooldown
+  const toSpawn = canBossSpawnMinions(team)
+    ? Math.max(0, spec.maxCount - livingAdds)
+    : 0;
   for (let i = 0; i < toSpawn; i++) {
     team.minions.push(
       minionFromSpec(

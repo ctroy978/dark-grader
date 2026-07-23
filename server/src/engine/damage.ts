@@ -92,6 +92,20 @@ export function purgeDeadMinions(team: TeamState): void {
   team.minions = team.minions.filter((m) => m.currentHp > 0);
 }
 
+/**
+ * Call when a minion is reduced to 0 HP. If the gap is now empty, start the
+ * global re-summon cooldown (no spawn this round or the next full round).
+ */
+export function noteMinionSlain(team: TeamState): void {
+  const living = team.minions.filter((m) => m.currentHp > 0).length;
+  if (living > 0) return;
+  // round R clear → noSummonBeforeRound = R+2 → first spawn opportunity round R+2
+  team.noSummonBeforeRound = Math.max(
+    team.noSummonBeforeRound ?? 0,
+    team.round + 2,
+  );
+}
+
 /** Consume Thundercaller charge on a soldier (extra damage on next hit). */
 export function consumeCharge(soldier: Soldier | undefined | null): number {
   if (!soldier) return 0;
@@ -167,6 +181,7 @@ export function hitEnemies(
     if (m.currentHp <= 0) {
       m.currentHp = 0;
       parts.push(`${m.name} slain`);
+      noteMinionSlain(team);
     }
     // Do not remove yet — presentation needs the corpse for the kill beat
     return true;

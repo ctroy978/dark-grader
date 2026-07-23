@@ -81,6 +81,7 @@ export function createTeam(
     pendingBossAttackId: null,
     magnetStunRoundsLeft: 0,
     bossLastAttackWasStunKit: false,
+    noSummonBeforeRound: 0,
     boss: null,
     minions: [],
     phase: "lobby",
@@ -202,6 +203,7 @@ export function startFight(
   team.pendingBossAttackId = null;
   team.magnetStunRoundsLeft = 0;
   team.bossLastAttackWasStunKit = false;
+  team.noSummonBeforeRound = 0;
   team.round = 1;
   team.phase = "awaiting_magnet";
   team.partyDamageBonus = 0;
@@ -781,6 +783,7 @@ function clearFightState(team: TeamState): void {
   team.pendingBossAttackId = null;
   team.magnetStunRoundsLeft = 0;
   team.bossLastAttackWasStunKit = false;
+  team.noSummonBeforeRound = 0;
   team.playback = [];
   team.lastClaims = [];
   team.partyShield = { remaining: 0, active: false };

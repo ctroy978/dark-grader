@@ -11,6 +11,7 @@ import {
   applyPartyDamage,
   formatPartyHit,
   livingParty,
+  noteMinionSlain,
   soldierAt,
 } from "./damage.js";
 
@@ -291,6 +292,7 @@ export function tickMinionDots(
       if (m.currentHp <= 0) {
         m.currentHp = 0;
         log(`  ${m.name} burns out!`);
+        noteMinionSlain(team);
         break;
       }
     }
