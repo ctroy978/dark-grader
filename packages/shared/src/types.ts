@@ -176,6 +176,16 @@ export interface TeamState {
    * Consumed in resolveBoss; null when idle / stunned / after resolve.
    */
   pendingBossAttackId?: string | null;
+  /**
+   * Magnet cannot be repositioned while &gt; 0 (Rattle Captain shock lock).
+   * Counts remaining locked magnet phases; decremented when tokens drop.
+   */
+  magnetStunRoundsLeft?: number;
+  /**
+   * Rattle Captain: previous boss attack was a stun-kit (Spark/Cascade).
+   * Forces the next pick into the non-stun pool.
+   */
+  bossLastAttackWasStunKit?: boolean;
   boss: BossState | null;
   minions: Minion[];
   phase: FightPhase;
@@ -218,13 +228,19 @@ export interface ClassroomState {
 }
 
 /** Default dungeon path for a class period */
-export const DEFAULT_CAMPAIGN_LENGTH = 4;
+export const DEFAULT_CAMPAIGN_LENGTH = 5;
 export const DEFAULT_ROOM_BOSSES = [
   "moss_grub",
   "ash_wraith",
   "cinder_herald",
+  "rattle_captain",
   "bone_colossus",
 ] as const;
+
+/** Thundercaller boss-stun chance — also Rattle Captain magnet lock / seat rolls. */
+export const THUNDERCALLER_BOSS_STUN_CHANCE = 0.3;
+/** Cascade neighbor seat stun = magnet seat chance − this. */
+export const RATTLE_NEIGHBOR_STUN_PENALTY = 0.1;
 
 export const GRADES: Grade[] = ["A", "B", "C", "D", "F"];
 

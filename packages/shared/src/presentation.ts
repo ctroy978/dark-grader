@@ -33,6 +33,8 @@ export interface BoardReveal {
     statuses?: StatusTag[];
   }>;
   partyShield: { remaining: number; active: boolean };
+  /** Progressive magnet lock (Rattle Captain shock). */
+  magnetStunRoundsLeft?: number;
 }
 
 /**

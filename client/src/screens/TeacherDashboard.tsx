@@ -176,8 +176,8 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
         <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3">
           <h2 className="font-semibold text-lg">Campaign path</h2>
           <p className="text-xs text-parchment-dim">
-            Each team fights these rooms in order. Default: Ash Wraith → Bone Colossus →
-            Bone Colossus. Grades stay shared for the whole path.
+            Each team fights these rooms in order. Default: Moss Grub → Ash → Herald →
+            Rattle Captain → Bone Colossus. Grades stay shared for the whole path.
           </p>
           <label className="block text-sm">
             Number of rooms

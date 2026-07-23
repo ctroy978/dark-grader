@@ -21,8 +21,9 @@ export type BossThreatTier = "light" | "heavy" | "ultimate";
  * - ember: fire / slam / cascade (red-orange cinders)
  * - poison: toxin cloud (green bubbles)
  * - summon: calling adds (void / dark)
+ * - shock: electric yellow (Rattle Captain)
  */
-export type BossWindupTheme = "ember" | "poison" | "summon";
+export type BossWindupTheme = "ember" | "poison" | "summon" | "shock";
 
 /** Presentation weight of an attack (not damage math). */
 export function bossThreatTier(attackId: string): BossThreatTier {
@@ -35,7 +36,10 @@ export function bossThreatTier(attackId: string): BossThreatTier {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
+    case "SummonBoneScraps":
       return "heavy";
+    case "RattleSpark":
+      return "light";
     default:
       // FrontSlam, LineAttack, Light*, Regenerate, …
       return "light";
@@ -50,11 +54,27 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
+    case "SummonBoneScraps":
       return "summon";
+    case "RattleSpark":
+      return "shock";
     // FireCloud, Cascade, FrontSlam, LineAttack, CrushMagnet, Regenerate, …
     default:
       return "ember";
   }
+}
+
+/** Rattle Captain stun-kit attacks (magnet lock / seat stuns). */
+export function isRattleStunKitAttack(attackId: string): boolean {
+  return attackId === "RattleSpark" || attackId === "Cascade";
+}
+
+/** Force electric theme for this boss (all telegraphs). */
+export function bossForcesWindupTheme(
+  bossId: string | undefined | null,
+): BossWindupTheme | null {
+  if (bossId === "rattle_captain") return "shock";
+  return null;
 }
 
 /**
@@ -103,13 +123,15 @@ export const PARTY_HURT_LAYER_DELAY_MS = 200;
 export function defaultTelegraphLines(attackId: string): string[] {
   switch (attackId) {
     case "Cascade":
-      return ["Ash gathers…", "Front first…", "Cascade rising…"];
+      return ["Cascade…", "Front first…", "Charge rising…"];
     case "CrushMagnet":
       return ["The glow…", "Magnet…", "Focusing…"];
     case "PoisonCloud":
       return ["Breathe…", "Mist coils…", "Toxin…"];
     case "FireCloud":
       return ["Heat builds…", "Embers rise…", "Burn…"];
+    case "RattleSpark":
+      return ["Spark…", "Magnet…", "Front arcs…"];
     case "FrontSlam":
     case "LightFrontSlam":
       return ["Rising…", "Cinders…", "Front…"];
@@ -121,6 +143,7 @@ export function defaultTelegraphLines(attackId: string): string[] {
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
+    case "SummonBoneScraps":
       return ["Calling…", "The gap…", "Rise…"];
     default:
       return ["…"];

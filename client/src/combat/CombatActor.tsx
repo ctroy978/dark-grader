@@ -16,11 +16,11 @@ import {
   type CombatPose,
 } from "./poses";
 
-type WindupTheme = "ember" | "poison" | "summon";
+type WindupTheme = "ember" | "poison" | "summon" | "shock";
 
 /**
  * Telegraph particle field over the boss.
- * Theme: ember (fire/slam), poison (green bubbles), summon (void wisps).
+ * Theme: ember / poison / summon / shock (yellow lightning).
  */
 function BossWindupFx({
   threat,
@@ -36,11 +36,17 @@ function BossWindupFx({
         : threat === "heavy"
           ? 9
           : 6
-      : threat === "ultimate"
-        ? 14
-        : threat === "heavy"
-          ? 10
-          : 6;
+      : theme === "shock"
+        ? threat === "ultimate"
+          ? 12
+          : threat === "heavy"
+            ? 9
+            : 7
+        : threat === "ultimate"
+          ? 14
+          : threat === "heavy"
+            ? 10
+            : 6;
   return (
     <div
       className={`ash-windup-fx ash-windup-fx--${threat} ash-windup-fx--${theme}`}
@@ -48,6 +54,13 @@ function BossWindupFx({
     >
       <div className="ash-heat-haze" />
       <div className="ash-smoke-ring" />
+      {theme === "shock" && (
+        <>
+          <div className="shock-bolt shock-bolt--a" />
+          <div className="shock-bolt shock-bolt--b" />
+          <div className="shock-bolt shock-bolt--c" />
+        </>
+      )}
       <div className="ash-ember-field">
         {Array.from({ length: count }, (_, i) => (
           <span

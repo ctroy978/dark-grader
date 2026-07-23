@@ -21,6 +21,7 @@ describe("bossPresentation", () => {
     expect(bossWindupTheme("Cascade")).toBe("ember");
     expect(bossWindupTheme("FrontSlam")).toBe("ember");
     expect(bossWindupTheme("FireCloud")).toBe("ember");
+    expect(bossWindupTheme("RattleSpark")).toBe("shock");
   });
 
   it("gives longer wind-up to ultimate than light", () => {

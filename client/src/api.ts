@@ -53,6 +53,7 @@ export type BoardReveal = {
     statuses?: import("@dungeon-grades/shared").StatusTag[];
   }>;
   partyShield: { remaining: number; active: boolean };
+  magnetStunRoundsLeft?: number;
 };
 
 export type PresentationCue = {
@@ -88,6 +89,8 @@ export type EnrichedTeam = {
   roster: import("@dungeon-grades/shared").Soldier[];
   activePartyIds: string[];
   magnetPosition: 1 | 2 | 3 | 4 | 5 | 6;
+  /** Rattle Captain: magnet cannot move while &gt; 0 */
+  magnetStunRoundsLeft?: number;
   partyShield: { remaining: number; active: boolean };
   phase: string;
   round: number;

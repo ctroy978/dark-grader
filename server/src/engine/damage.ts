@@ -140,8 +140,16 @@ export function hitEnemies(
 
   const applyToBoss = (amount: number) => {
     if (!team.boss || team.boss.currentHp <= 0) return false;
+    let raw = amount;
+    // Mutual resistance: Thundercaller ↔ Rattle Captain
+    if (
+      actor?.archetype === "Thundercaller" &&
+      team.boss.id === "rattle_captain"
+    ) {
+      raw = Math.floor(raw * 0.5);
+    }
     const mult = team.boss.curseDamageTakenMult || 1;
-    const dmg = Math.min(team.boss.currentHp, Math.floor(amount * mult));
+    const dmg = Math.min(team.boss.currentHp, Math.floor(raw * mult));
     team.boss.currentHp -= dmg;
     parts.push(`${dmg} to ${team.boss.name}`);
     return true;

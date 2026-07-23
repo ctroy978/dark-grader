@@ -99,6 +99,7 @@ function applyBoardReveal(
         statuses: (m.statuses ?? []).map((st) => ({ ...st })),
       })),
       partyShield: { ...base.partyShield },
+      magnetStunRoundsLeft: base.magnetStunRoundsLeft ?? 0,
     };
   }
   const byId = new Map(reveal.soldiers.map((s) => [s.id, s]));
@@ -135,6 +136,8 @@ function applyBoardReveal(
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
     })),
     partyShield: { ...reveal.partyShield },
+    magnetStunRoundsLeft:
+      reveal.magnetStunRoundsLeft ?? base.magnetStunRoundsLeft ?? 0,
   };
 }
 
@@ -503,9 +506,15 @@ export default function CombatScreen({
     return list as Grade[];
   }, [team.pendingTokens, team.cloud]);
 
+  const magnetLocked = (view.magnetStunRoundsLeft ?? 0) > 0;
+
   const setMagnet = useCallback(
     async (pos: number) => {
       if (team.phase !== "awaiting_magnet" || playing) return;
+      if ((team.magnetStunRoundsLeft ?? 0) > 0) {
+        setError("Token Magnet is shocked — locked this round");
+        return;
+      }
       if (!livingPositions.has(pos)) {
         setError("Cannot place the magnet under a fallen soldier");
         return;
@@ -519,7 +528,14 @@ export default function CombatScreen({
         setError(err instanceof Error ? err.message : "Magnet failed");
       }
     },
-    [team.phase, team.teamId, onTeamUpdate, livingPositions, playing],
+    [
+      team.phase,
+      team.teamId,
+      team.magnetStunRoundsLeft,
+      onTeamUpdate,
+      livingPositions,
+      playing,
+    ],
   );
 
   const runBossResolve = useCallback(async () => {
@@ -793,12 +809,17 @@ export default function CombatScreen({
                   key={s.id}
                   type="button"
                   disabled={
-                    !s.alive || team.phase !== "awaiting_magnet" || playing
+                    !s.alive ||
+                    team.phase !== "awaiting_magnet" ||
+                    playing ||
+                    magnetLocked
                   }
                   title={
                     !s.alive
                       ? "Fallen — magnet cannot be placed here"
-                      : `Place magnet on #${pos}`
+                      : magnetLocked
+                        ? "Magnet shocked — locked this round"
+                        : `Place magnet on #${pos}`
                   }
                   onClick={() => void setMagnet(pos)}
                   className={`relative flex-1 rounded-lg border bg-navy-light/70 p-1 md:p-1.5 text-center transition ${
@@ -807,7 +828,9 @@ export default function CombatScreen({
                       : focused || isSpeaker
                         ? "border-rune unit-focus bg-navy-light"
                         : team.magnetPosition === pos
-                          ? "border-rune ring-2 ring-rune/40"
+                          ? magnetLocked
+                            ? "border-yellow-300 ring-2 ring-yellow-300/50"
+                            : "border-rune ring-2 ring-rune/40"
                           : "border-parchment/15 hover:border-parchment/40"
                   }`}
                 >
@@ -832,12 +855,21 @@ export default function CombatScreen({
               );
             })}
             <div
-              className="pointer-events-none absolute bottom-0 h-2 w-[14%] magnet-glow rounded-full bg-rune/80 transition-all duration-200"
+              className={`pointer-events-none absolute bottom-0 h-2 w-[14%] rounded-full transition-all duration-200 ${
+                magnetLocked
+                  ? "magnet-shock-lock bg-yellow-300/90"
+                  : "magnet-glow bg-rune/80"
+              }`}
               style={{
                 left: `calc(${magnetPct}% * 0.86 + 1%)`,
               }}
             />
           </div>
+          {magnetLocked && team.phase === "awaiting_magnet" && !playing && (
+            <div className="mt-2 text-center text-xs md:text-sm font-semibold text-yellow-200">
+              Magnet Locked — shocked in place this round
+            </div>
+          )}
           <div className="mt-3 flex justify-center gap-1.5">
             {magnetButtons.map((n) => {
               const living = livingPositions.has(n);
@@ -846,19 +878,26 @@ export default function CombatScreen({
                   key={n}
                   type="button"
                   disabled={
-                    team.phase !== "awaiting_magnet" || !living || playing
+                    team.phase !== "awaiting_magnet" ||
+                    !living ||
+                    playing ||
+                    magnetLocked
                   }
                   title={
-                    living
-                      ? `Magnet → position ${n}`
-                      : `Position ${n} is empty or fallen`
+                    magnetLocked
+                      ? "Magnet shocked — locked this round"
+                      : living
+                        ? `Magnet → position ${n}`
+                        : `Position ${n} is empty or fallen`
                   }
                   onClick={() => void setMagnet(n)}
                   className={`w-10 h-10 md:w-12 md:h-12 rounded-lg font-bold text-lg border transition ${
                     !living
                       ? "opacity-25 border-parchment/10 cursor-not-allowed line-through"
                       : team.magnetPosition === n
-                        ? "bg-rune/20 border-rune text-rune"
+                        ? magnetLocked
+                          ? "bg-yellow-300/20 border-yellow-300 text-yellow-200"
+                          : "bg-rune/20 border-rune text-rune"
                         : "bg-navy-light border-parchment/20 hover:border-rune/50"
                   } disabled:opacity-40`}
                 >

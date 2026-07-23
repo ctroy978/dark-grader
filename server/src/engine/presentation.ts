@@ -59,6 +59,7 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       remaining: team.partyShield.remaining,
       active: team.partyShield.active,
     },
+    magnetStunRoundsLeft: team.magnetStunRoundsLeft ?? 0,
   };
 }
 

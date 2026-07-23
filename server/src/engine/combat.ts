@@ -1,11 +1,13 @@
 import {
   BOSS_VOICE_DURATION_MS,
   bossImpactDurationMs,
+  bossForcesWindupTheme,
   bossTelegraphDurationMs,
   bossThreatTier,
   bossWindupTheme,
   createRng,
   defaultTelegraphLines,
+  DEFAULT_CAMPAIGN_LENGTH,
   INTER_ROOM_VANGUARD_HEAL_PCT,
   MAX_LOG_ENTRIES,
   PARTY_HURT_LAYER_DELAY_MS,
@@ -77,6 +79,8 @@ export function createTeam(
     tokens: { remaining: [], discard: [] },
     pendingTokens: [],
     pendingBossAttackId: null,
+    magnetStunRoundsLeft: 0,
+    bossLastAttackWasStunKit: false,
     boss: null,
     minions: [],
     phase: "lobby",
@@ -195,6 +199,9 @@ export function startFight(
   team.minions = openingMinionsForBoss(bossTemplateId);
   team.tokens = createTokenPool(gradePool, random);
   team.pendingTokens = [];
+  team.pendingBossAttackId = null;
+  team.magnetStunRoundsLeft = 0;
+  team.bossLastAttackWasStunKit = false;
   team.round = 1;
   team.phase = "awaiting_magnet";
   team.partyDamageBonus = 0;
@@ -261,6 +268,9 @@ export function placeMagnet(team: TeamState, position: Position): void {
   if (team.phase !== "awaiting_magnet") {
     throw new Error("Magnet can only be moved while awaiting magnet");
   }
+  if ((team.magnetStunRoundsLeft ?? 0) > 0) {
+    throw new Error("Token Magnet is shocked — locked this round");
+  }
   if (position < 1 || position > 6) throw new Error("Magnet position must be 1–6");
   if (!isMagnetPositionValid(team, position)) {
     throw new Error("Cannot place the Token Magnet under a fallen soldier");
@@ -287,6 +297,10 @@ export function commitRound(team: TeamState): TeamState {
 
   team.phase = "resolving";
   team.playback = [];
+  // Magnet lock consumed for this drop phase
+  if ((team.magnetStunRoundsLeft ?? 0) > 0) {
+    team.magnetStunRoundsLeft = Math.max(0, (team.magnetStunRoundsLeft ?? 0) - 1);
+  }
   const random = createRng(team.rngSeed + team.round * 10007 + team.magnetPosition * 13);
 
   team.partyDamageBonus = 0;
@@ -476,7 +490,8 @@ export function commitRound(team: TeamState): TeamState {
       const attackId = pickBossAttackId(team, telegraphRng);
       team.pendingBossAttackId = attackId;
       const tier = bossThreatTier(attackId);
-      const theme = bossWindupTheme(attackId);
+      const theme =
+        bossForcesWindupTheme(team.boss!.id) ?? bossWindupTheme(attackId);
       const windupMs = bossTelegraphDurationMs(tier);
 
       // Optional creature voice (grunt/laugh) — standing pose, before wind-up
@@ -555,16 +570,19 @@ export function resolveBoss(team: TeamState): TeamState {
             : null;
         if (hurt) layeredHurt = true;
         // Party impact tint by attack family (not generic red on poison/fire cloud)
+        const isShockBoss = team.boss?.id === "rattle_captain";
         const victimFx =
           info.attackId === "PoisonCloud"
             ? ["poison-tint"]
             : info.attackId === "FireCloud"
               ? ["fire-flash"]
-              : hurt
-                ? ["hurt-flash"]
-                : info.victimIds.length
+              : isShockBoss
+                ? ["shock-flash"]
+                : hurt
                   ? ["hurt-flash"]
-                  : [];
+                  : info.victimIds.length
+                    ? ["hurt-flash"]
+                    : [];
         pushCue(team, {
           kind: isStunSkip ? "system" : "boss",
           focusIds: isStunSkip
@@ -587,7 +605,7 @@ export function resolveBoss(team: TeamState): TeamState {
           fx: isStunSkip
             ? [...(info.fx ?? ["stunned"])]
             : [
-                "boss-attack",
+                isShockBoss ? "boss-attack-shock" : "boss-attack",
                 `threat-${tier}`,
                 ...victimFx,
                 ...(info.fx ?? []),
@@ -750,6 +768,8 @@ function clearFightState(team: TeamState): void {
   team.round = 0;
   team.pendingTokens = [];
   team.pendingBossAttackId = null;
+  team.magnetStunRoundsLeft = 0;
+  team.bossLastAttackWasStunKit = false;
   team.playback = [];
   team.lastClaims = [];
   team.partyShield = { remaining: 0, active: false };
@@ -775,7 +795,7 @@ function clearFightState(team: TeamState): void {
  */
 export function enterBetweenRooms(
   team: TeamState,
-  campaignLength = 4,
+  campaignLength = DEFAULT_CAMPAIGN_LENGTH,
 ): void {
   if (team.phase === "between_rooms" || team.phase === "campaign_complete") {
     // Already advanced — ignore repeat continue

@@ -97,9 +97,10 @@ export function threatTierFromCue(
 /** Wind-up color theme from presentation fx (server tags windup-*). */
 export function windupThemeFromCue(
   cue: PresentationCue | null | undefined,
-): "ember" | "poison" | "summon" {
+): "ember" | "poison" | "summon" | "shock" {
   if (cue?.fx?.includes("windup-poison")) return "poison";
   if (cue?.fx?.includes("windup-summon")) return "summon";
+  if (cue?.fx?.includes("windup-shock")) return "shock";
   return "ember";
 }
 
@@ -120,13 +121,16 @@ export function fxClassesForUnit(
       // Victim tints — party only (boss impact/wind-up glow is separate)
       if (f === "poison-tint") return !isBoss ? "fx-poison-tint" : "";
       if (f === "fire-flash") return !isBoss ? "fx-fire-flash" : "";
+      if (f === "shock-flash") return "fx-shock-flash";
       if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
       if (f === "heal-glow") return "fx-heal-glow";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
+      if (f === "magnet-lock") return ""; // magnet strip handles this
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";
       if (f === "boss-attack") return isBoss ? "fx-boss-attack" : "";
+      if (f === "boss-attack-shock") return isBoss ? "fx-boss-attack-shock" : "";
       if (f === "boss-stunned" || f === "stunned" || f === "stun-skip") {
         return isBoss ? "fx-boss-stunned" : "";
       }
@@ -136,6 +140,7 @@ export function fxClassesForUnit(
       if (f === "windup-ember") return isBoss ? "fx-windup-ember" : "";
       if (f === "windup-poison") return isBoss ? "fx-windup-poison" : "";
       if (f === "windup-summon") return isBoss ? "fx-windup-summon" : "";
+      if (f === "windup-shock") return isBoss ? "fx-windup-shock" : "";
       return "";
     })
     .filter(Boolean)

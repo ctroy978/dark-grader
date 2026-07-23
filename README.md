@@ -47,7 +47,7 @@ The server also lazy-generates a clip on first request if the cache is empty. Th
 3. Each round: keys **1–6** move the magnet → **Drop Tokens** (or Space).
 4. Victory → **Continue** → camp heal → reform → next room until campaign complete.
 
-Default path: **Moss Grub → Ash Wraith → Cinder Herald → Bone Colossus** (4 rooms).
+Default path: **Moss Grub → Ash Wraith → Cinder Herald → Rattle Captain → Bone Colossus** (5 rooms).
 
 ## Scripts
 

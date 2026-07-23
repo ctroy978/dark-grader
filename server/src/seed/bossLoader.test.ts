@@ -10,6 +10,7 @@ describe("boss TOML loader", () => {
       "bone_colossus",
       "cinder_herald",
       "moss_grub",
+      "rattle_captain",
     ]);
   });
 

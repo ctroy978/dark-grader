@@ -1,4 +1,7 @@
 import {
+  isRattleStunKitAttack,
+  RATTLE_NEIGHBOR_STUN_PENALTY,
+  THUNDERCALLER_BOSS_STUN_CHANCE,
   type Minion,
   type Soldier,
   type TeamState,
@@ -13,6 +16,46 @@ import {
   type BossSummonDef,
   type BossTemplate,
 } from "../seed/bossLoader.js";
+
+/** Half damage vs Thundercaller while fighting Rattle Captain. */
+function scaleBossDamageToSoldier(
+  team: TeamState,
+  soldier: Soldier,
+  amount: number,
+): number {
+  if (
+    team.boss?.id === "rattle_captain" &&
+    soldier.archetype === "Thundercaller"
+  ) {
+    return Math.floor(amount * 0.5);
+  }
+  return amount;
+}
+
+function lockMagnet(team: TeamState, log: LogFn): void {
+  team.magnetStunRoundsLeft = Math.max(team.magnetStunRoundsLeft ?? 0, 1);
+  log(`  Token Magnet shocked — locked for the next magnet phase!`);
+}
+
+function trySeatStun(
+  team: TeamState,
+  pos: number,
+  chance: number,
+  random: () => number,
+  log: LogFn,
+): void {
+  const s = soldierAt(team, pos);
+  if (!s) return;
+  // Thundercaller is immune to Rattle Captain seat stuns
+  if (s.archetype === "Thundercaller") {
+    log(`  ${s.name} (Thundercaller) shrugs off the arc`);
+    return;
+  }
+  if (random() >= chance) return;
+  s.statuses = s.statuses.filter((st) => st.kind !== "Stun");
+  s.statuses.push({ kind: "Stun", duration: 1 });
+  log(`  ${s.name} is stunned by the arc!`);
+}
 
 function fallbackTemplateFromBoss(team: TeamState): BossTemplate {
   const boss = team.boss!;
@@ -76,6 +119,17 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     shotSfx: "minion_cinder_imp",
     shotBubble: "Spit!",
   },
+  SummonBoneScraps: {
+    minionId: "bone_scrap",
+    minionName: "Bone Scrap",
+    maxHp: 8,
+    damage: 2,
+    maxCount: 2,
+    freeVolley: false,
+    openCount: 1,
+    shotSfx: "minion_bone_archer",
+    shotBubble: "Clack!",
+  },
 };
 
 function minionFromSpec(
@@ -103,7 +157,8 @@ function resolveMinionShot(
   amount: number,
   log: LogFn,
 ): number {
-  const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
+  const scaled = scaleBossDamageToSoldier(team, target, amount);
+  const { hpLost } = applyPartyDamage(target, scaled, team.partyShield);
   log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
   if (minion.onHitDot && minion.onHitDot.stacks > 0) {
     applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
@@ -236,9 +291,16 @@ function pickWeightedAttack(
   }
 
   const living = livingMinionCount(team);
+  // Rattle Captain: never two stun-kits in a row
+  const blockStunKit =
+    template.id === "rattle_captain" && !!team.bossLastAttackWasStunKit;
+
   const weights = attackIds.map((id) => {
     const def = attackDef(template, id);
     let w = def?.weight ?? 2;
+    if (blockStunKit && isRattleStunKitAttack(id)) {
+      w = 0;
+    }
     const summon = resolveSummonSpec(template, id);
     if (summon) {
       if (noMinions) w *= 4;
@@ -250,10 +312,17 @@ function pickWeightedAttack(
     return w;
   });
   const total = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0) {
+    // Fallback if weights zeroed — any non-stun or any attack
+    const safe = attackIds.find((id) => !isRattleStunKitAttack(id));
+    return safe ?? attackIds[0] ?? "LineAttack";
+  }
   let roll = random() * total;
   for (let i = 0; i < attackIds.length; i++) {
-    roll -= weights[i];
-    if (roll <= 0) return attackIds[i];
+    const w = weights[i]!;
+    if (w <= 0) continue;
+    roll -= w;
+    if (roll <= 0) return attackIds[i]!;
   }
   return attackIds[attackIds.length - 1] ?? "LineAttack";
 }
@@ -366,13 +435,25 @@ export function resolveBossPhase(
   team.pendingBossAttackId = null;
   if (boss.sequenceIndex >= 0) boss.sequenceIndex += 1;
   const victims = performAttack(team, attackId, random, log, rage);
+  // Track stun-kit cadence (Rattle Captain)
+  if (boss.id === "rattle_captain") {
+    team.bossLastAttackWasStunKit = isRattleStunKitAttack(attackId);
+  } else {
+    team.bossLastAttackWasStunKit = false;
+  }
   const audio = resolveBossImpactAudio(template, attackId, random);
   present?.onBossAttack?.({
     attackId,
     victimIds: victims,
     bubbleText: audio.bubbleText,
     sfxId: audio.sfxId,
-    fx: rage > 1 ? ["enraged"] : [],
+    fx: [
+      ...(rage > 1 ? ["enraged"] : []),
+      ...(boss.id === "rattle_captain" ? ["shock-flash"] : []),
+      ...((team.magnetStunRoundsLeft ?? 0) > 0 && isRattleStunKitAttack(attackId)
+        ? ["magnet-lock"]
+        : []),
+    ],
   });
 
   // Adds act after a real boss attack (not on stun skip)
@@ -409,8 +490,9 @@ function performAttack(
   const victims = new Set<string>();
 
   const dmg = (base: number) => Math.floor((base + bonus) * mult);
-  const hit = (s: { id: string }, amount: number) => {
-    const { hpLost } = applyPartyDamage(s as never, amount, team.partyShield);
+  const hit = (s: Soldier, amount: number) => {
+    const scaled = scaleBossDamageToSoldier(team, s, amount);
+    const { hpLost } = applyPartyDamage(s, scaled, team.partyShield);
     if (hpLost > 0) victims.add(s.id);
     return hpLost;
   };
@@ -431,6 +513,23 @@ function performAttack(
         const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
         const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
+      }
+      break;
+    }
+    case "RattleSpark": {
+      // Electric Front Slam + chance to lock magnet (same % as Thundercaller stun)
+      log(`${boss.name} unleashes Rattle Spark!`);
+      for (const pos of [1, 2, 3]) {
+        const s = soldierAt(team, pos);
+        if (!s) continue;
+        const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
+        const hpLost = hit(s, dmg(base));
+        log(`  ${s.name} takes ${hpLost}`);
+      }
+      if (random() < THUNDERCALLER_BOSS_STUN_CHANCE) {
+        lockMagnet(team, log);
+      } else {
+        log(`  The magnet holds — sparks miss the lock`);
       }
       break;
     }
@@ -468,9 +567,10 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = CASCADE_BASE[pos] ?? 2;
+        const scaled = scaleBossDamageToSoldier(team, s, dmg(base));
         const { hpLost, shieldAbsorbed, blockAbsorbed } = applyPartyDamage(
           s,
-          dmg(base),
+          scaled,
           team.partyShield,
         );
         if (hpLost > 0) victims.add(s.id);
@@ -479,6 +579,23 @@ function performAttack(
         if (blockAbsorbed) extra.push(`${blockAbsorbed} block`);
         const note = extra.length ? ` (${extra.join(", ")})` : "";
         log(`  #${pos} ${s.name}: ${hpLost} HP${note} [raw ${base}]`);
+      }
+      // Rattle Captain: always lock magnet + seat stun rolls (wrap neighbors)
+      if (boss.id === "rattle_captain") {
+        lockMagnet(team, log);
+        const magnet = team.magnetPosition;
+        const [left, right] = adjacentPositions(magnet);
+        const magnetChance = THUNDERCALLER_BOSS_STUN_CHANCE;
+        const neighborChance = Math.max(
+          0,
+          magnetChance - RATTLE_NEIGHBOR_STUN_PENALTY,
+        );
+        log(
+          `  Lightning fans across seats #${left}, #${magnet}, #${right}…`,
+        );
+        trySeatStun(team, magnet, magnetChance, random, log);
+        trySeatStun(team, left, neighborChance, random, log);
+        trySeatStun(team, right, neighborChance, random, log);
       }
       break;
     }
@@ -577,7 +694,7 @@ function performSummon(
       const target = magnetBiasedTarget(team, random);
       if (!target) break;
       // free-volley still uses enraged/outgoing scaling via dmg()
-      const amount = dmg(minion.damage);
+      const amount = scaleBossDamageToSoldier(team, target, dmg(minion.damage));
       const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
       if (hpLost > 0) victims.add(target.id);
       log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);

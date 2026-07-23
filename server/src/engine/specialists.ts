@@ -584,6 +584,13 @@ function thundercaller(
 ): void {
   const tryBossStun = (): string => {
     if (!team.boss || team.boss.currentHp <= 0) return "";
+    // Rattle Captain (and any StunImmune trait) cannot be stunned
+    if (
+      team.boss.id === "rattle_captain" ||
+      team.boss.traits?.includes("StunImmune")
+    ) {
+      return "; sparks skitter off — boss immune to stun";
+    }
     if (random() >= 0.3) return "";
     team.boss.stunRoundsLeft = Math.max(team.boss.stunRoundsLeft, 1);
     return "; boss stunned (skips attack this round)!";
