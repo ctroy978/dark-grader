@@ -16,6 +16,14 @@
 
 export type BossThreatTier = "light" | "heavy" | "ultimate";
 
+/**
+ * Visual telegraph palette for wind-up FX (client CSS themes).
+ * - ember: fire / slam / cascade (red-orange cinders)
+ * - poison: toxin cloud (green bubbles)
+ * - summon: calling adds (void / dark)
+ */
+export type BossWindupTheme = "ember" | "poison" | "summon";
+
 /** Presentation weight of an attack (not damage math). */
 export function bossThreatTier(attackId: string): BossThreatTier {
   switch (attackId) {
@@ -31,6 +39,21 @@ export function bossThreatTier(attackId: string): BossThreatTier {
     default:
       // FrontSlam, LineAttack, Light*, Regenerate, …
       return "light";
+  }
+}
+
+/** Map attack id → wind-up color theme (telegraph FX). */
+export function bossWindupTheme(attackId: string): BossWindupTheme {
+  switch (attackId) {
+    case "PoisonCloud":
+      return "poison";
+    case "SummonBoneArchers":
+    case "SummonCinderImps":
+    case "SummonMossMites":
+      return "summon";
+    // FireCloud, Cascade, FrontSlam, LineAttack, CrushMagnet, Regenerate, …
+    default:
+      return "ember";
   }
 }
 

@@ -41,6 +41,8 @@ export type BoardReveal = {
     currentHp: number;
     maxHp: number;
     statuses?: import("@dungeon-grades/shared").StatusTag[];
+    /** Progressive: only rises when Thundercaller (etc.) stun lands */
+    stunRoundsLeft?: number;
   } | null;
   minions: Array<{
     id: string;

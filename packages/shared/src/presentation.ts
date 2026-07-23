@@ -18,6 +18,11 @@ export interface BoardReveal {
     currentHp: number;
     maxHp: number;
     statuses?: StatusTag[];
+    /**
+     * Progressive stun chip — must be snapshotted per cue so Thundercaller
+     * stun does not appear on the boss until their action reveal.
+     */
+    stunRoundsLeft?: number;
   } | null;
   minions: Array<{
     id: string;

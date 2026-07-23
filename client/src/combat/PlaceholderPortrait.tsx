@@ -179,10 +179,10 @@ export function PlaceholderPortrait({
           <div className="pointer-events-none absolute inset-0 bg-crimson/25 mix-blend-overlay" />
         )}
         {pose === "windup" && (
-          <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-crimson-bright/50" />
+          <div className="pointer-events-none absolute inset-0 portrait-windup-veil" />
         )}
         {pose === "attack" && (
-          <div className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-rune/40" />
+          <div className="pointer-events-none absolute inset-0 portrait-attack-veil" />
         )}
       </div>
     );

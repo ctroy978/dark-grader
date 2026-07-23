@@ -93,8 +93,22 @@ body {
   border-radius: 0.75rem;
 }
 
+/* Toxic green — distinct from fire orange / hurt crimson */
 .fx-poison-tint {
-  filter: hue-rotate(70deg) saturate(1.3);
+  filter: drop-shadow(0 0 8px rgba(80, 220, 80, 0.75))
+    drop-shadow(0 0 16px rgba(40, 160, 60, 0.45));
+}
+.fx-poison-tint .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(120, 255, 100, 0.45),
+    0 0 16px rgba(50, 200, 70, 0.55),
+    0 0 28px rgba(30, 120, 50, 0.3);
+  border-color: rgba(100, 230, 90, 0.5);
+}
+.fx-poison-tint .portrait-frame img,
+.fx-poison-tint .portrait-frame svg {
+  filter: brightness(1.05) saturate(1.15)
+    drop-shadow(0 0 6px rgba(90, 255, 100, 0.4));
 }
 .fx-fire-flash {
   box-shadow: 0 0 16px rgba(255, 120, 40, 0.7);
@@ -108,15 +122,154 @@ body {
 .fx-attack-flash {
   box-shadow: 0 0 12px rgba(110, 198, 255, 0.7);
 }
+
+/* --- Boss telegraph / wind-up (Ash-first exploration) --- */
 .fx-boss-windup {
-  box-shadow: 0 0 20px rgba(185, 28, 28, 0.55), 0 0 36px rgba(255, 120, 40, 0.25);
+  /* Outer unit glow — readable from the back of the room */
+  filter: drop-shadow(0 0 10px rgba(255, 120, 40, 0.35));
 }
+
+.fx-boss-windup .portrait-frame {
+  animation: ash-windup-breathe 1.35s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255, 140, 60, 0.35),
+    0 0 18px rgba(185, 28, 28, 0.55),
+    0 0 36px rgba(255, 120, 40, 0.35),
+    0 0 56px rgba(120, 40, 10, 0.2);
+  border-color: rgba(255, 140, 60, 0.45);
+}
+
+.fx-boss-windup .portrait-frame img,
+.fx-boss-windup .portrait-frame svg {
+  animation: ash-ember-glow 1.2s ease-in-out infinite;
+}
+
+/* Threat scales intensity (server already tags threat-*) */
+.fx-boss-windup.fx-threat-light .portrait-frame {
+  animation-duration: 1.1s;
+  box-shadow:
+    0 0 0 1px rgba(255, 140, 60, 0.25),
+    0 0 14px rgba(185, 28, 28, 0.4),
+    0 0 28px rgba(255, 120, 40, 0.22);
+}
+
+.fx-boss-windup.fx-threat-heavy .portrait-frame {
+  animation-duration: 1.25s;
+  box-shadow:
+    0 0 0 1px rgba(255, 150, 70, 0.4),
+    0 0 22px rgba(185, 28, 28, 0.65),
+    0 0 44px rgba(255, 120, 40, 0.4),
+    0 0 64px rgba(255, 80, 20, 0.18);
+}
+
+.fx-boss-windup.fx-threat-ultimate .portrait-frame {
+  animation: ash-windup-breathe-build 1.5s ease-in-out infinite;
+  box-shadow:
+    0 0 0 2px rgba(255, 160, 80, 0.55),
+    0 0 28px rgba(185, 28, 28, 0.8),
+    0 0 52px rgba(255, 100, 30, 0.5),
+    0 0 80px rgba(255, 60, 10, 0.25);
+}
+
+/* Attack-family color (overrides ember defaults above) */
+.fx-boss-windup.fx-windup-poison {
+  filter: drop-shadow(0 0 10px rgba(80, 220, 90, 0.4));
+}
+.fx-boss-windup.fx-windup-poison .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(120, 255, 100, 0.4),
+    0 0 18px rgba(40, 180, 70, 0.55),
+    0 0 36px rgba(30, 140, 50, 0.35),
+    0 0 56px rgba(20, 90, 40, 0.2);
+  border-color: rgba(100, 230, 90, 0.5);
+}
+.fx-boss-windup.fx-windup-poison.fx-threat-heavy .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(130, 255, 110, 0.5),
+    0 0 22px rgba(40, 200, 80, 0.65),
+    0 0 44px rgba(30, 160, 60, 0.4),
+    0 0 64px rgba(20, 100, 40, 0.22);
+}
+
+.fx-boss-windup.fx-windup-summon {
+  filter: drop-shadow(0 0 12px rgba(20, 8, 30, 0.85));
+}
+.fx-boss-windup.fx-windup-summon .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(80, 50, 100, 0.45),
+    0 0 18px rgba(10, 4, 20, 0.85),
+    0 0 36px rgba(60, 20, 90, 0.4),
+    0 0 56px rgba(0, 0, 0, 0.55);
+  border-color: rgba(90, 60, 120, 0.45);
+}
+.fx-boss-windup.fx-windup-summon.fx-threat-heavy .portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(100, 60, 140, 0.5),
+    0 0 24px rgba(8, 2, 18, 0.95),
+    0 0 48px rgba(70, 25, 110, 0.5),
+    0 0 72px rgba(0, 0, 0, 0.65);
+}
+
+/* Themed inset veils during wind-up */
+.fx-boss-windup.fx-windup-poison .portrait-windup-veil {
+  background:
+    radial-gradient(
+      ellipse at 50% 70%,
+      rgba(60, 220, 90, 0.22) 0%,
+      transparent 55%
+    ),
+    linear-gradient(to top, rgba(12, 40, 18, 0.4) 0%, transparent 45%);
+  box-shadow: inset 0 0 0 2px rgba(90, 230, 100, 0.4);
+}
+.fx-boss-windup.fx-windup-summon .portrait-windup-veil {
+  background:
+    radial-gradient(
+      ellipse at 50% 55%,
+      rgba(40, 15, 70, 0.35) 0%,
+      transparent 55%
+    ),
+    linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 50%);
+  box-shadow: inset 0 0 0 2px rgba(60, 30, 90, 0.5);
+}
+
 .fx-boss-voice {
-  box-shadow: 0 0 12px rgba(160, 80, 40, 0.4);
+  filter: drop-shadow(0 0 8px rgba(160, 80, 40, 0.45));
 }
+.fx-boss-voice .portrait-frame {
+  box-shadow: 0 0 14px rgba(160, 80, 40, 0.4);
+}
+
+/* Thundercaller lands stun — brief electric hold (chip appears same beat) */
+.fx-boss-stunned {
+  filter: drop-shadow(0 0 10px rgba(110, 198, 255, 0.55));
+}
+.fx-boss-stunned .portrait-frame {
+  animation: boss-stun-flash 0.7s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(110, 198, 255, 0.55),
+    0 0 20px rgba(80, 140, 220, 0.5);
+  border-color: rgba(110, 198, 255, 0.55);
+}
+
+/* Impact: hard snap, not a charge */
 .fx-boss-attack {
-  box-shadow: 0 0 22px rgba(185, 28, 28, 0.75);
+  filter: drop-shadow(0 0 14px rgba(185, 28, 28, 0.75));
 }
+.fx-boss-attack .portrait-frame {
+  animation: ash-attack-impact 0.55s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(255, 80, 40, 0.7),
+    0 0 28px rgba(185, 28, 28, 0.9),
+    0 0 48px rgba(255, 60, 20, 0.45);
+}
+.fx-boss-attack.fx-threat-ultimate .portrait-frame {
+  animation: ash-attack-impact 0.7s ease-out;
+  box-shadow:
+    0 0 0 3px rgba(255, 100, 50, 0.85),
+    0 0 36px rgba(185, 28, 28, 1),
+    0 0 64px rgba(255, 80, 20, 0.55);
+}
+
 .fx-claim-pop {
   transform: scale(1.05);
 }
@@ -124,15 +277,17 @@ body {
 .portrait-frame {
   background:
     radial-gradient(ellipse at 50% 30%, rgba(40, 30, 50, 0.9), #0b1220 70%);
-  transition: filter 0.2s ease, transform 0.2s ease;
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .portrait-frame[data-pose="windup"] {
-  transform: translateY(-3px) scale(1.02);
+  transform: translateY(-4px) scale(1.03);
+  z-index: 1;
 }
 
 .portrait-frame[data-pose="attack"] {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.01);
 }
 
 .portrait-frame[data-pose="hit"] {
@@ -143,6 +298,389 @@ body {
   opacity: 0.75;
 }
 
+/* Inset veils on real art during pose changes */
+.portrait-windup-veil {
+  background:
+    radial-gradient(
+      ellipse at 50% 70%,
+      rgba(255, 100, 30, 0.22) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      to top,
+      rgba(40, 12, 8, 0.35) 0%,
+      transparent 45%
+    );
+  box-shadow: inset 0 0 0 2px rgba(255, 120, 40, 0.35);
+  animation: ash-veil-pulse 1.2s ease-in-out infinite;
+}
+
+.portrait-attack-veil {
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(255, 60, 30, 0.2) 0%,
+    transparent 60%
+  );
+  box-shadow: inset 0 0 0 2px rgba(255, 80, 40, 0.45);
+}
+
+/* --- Ash wind-up particle field (sibling overlay on boss) --- */
+.ash-windup-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -12% -8% -4%;
+  z-index: 2;
+  overflow: visible;
+}
+
+.ash-heat-haze {
+  position: absolute;
+  inset: 8% 12% 18%;
+  border-radius: 40% 40% 45% 45%;
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(255, 140, 50, 0.28) 0%,
+    rgba(185, 40, 20, 0.12) 40%,
+    transparent 70%
+  );
+  animation: ash-haze-pulse 1.3s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+.ash-smoke-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 78%;
+  height: 28%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(60, 40, 35, 0.35) 0%,
+    rgba(90, 50, 30, 0.15) 45%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  animation: ash-smoke-swell 1.6s ease-in-out infinite;
+}
+
+.ash-ember-field {
+  position: absolute;
+  inset: 0;
+}
+
+.ash-ember {
+  --ember-i: 0;
+  --ember-n: 8;
+  position: absolute;
+  left: calc(12% + (76% * var(--ember-i) / var(--ember-n)));
+  bottom: 12%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff6e0 0%,
+    #ff9a40 40%,
+    #c42818 75%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 4px 1px rgba(255, 160, 60, 0.9),
+    0 0 10px 2px rgba(255, 80, 20, 0.45);
+  opacity: 0;
+  animation: ash-ember-rise 1.5s ease-out infinite;
+  animation-delay: calc(var(--ember-i) * -0.17s);
+}
+
+/* Slight size / path variety by index */
+.ash-ember:nth-child(odd) {
+  width: 4px;
+  height: 4px;
+  animation-duration: 1.7s;
+}
+.ash-ember:nth-child(3n) {
+  width: 6px;
+  height: 6px;
+  animation-duration: 1.35s;
+  filter: brightness(1.15);
+}
+.ash-ember:nth-child(4n) {
+  left: calc(18% + (64% * var(--ember-i) / var(--ember-n)));
+}
+
+.ash-windup-fx--light .ash-ember {
+  animation-duration: 1.25s;
+}
+.ash-windup-fx--light .ash-heat-haze {
+  opacity: 0.75;
+}
+.ash-windup-fx--heavy .ash-ember {
+  animation-duration: 1.45s;
+}
+.ash-windup-fx--ultimate .ash-heat-haze {
+  animation-duration: 1.05s;
+  opacity: 1;
+}
+.ash-windup-fx--ultimate .ash-ember {
+  animation-duration: 1.2s;
+  box-shadow:
+    0 0 5px 2px rgba(255, 180, 80, 1),
+    0 0 14px 3px rgba(255, 70, 20, 0.55);
+}
+.ash-windup-fx--ultimate .ash-smoke-ring {
+  animation-duration: 1.2s;
+  filter: blur(1px) brightness(1.15);
+}
+
+/* --- Theme: poison (green bubbles) --- */
+.ash-windup-fx--poison .ash-heat-haze {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(80, 240, 110, 0.28) 0%,
+    rgba(30, 140, 60, 0.14) 40%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+}
+.ash-windup-fx--poison .ash-smoke-ring {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(30, 80, 40, 0.4) 0%,
+    rgba(40, 120, 55, 0.18) 45%,
+    transparent 70%
+  );
+}
+.ash-windup-fx--poison .ash-ember {
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(220, 255, 220, 0.95) 0%,
+    rgba(90, 230, 120, 0.75) 35%,
+    rgba(30, 140, 60, 0.45) 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 6px 2px rgba(90, 240, 120, 0.7),
+    0 0 14px 3px rgba(40, 160, 70, 0.35);
+  animation-name: poison-bubble-rise;
+  animation-duration: 1.85s;
+}
+.ash-windup-fx--poison .ash-ember:nth-child(odd) {
+  width: 6px;
+  height: 6px;
+  animation-duration: 2.1s;
+}
+.ash-windup-fx--poison .ash-ember:nth-child(3n) {
+  width: 10px;
+  height: 10px;
+  animation-duration: 1.6s;
+  filter: brightness(1.1);
+}
+.ash-windup-fx--poison.ash-windup-fx--ultimate .ash-ember,
+.ash-windup-fx--poison.ash-windup-fx--heavy .ash-ember {
+  box-shadow:
+    0 0 8px 2px rgba(100, 255, 130, 0.85),
+    0 0 18px 4px rgba(40, 180, 80, 0.4);
+}
+
+/* --- Theme: summon (void / dark wisps) --- */
+.ash-windup-fx--summon .ash-heat-haze {
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    rgba(50, 20, 80, 0.45) 0%,
+    rgba(10, 4, 20, 0.35) 40%,
+    transparent 70%
+  );
+  mix-blend-mode: normal;
+  animation: ash-haze-pulse 1.6s ease-in-out infinite;
+}
+.ash-windup-fx--summon .ash-smoke-ring {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(0, 0, 0, 0.65) 0%,
+    rgba(40, 15, 70, 0.35) 45%,
+    transparent 70%
+  );
+  filter: blur(3px);
+}
+.ash-windup-fx--summon .ash-ember {
+  width: 6px;
+  height: 10px;
+  margin-left: -3px;
+  border-radius: 40% 40% 50% 50%;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(140, 100, 180, 0.7) 0%,
+    rgba(30, 10, 50, 0.85) 50%,
+    rgba(0, 0, 0, 0.9) 80%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 6px 1px rgba(80, 40, 120, 0.6),
+    0 0 12px 2px rgba(0, 0, 0, 0.7);
+  animation-name: summon-wisp-rise;
+  animation-duration: 2s;
+  filter: blur(0.4px);
+}
+.ash-windup-fx--summon .ash-ember:nth-child(odd) {
+  width: 5px;
+  height: 12px;
+  animation-duration: 2.3s;
+}
+.ash-windup-fx--summon .ash-ember:nth-child(3n) {
+  width: 7px;
+  height: 8px;
+  animation-duration: 1.75s;
+  filter: blur(0.6px) brightness(1.1);
+}
+.ash-windup-fx--summon.ash-windup-fx--heavy .ash-ember {
+  box-shadow:
+    0 0 8px 2px rgba(100, 50, 150, 0.7),
+    0 0 16px 3px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes ash-windup-breathe {
+  0%,
+  100% {
+    transform: translateY(-3px) scale(1.02);
+  }
+  50% {
+    transform: translateY(-7px) scale(1.045);
+  }
+}
+
+/* Ultimate: stronger peak so the hold feels like a charge */
+@keyframes ash-windup-breathe-build {
+  0%,
+  100% {
+    transform: translateY(-4px) scale(1.025);
+  }
+  40% {
+    transform: translateY(-8px) scale(1.05);
+  }
+  70% {
+    transform: translateY(-10px) scale(1.06);
+  }
+}
+
+@keyframes ash-ember-glow {
+  0%,
+  100% {
+    filter: brightness(1.05) saturate(1.05);
+  }
+  50% {
+    filter: brightness(1.18) saturate(1.25);
+  }
+}
+
+@keyframes ash-veil-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ash-haze-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes ash-smoke-swell {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(0.92);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.08);
+  }
+}
+
+@keyframes ash-ember-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-92px) translateX(6px) scale(0.25);
+  }
+}
+
+/* Soft toxin bubbles — float up with a little wobble */
+@keyframes poison-bubble-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.5);
+  }
+  15% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-45px) translateX(8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-95px) translateX(-4px) scale(0.7);
+  }
+}
+
+/* Dark summon wisps — slower, more smoke than spark */
+@keyframes summon-wisp-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scaleY(0.7) scaleX(0.8);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.65;
+    transform: translateY(-50px) translateX(-8px) scaleY(1.1) scaleX(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-88px) translateX(4px) scaleY(1.3) scaleX(0.4);
+  }
+}
+
+@keyframes ash-attack-impact {
+  0% {
+    transform: translateY(-6px) scale(1.06);
+    filter: brightness(1.35);
+  }
+  35% {
+    transform: translateY(1px) scale(0.98);
+  }
+  100% {
+    transform: translateY(-2px) scale(1.01);
+    filter: brightness(1);
+  }
+}
+
 @keyframes hurt-flash {
   0%,
   100% {
@@ -150,6 +688,21 @@ body {
   }
   40% {
     background-color: rgba(185, 28, 28, 0.35);
+  }
+}
+
+@keyframes boss-stun-flash {
+  0% {
+    filter: brightness(1.25);
+    transform: translateY(-2px) scale(1.02);
+  }
+  40% {
+    filter: brightness(0.95);
+    transform: translateX(2px) scale(0.99);
+  }
+  100% {
+    filter: brightness(1);
+    transform: none;
   }
 }
 

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import {
   GRADE_COLORS,
   statusToChip,
@@ -7,7 +8,63 @@ import {
 import type { PresentationCue } from "../api";
 import { SpeechBubble } from "./SpeechBubble";
 import { PlaceholderPortrait, type PortraitKind } from "./PlaceholderPortrait";
-import { fxClassesForUnit, poseForUnit, type CombatPose } from "./poses";
+import {
+  fxClassesForUnit,
+  poseForUnit,
+  threatTierFromCue,
+  windupThemeFromCue,
+  type CombatPose,
+} from "./poses";
+
+type WindupTheme = "ember" | "poison" | "summon";
+
+/**
+ * Telegraph particle field over the boss.
+ * Theme: ember (fire/slam), poison (green bubbles), summon (void wisps).
+ */
+function BossWindupFx({
+  threat,
+  theme,
+}: {
+  threat: "light" | "heavy" | "ultimate";
+  theme: WindupTheme;
+}) {
+  const count =
+    theme === "summon"
+      ? threat === "ultimate"
+        ? 12
+        : threat === "heavy"
+          ? 9
+          : 6
+      : threat === "ultimate"
+        ? 14
+        : threat === "heavy"
+          ? 10
+          : 6;
+  return (
+    <div
+      className={`ash-windup-fx ash-windup-fx--${threat} ash-windup-fx--${theme}`}
+      aria-hidden
+    >
+      <div className="ash-heat-haze" />
+      <div className="ash-smoke-ring" />
+      <div className="ash-ember-field">
+        {Array.from({ length: count }, (_, i) => (
+          <span
+            key={i}
+            className="ash-ember"
+            style={
+              {
+                "--ember-i": i,
+                "--ember-n": count,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function StatusLabels({
   statuses,
@@ -95,6 +152,12 @@ export function CombatActor({
   const fx = fxClassesForUnit(unitId, cue);
   const speaking = cue?.bubble?.speakerId === unitId;
   const isBoss = portrait.role === "boss";
+  const threat = threatTierFromCue(cue) ?? "light";
+  const windupTheme = windupThemeFromCue(cue);
+  const showBossWindup =
+    isBoss &&
+    pose === "windup" &&
+    (cue?.fx?.includes("boss-windup") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -120,7 +183,22 @@ export function CombatActor({
         </span>
       )}
       {speaking && cue && <SpeechBubble cue={cue} anchor="top" />}
-      <PlaceholderPortrait kind={portrait} pose={pose} className={frameClass} />
+      <div
+        className={`relative ${isBoss ? "w-full max-w-[12rem] md:max-w-[14rem] mx-auto" : "w-full"}`}
+      >
+        {showBossWindup && (
+          <BossWindupFx threat={threat} theme={windupTheme} />
+        )}
+        <PlaceholderPortrait
+          kind={portrait}
+          pose={pose}
+          className={
+            isBoss
+              ? "w-full aspect-[5/6] h-auto"
+              : frameClass
+          }
+        />
+      </div>
       {showName && (
         <div className="text-[10px] md:text-xs font-medium truncate w-full text-center mt-0.5 leading-tight">
           {name}

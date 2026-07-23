@@ -90,6 +90,8 @@ function applyBoardReveal(
               currentHp: base.boss.currentHp,
               maxHp: base.boss.maxHp,
               statuses: (base.boss.statuses ?? []).map((st) => ({ ...st })),
+              // Freeze pre-resolve stun so Drop Tokens does not flash a later stun
+              stunRoundsLeft: base.boss.stunRoundsLeft ?? 0,
             }
           : final.boss,
       minions: base.minions.map((m) => ({
@@ -123,6 +125,9 @@ function applyBoardReveal(
             statuses: (reveal.boss.statuses ?? final.boss.statuses ?? []).map(
               (st) => ({ ...st }),
             ),
+            // Prefer per-cue stun; fall back to pre-resolve (never post-drop final)
+            stunRoundsLeft:
+              reveal.boss.stunRoundsLeft ?? base.boss?.stunRoundsLeft ?? 0,
           }
         : final.boss,
     minions: reveal.minions.map((m) => ({

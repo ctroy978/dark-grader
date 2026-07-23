@@ -3,6 +3,7 @@ import {
   bossImpactDurationMs,
   bossTelegraphDurationMs,
   bossThreatTier,
+  bossWindupTheme,
   createRng,
   defaultTelegraphLines,
   INTER_ROOM_VANGUARD_HEAL_PCT,
@@ -343,6 +344,7 @@ export function commitRound(team: TeamState): TeamState {
 
       // Diff enemy HP so presentation can focus the minion/boss that was hit
       const beforeBossHp = team.boss?.currentHp ?? 0;
+      const beforeBossStun = team.boss?.stunRoundsLeft ?? 0;
       const beforeMinions = team.minions.map((m) => ({
         id: m.id,
         name: m.name,
@@ -369,12 +371,19 @@ export function commitRound(team: TeamState): TeamState {
       if (team.boss && team.boss.currentHp < beforeBossHp) {
         hitFocusIds.push("boss");
       }
+      // Thundercaller stun: reveal chip + FX only on this action beat
+      const bossStunnedNow =
+        (team.boss?.stunRoundsLeft ?? 0) > beforeBossStun;
+      if (bossStunnedNow && !hitFocusIds.includes("boss")) {
+        hitFocusIds.push("boss");
+      }
 
       const fx: string[] = [];
       if (soldier.archetype === "Healer") fx.push("heal-glow");
       if (soldier.archetype === "FireMage") fx.push("fire-flash");
       if (soldier.archetype === "Runesinger") fx.push("heal-glow");
       if (claim.effectiveGrade === "F") fx.push("backfire");
+      if (bossStunnedNow) fx.push("boss-stunned");
       cueAction(
         team,
         soldier.id,
@@ -467,6 +476,7 @@ export function commitRound(team: TeamState): TeamState {
       const attackId = pickBossAttackId(team, telegraphRng);
       team.pendingBossAttackId = attackId;
       const tier = bossThreatTier(attackId);
+      const theme = bossWindupTheme(attackId);
       const windupMs = bossTelegraphDurationMs(tier);
 
       // Optional creature voice (grunt/laugh) — standing pose, before wind-up
@@ -499,7 +509,7 @@ export function commitRound(team: TeamState): TeamState {
           side: "boss",
           text: line,
         },
-        fx: ["boss-windup", `threat-${tier}`],
+        fx: ["boss-windup", `threat-${tier}`, `windup-${theme}`],
         sfxId: tpl?.telegraphSfx ?? "boss_attack",
         durationMs: windupMs,
       });
@@ -544,6 +554,17 @@ export function resolveBoss(team: TeamState): TeamState {
             ? pickPartyHurt(team, info.victimIds, random)
             : null;
         if (hurt) layeredHurt = true;
+        // Party impact tint by attack family (not generic red on poison/fire cloud)
+        const victimFx =
+          info.attackId === "PoisonCloud"
+            ? ["poison-tint"]
+            : info.attackId === "FireCloud"
+              ? ["fire-flash"]
+              : hurt
+                ? ["hurt-flash"]
+                : info.victimIds.length
+                  ? ["hurt-flash"]
+                  : [];
         pushCue(team, {
           kind: isStunSkip ? "system" : "boss",
           focusIds: isStunSkip
@@ -562,12 +583,13 @@ export function resolveBoss(team: TeamState): TeamState {
               }
             : undefined,
           // Stun skip: no boss-attack flash (that looked like a hit)
+          // boss-attack is boss-only on the client; victimFx tints the party
           fx: isStunSkip
             ? [...(info.fx ?? ["stunned"])]
             : [
                 "boss-attack",
                 `threat-${tier}`,
-                ...(hurt ? ["hurt-flash"] : []),
+                ...victimFx,
                 ...(info.fx ?? []),
               ],
           sfxId: info.sfxId,

@@ -3,6 +3,7 @@ import {
   bossImpactDurationMs,
   bossTelegraphDurationMs,
   bossThreatTier,
+  bossWindupTheme,
   defaultTelegraphLines,
 } from "./bossPresentation.js";
 
@@ -11,6 +12,15 @@ describe("bossPresentation", () => {
     expect(bossThreatTier("Cascade")).toBe("ultimate");
     expect(bossThreatTier("CrushMagnet")).toBe("heavy");
     expect(bossThreatTier("FrontSlam")).toBe("light");
+  });
+
+  it("maps wind-up color themes by attack family", () => {
+    expect(bossWindupTheme("PoisonCloud")).toBe("poison");
+    expect(bossWindupTheme("SummonMossMites")).toBe("summon");
+    expect(bossWindupTheme("SummonBoneArchers")).toBe("summon");
+    expect(bossWindupTheme("Cascade")).toBe("ember");
+    expect(bossWindupTheme("FrontSlam")).toBe("ember");
+    expect(bossWindupTheme("FireCloud")).toBe("ember");
   });
 
   it("gives longer wind-up to ultimate than light", () => {

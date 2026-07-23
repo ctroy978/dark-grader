@@ -168,7 +168,10 @@ describe("combat loop", () => {
 
     expect(team.pendingBossAttackId).toBeTruthy();
     const windup = team.playback.filter(
-      (c) => c.kind === "telegraph" && c.fx?.includes("boss-windup"),
+      (c) =>
+        c.kind === "telegraph" &&
+        c.fx?.includes("boss-windup") &&
+        c.fx.some((f) => f.startsWith("windup-")),
     );
     expect(windup.length).toBe(1);
     expect(windup[0]!.sfxId).toMatch(/telegraph|boss_attack/);

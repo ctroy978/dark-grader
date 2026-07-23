@@ -83,7 +83,27 @@ export function poseForUnit(
   }
 }
 
-/** CSS classes for FX tags on the portrait frame. */
+/** Threat tier tag from presentation fx (if any). */
+export function threatTierFromCue(
+  cue: PresentationCue | null | undefined,
+): "light" | "heavy" | "ultimate" | null {
+  const tag = cue?.fx?.find((f) => f.startsWith("threat-"));
+  if (tag === "threat-ultimate") return "ultimate";
+  if (tag === "threat-heavy") return "heavy";
+  if (tag === "threat-light") return "light";
+  return null;
+}
+
+/** Wind-up color theme from presentation fx (server tags windup-*). */
+export function windupThemeFromCue(
+  cue: PresentationCue | null | undefined,
+): "ember" | "poison" | "summon" {
+  if (cue?.fx?.includes("windup-poison")) return "poison";
+  if (cue?.fx?.includes("windup-summon")) return "summon";
+  return "ember";
+}
+
+/** CSS classes for FX tags on the unit wrapper / portrait. */
 export function fxClassesForUnit(
   unitId: string,
   cue: PresentationCue | null | undefined,
@@ -94,16 +114,28 @@ export function fxClassesForUnit(
     cue.bubble?.speakerId === unitId ||
     (unitId === "boss" && cue.focusIds?.includes("boss"));
   if (!focused) return "";
+  const isBoss = unitId === "boss";
   return cue.fx
     .map((f) => {
-      if (f === "poison-tint" || f.includes("poison")) return "fx-poison-tint";
-      if (f === "fire-flash" || f.includes("fire")) return "fx-fire-flash";
-      if (f === "heal-glow" || f.includes("heal")) return "fx-heal-glow";
-      if (f === "hurt-flash") return "fx-hurt-flash";
+      // Victim tints — party only (boss impact/wind-up glow is separate)
+      if (f === "poison-tint") return !isBoss ? "fx-poison-tint" : "";
+      if (f === "fire-flash") return !isBoss ? "fx-fire-flash" : "";
+      if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
+      if (f === "heal-glow") return "fx-heal-glow";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
-      if (f === "boss-windup") return "fx-boss-windup";
-      if (f === "boss-voice") return "fx-boss-voice";
-      if (f === "boss-attack") return "fx-boss-attack";
+      // Boss-only telegraph / impact (do not paint party red on AOE focus)
+      if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
+      if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";
+      if (f === "boss-attack") return isBoss ? "fx-boss-attack" : "";
+      if (f === "boss-stunned" || f === "stunned" || f === "stun-skip") {
+        return isBoss ? "fx-boss-stunned" : "";
+      }
+      if (f === "threat-light") return isBoss ? "fx-threat-light" : "";
+      if (f === "threat-heavy") return isBoss ? "fx-threat-heavy" : "";
+      if (f === "threat-ultimate") return isBoss ? "fx-threat-ultimate" : "";
+      if (f === "windup-ember") return isBoss ? "fx-windup-ember" : "";
+      if (f === "windup-poison") return isBoss ? "fx-windup-poison" : "";
+      if (f === "windup-summon") return isBoss ? "fx-windup-summon" : "";
       return "";
     })
     .filter(Boolean)
