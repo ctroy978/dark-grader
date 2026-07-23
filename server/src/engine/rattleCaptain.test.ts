@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ROOM_BOSSES,
+  RATTLE_SPARK_STUN_CHANCE,
   THUNDERCALLER_BOSS_STUN_CHANCE,
   type Grade,
   type Soldier,
@@ -179,6 +180,16 @@ describe("Rattle Captain", () => {
     startFight(team, "rattle_captain", POOL);
     expect(team.boss!.traits).toContain("StunImmune");
     expect(THUNDERCALLER_BOSS_STUN_CHANCE).toBe(0.3);
+    expect(RATTLE_SPARK_STUN_CHANCE).toBe(0.6);
+  });
+
+  it("weights RattleSpark as the main attack over Crush", () => {
+    const t = getBossTemplate("rattle_captain")!;
+    const spark = t.attacks.find((a) => a.id === "RattleSpark")!;
+    const crush = t.attacks.find((a) => a.id === "CrushMagnet")!;
+    const cascade = t.attacks.find((a) => a.id === "Cascade")!;
+    expect(spark.weight).toBeGreaterThan(crush.weight);
+    expect(cascade.weight).toBe(2);
   });
 
   it("opens with Ohms and can full-round without throwing", () => {

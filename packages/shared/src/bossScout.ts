@@ -19,7 +19,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   RattleSpark: {
     name: "Rattle Spark",
     description:
-      "Electric front slam — may stun the soldier standing under the Token Magnet (they lose their next attack). The magnet still moves.",
+      "Her main attack: electric front slam with a strong chance to stun whoever stands under the Token Magnet (they lose their next attack). The magnet still moves.",
   },
   LightFrontSlam: {
     name: "Front Slam",

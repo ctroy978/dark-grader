@@ -1,6 +1,7 @@
 import {
   isRattleStunKitAttack,
   RATTLE_NEIGHBOR_STUN_PENALTY,
+  RATTLE_SPARK_STUN_CHANCE,
   THUNDERCALLER_BOSS_STUN_CHANCE,
   type Minion,
   type Soldier,
@@ -563,7 +564,7 @@ function performAttack(
         !trySeatStun(
           team,
           magnet,
-          THUNDERCALLER_BOSS_STUN_CHANCE,
+          RATTLE_SPARK_STUN_CHANCE,
           random,
           log,
         )
