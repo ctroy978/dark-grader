@@ -232,6 +232,11 @@ export interface ClassroomState {
    * Shorter arrays fall back to bossTemplateId / bone_colossus.
    */
   roomBossIds: string[];
+  /**
+   * When true, students cannot join or advance play (teacher "pause server").
+   * Existing team state is kept; only blocked at the API.
+   */
+  paused?: boolean;
 }
 
 /** Default dungeon path for a class period (6-room plan; room 5 is a stub until designed). */

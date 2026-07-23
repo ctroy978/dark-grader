@@ -8,7 +8,6 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
   const [authed, setAuthed] = useState(false);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [gradesText, setGradesText] = useState("");
-  const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -63,12 +62,29 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
     }
   }
 
-  async function createTeam() {
+  async function togglePause() {
     setError(null);
+    setMsg(null);
     try {
-      const t = await api.createTeam(pin, teamName);
-      setMsg(`Created ${t.name} — code ${t.inviteCode}`);
-      setTeamName("");
+      const next = !overview?.paused;
+      await api.setClassroomPaused(pin, next);
+      setMsg(
+        next
+          ? "Classroom paused — students cannot join or play"
+          : "Classroom resumed — students can play",
+      );
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function changeCode(teamId: string, teamName: string) {
+    setError(null);
+    setMsg(null);
+    try {
+      const t = await api.changeInviteCode(pin, teamId);
+      setMsg(`${teamName}: new invite code ${t.inviteCode}`);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -124,15 +140,36 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
             Pool: {overview?.masterTokenPool.length ?? 0} tokens · Campaign:{" "}
             {overview?.campaignLength ?? "?"} rooms · Fallback boss:{" "}
             {overview?.bossTemplateId ?? "none"}
+            {overview?.paused ? (
+              <span className="text-grade-f font-semibold"> · PAUSED</span>
+            ) : null}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5"
-        >
-          Home
-        </button>
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => void togglePause()}
+            className={`text-sm rounded-lg px-3 py-1.5 font-semibold border ${
+              overview?.paused
+                ? "border-grade-a/50 bg-grade-a/20 text-grade-a"
+                : "border-grade-f/50 bg-grade-f/15 text-grade-f"
+            }`}
+            title={
+              overview?.paused
+                ? "Allow students to join and play again"
+                : "Block student join and all team actions"
+            }
+          >
+            {overview?.paused ? "Resume classroom" : "Pause classroom"}
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm border border-parchment/20 rounded-lg px-3 py-1.5"
+          >
+            Home
+          </button>
+        </div>
       </header>
 
       {error && <p className="text-grade-f text-sm">{error}</p>}
@@ -283,22 +320,18 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
 
         {/* Teams */}
         <section className="rounded-xl border border-parchment/15 bg-navy-light/60 p-4 space-y-3 lg:col-span-2">
-          <h2 className="font-semibold text-lg">Teams</h2>
-          <div className="flex flex-wrap gap-2">
-            <input
-              className="rounded-lg bg-navy border border-parchment/20 px-3 py-2 text-sm"
-              placeholder="Team name"
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => void createTeam()}
-              className="rounded-lg bg-rune/90 text-navy font-semibold px-4 py-2 text-sm"
-            >
-              Create Invite Code
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-lg">Teams</h2>
+            {overview?.paused && (
+              <span className="text-xs font-semibold text-grade-f border border-grade-f/40 rounded px-2 py-1">
+                Students blocked (paused)
+              </span>
+            )}
           </div>
+          <p className="text-xs text-parchment-dim">
+            Change invite code issues a new code (old one stops working). Reset
+            clears that team’s fight progress.
+          </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -333,33 +366,14 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                       {t.alive}/{t.rosterSize}
                     </td>
                     <td className="py-2 pr-3">{t.bossHp ?? "—"}</td>
-                    <td className="py-2 space-x-1">
+                    <td className="py-2 space-x-1 whitespace-nowrap">
                       <button
                         type="button"
-                        className="text-xs border border-parchment/25 rounded px-2 py-1 hover:bg-navy"
-                        onClick={() =>
-                          void api.forceRound(pin, t.teamId).then(refresh)
-                        }
+                        className="text-xs border border-rune/40 text-rune rounded px-2 py-1 hover:bg-navy"
+                        title="Generate a new invite code for this team"
+                        onClick={() => void changeCode(t.teamId, t.name)}
                       >
-                        Force round
-                      </button>
-                      <button
-                        type="button"
-                        title="Only works after the team has saved a party of 6 in the student lobby"
-                        className="text-xs border border-parchment/25 rounded px-2 py-1 hover:bg-navy"
-                        onClick={() =>
-                          void api
-                            .teacherStartFight(pin, t.teamId)
-                            .then(refresh)
-                            .catch((e: Error) =>
-                              setError(
-                                e.message ||
-                                  "Start fight failed — team must form a party of 6 first",
-                              ),
-                            )
-                        }
-                      >
-                        Start fight
+                        Change invite code
                       </button>
                       <button
                         type="button"
@@ -375,8 +389,8 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                 ))}
                 {!overview?.teams.length && (
                   <tr>
-                    <td colSpan={7} className="py-4 text-parchment-dim">
-                      No teams yet — create an invite code for each group.
+                    <td colSpan={8} className="py-4 text-parchment-dim">
+                      No teams yet.
                     </td>
                   </tr>
                 )}

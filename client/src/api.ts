@@ -139,6 +139,8 @@ export type EnrichedTeam = {
   /** Student-facing scout card for the next room's boss (lobby hover). */
   nextBossScout?: import("@dungeon-grades/shared").BossScout | null;
   roomBossIds?: string[];
+  /** Teacher paused student play */
+  classroomPaused?: boolean;
 };
 
 export type Overview = {
@@ -146,6 +148,7 @@ export type Overview = {
   bossTemplateId: string | null;
   campaignLength: number;
   roomBossIds: string[];
+  paused?: boolean;
   bosses: {
     id: string;
     name: string;
@@ -236,13 +239,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ pin }),
     }),
-  forceRound: (pin: string, id: string) =>
-    request(`/api/teacher/teams/${id}/force-round`, {
+  setClassroomPaused: (pin: string, paused: boolean) =>
+    request<{ paused: boolean }>("/api/teacher/pause", {
       method: "POST",
-      body: JSON.stringify({ pin }),
+      body: JSON.stringify({ pin, paused }),
     }),
-  teacherStartFight: (pin: string, id: string) =>
-    request(`/api/teacher/teams/${id}/start-fight`, {
+  changeInviteCode: (pin: string, teamId: string) =>
+    request<EnrichedTeam>(`/api/teacher/teams/${teamId}/invite-code`, {
       method: "POST",
       body: JSON.stringify({ pin }),
     }),

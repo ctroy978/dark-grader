@@ -20,6 +20,7 @@ function defaultClassroom(): ClassroomState {
     teamIds: [],
     campaignLength: DEFAULT_CAMPAIGN_LENGTH,
     roomBossIds: [...DEFAULT_ROOM_BOSSES],
+    paused: false,
   };
 }
 
@@ -49,6 +50,7 @@ function normalizeClassroom(raw: Partial<ClassroomState>): ClassroomState {
     ...raw,
     campaignLength,
     roomBossIds,
+    paused: Boolean(raw.paused),
     masterTokenPool: Array.isArray(raw.masterTokenPool) ? raw.masterTokenPool : [],
     teamIds: Array.isArray(raw.teamIds) ? raw.teamIds : [],
   };
@@ -195,6 +197,34 @@ export class GameStore {
     const team = createTeam(teamId, old.inviteCode, old.name);
     this.teams.set(teamId, team);
     this.saveTeam(team);
+    return team;
+  }
+
+  setPaused(paused: boolean): ClassroomState {
+    this.classroom.paused = paused;
+    this.saveClassroom();
+    return this.classroom;
+  }
+
+  isPaused(): boolean {
+    return Boolean(this.classroom.paused);
+  }
+
+  /** Issue a new invite code for the team (old code stops working). */
+  regenerateInviteCode(teamId: string): TeamState {
+    const team = this.teams.get(teamId);
+    if (!team) throw new Error("Team not found");
+    let code = generateCode();
+    // Avoid collisions with other teams
+    for (let i = 0; i < 20; i++) {
+      const clash = [...this.teams.values()].some(
+        (t) => t.teamId !== teamId && t.inviteCode === code,
+      );
+      if (!clash) break;
+      code = generateCode();
+    }
+    team.inviteCode = code;
+    this.updateTeam(team);
     return team;
   }
 

@@ -57,6 +57,17 @@ function requireTeacher(pin: unknown): void {
   }
 }
 
+/** Block student join / play while teacher has paused the classroom. */
+function requirePlayable(): void {
+  if (store.isPaused()) {
+    const err = new Error(
+      "Classroom is paused — wait for your teacher to resume play",
+    ) as Error & { statusCode: number };
+    err.statusCode = 503;
+    throw err;
+  }
+}
+
 function broadcastTeam(teamId: string): void {
   const team = store.getTeam(teamId);
   if (!team) return;
@@ -88,6 +99,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
     nextBossName: nextBoss?.name ?? nextBossId,
     nextBossScout,
     roomBossIds: c.roomBossIds,
+    classroomPaused: Boolean(c.paused),
   };
 }
 
@@ -98,6 +110,7 @@ function overview() {
     bossTemplateId: c.bossTemplateId,
     campaignLength: c.campaignLength,
     roomBossIds: c.roomBossIds,
+    paused: Boolean(c.paused),
     bosses: listBossTemplatesForApi(),
     teams: store.listTeams().map((t) => ({
       teamId: t.teamId,
@@ -258,12 +271,45 @@ app.post<{ Body: { pin: string } }>("/api/teacher/campaign/default", async (req)
   return classroom;
 });
 
+/** Pause / resume student play (join + all team actions blocked while paused). */
+app.post<{ Body: { pin: string; paused: boolean } }>(
+  "/api/teacher/pause",
+  async (req) => {
+    requireTeacher(req.body.pin);
+    const classroom = store.setPaused(Boolean(req.body.paused));
+    io.to("teacher").emit("teacher:overview", overview());
+    // Push current state to all teams so clients can show a paused banner
+    for (const t of store.listTeams()) {
+      io.to(`team:${t.teamId}`).emit("team:state", enrich(t));
+    }
+    return { paused: Boolean(classroom.paused) };
+  },
+);
+
 app.post<{ Body: { pin: string; name?: string } }>("/api/teacher/teams", async (req) => {
   requireTeacher(req.body.pin);
   const team = store.createTeam(req.body.name ?? "");
   io.to("teacher").emit("teacher:overview", overview());
   return enrich(team);
 });
+
+/** New invite code for a team — old code stops working. */
+app.post<{ Body: { pin: string }; Params: { id: string } }>(
+  "/api/teacher/teams/:id/invite-code",
+  async (req) => {
+    requireTeacher(req.body.pin);
+    try {
+      const team = store.regenerateInviteCode(req.params.id);
+      io.to("teacher").emit("teacher:overview", overview());
+      broadcastTeam(team.teamId);
+      return enrich(team);
+    } catch {
+      const err = new Error("Team not found") as Error & { statusCode: number };
+      err.statusCode = 404;
+      throw err;
+    }
+  },
+);
 
 app.post<{ Body: { pin: string }; Params: { id: string } }>(
   "/api/teacher/teams/:id/reset",
@@ -327,6 +373,7 @@ app.post<{ Body: { pin: string }; Params: { id: string } }>(
 
 // --- Student / Team ---
 app.post<{ Body: { code: string } }>("/api/join", async (req) => {
+  requirePlayable();
   const team = store.getTeamByCode(req.body.code ?? "");
   if (!team) {
     const err = new Error("Invalid invite code") as Error & { statusCode: number };
@@ -337,6 +384,7 @@ app.post<{ Body: { code: string } }>("/api/join", async (req) => {
 });
 
 app.get<{ Params: { id: string } }>("/api/team/:id", async (req) => {
+  // Allow polling state while paused (so UI can show pause message)
   const team = store.getTeam(req.params.id);
   if (!team) {
     const err = new Error("Team not found") as Error & { statusCode: number };
@@ -349,6 +397,7 @@ app.get<{ Params: { id: string } }>("/api/team/:id", async (req) => {
 app.post<{ Body: { soldierIds: string[] }; Params: { id: string } }>(
   "/api/team/:id/roster",
   async (req) => {
+    requirePlayable();
     const team = store.getTeam(req.params.id);
     if (!team) {
       const err = new Error("Team not found") as Error & { statusCode: number };
@@ -365,6 +414,7 @@ app.post<{ Body: { soldierIds: string[] }; Params: { id: string } }>(
 app.post<{ Body: { position: number }; Params: { id: string } }>(
   "/api/team/:id/magnet",
   async (req) => {
+    requirePlayable();
     const team = store.getTeam(req.params.id);
     if (!team) {
       const err = new Error("Team not found") as Error & { statusCode: number };
@@ -379,6 +429,7 @@ app.post<{ Body: { position: number }; Params: { id: string } }>(
 );
 
 app.post<{ Params: { id: string } }>("/api/team/:id/commit-round", async (req) => {
+  requirePlayable();
   const team = store.getTeam(req.params.id);
   if (!team) {
     const err = new Error("Team not found") as Error & { statusCode: number };
@@ -392,6 +443,7 @@ app.post<{ Params: { id: string } }>("/api/team/:id/commit-round", async (req) =
 });
 
 app.post<{ Params: { id: string } }>("/api/team/:id/resolve-boss", async (req) => {
+  requirePlayable();
   const team = store.getTeam(req.params.id);
   if (!team) {
     const err = new Error("Team not found") as Error & { statusCode: number };
@@ -405,6 +457,7 @@ app.post<{ Params: { id: string } }>("/api/team/:id/resolve-boss", async (req) =
 });
 
 app.post<{ Params: { id: string } }>("/api/team/:id/start-fight", async (req) => {
+  requirePlayable();
   const team = store.getTeam(req.params.id);
   if (!team) {
     const err = new Error("Team not found") as Error & { statusCode: number };
@@ -427,6 +480,7 @@ app.post<{ Params: { id: string } }>("/api/team/:id/start-fight", async (req) =>
 });
 
 app.post<{ Params: { id: string } }>("/api/team/:id/continue", async (req) => {
+  requirePlayable();
   const team = store.getTeam(req.params.id);
   if (!team) {
     const err = new Error("Team not found") as Error & { statusCode: number };
@@ -444,6 +498,7 @@ app.post<{ Params: { id: string } }>("/api/team/:id/continue", async (req) => {
 app.post<{ Params: { id: string } }>(
   "/api/team/:id/return-from-defeat",
   async (req) => {
+    requirePlayable();
     const team = store.getTeam(req.params.id);
     if (!team) {
       const err = new Error("Team not found") as Error & { statusCode: number };
