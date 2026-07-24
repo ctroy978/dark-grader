@@ -17,13 +17,17 @@ import {
   type CombatPose,
 } from "./poses";
 
-type WindupTheme = "ember" | "poison" | "summon" | "shock";
+type WindupTheme = "ember" | "poison" | "summon" | "shock" | "frost";
 
-/** Persistent portrait tint while a DoT is on the unit (not only on tick flash). */
+/** Persistent portrait tint while a DoT / Frozen is on the unit (not only on tick flash). */
 function dotTintClasses(statuses?: StatusTag[]): string[] {
   if (!statuses?.length) return [];
   const out: string[] = [];
   for (const st of statuses) {
+    if (st.kind === "Frozen") {
+      out.push("fx-frozen-tint");
+      continue;
+    }
     if (st.kind !== "Dot") continue;
     if (st.type === "Fire") out.push("fx-fire-tint");
     else if (st.type === "Poison") out.push("fx-poison-tint");
@@ -219,7 +223,7 @@ export function CombatActor({
   className?: string;
   hpFloats?: HpFloat[];
 }) {
-  const pose = poseOverride ?? poseForUnit(unitId, alive, cue);
+  const pose = poseOverride ?? poseForUnit(unitId, alive, cue, statuses);
   // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
   const fx = [
     fxClassesForUnit(unitId, cue),

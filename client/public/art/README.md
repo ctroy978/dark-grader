@@ -16,10 +16,14 @@ Served as: `/art/{key}/{pose}.png`
 | **Wind-up** | **`windup.png`** | **Boss telegraph only** — charge pose with telegraph SFX (not the strike) |
 | Acting | `attack.png` | Party casts, boss **impact** after wind-up |
 | Taking damage | `hit.png` | Getting hit |
+| **Frozen** | **`ice.png`** | **Party only** — while `Frozen` (Barrow Warden SpreadingFrost). Sticky until cleansed. |
 | Fallen | `death.png` | Dead |
 
 **Boss art set (recommended):** `standing` + **`windup`** + `attack` + `hit`.  
 `windup` is boss-facing; party units ignore it. Missing `windup.png` shows the SVG placeholder until you drop the file — do **not** reuse `attack.png` as wind-up or the charge will look like the hit already landed.
+
+**Party art set (recommended):** `standing` + `attack` + `hit` + **`ice`** + `death`.  
+`ice.png` is the frozen lock pose (encased / stiff). Client also keeps a cyan frost aura while Frozen so the status reads if art is missing.
 
 If a pose file is missing, the client falls back to the SVG placeholder for that pose.  
 **Minimum for a test:** only `standing.png` is enough for idle; other poses still show placeholders until you add them.

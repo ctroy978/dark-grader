@@ -52,6 +52,11 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
     description:
       "Blankets the party in Fire burn that ticks every round and hits harder each tick if left up.",
   },
+  SpreadingFrost: {
+    name: "Spreading Frost",
+    description:
+      "A hard frost wave across the whole line. May also freeze seat 1 or 2 — frozen soldiers cannot attack or be healed; the ice spreads toward the center and shatters if not cleansed. Only one freeze chain at a time.",
+  },
   Regenerate: {
     name: "Regenerate",
     description: "Mends its own wounds a little (stalls less well).",

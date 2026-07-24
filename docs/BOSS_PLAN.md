@@ -1,7 +1,7 @@
 # Dungeon Grades — Boss & Campaign Plan
 
 **Status:** Design frozen for implementation (not all shipped)  
-**Last updated:** 2026-07-15  
+**Last updated:** 2026-07-24  
 **Owner:** Troy / classroom deployment  
 
 This document is the reference for the **6-room campaign**, boss identities, add rules, and new mechanics (Dominated, grade-sensitive thralls). When code and this file disagree after a feature ships, **update this file**.
@@ -51,8 +51,8 @@ moss_grub
 | 5 | `barrow_warden` | Dress rehearsal + grade signatures | Grave thrall (conditional) |
 | 6 | `bone_colossus` | Final exam | Bone Archers (full) |
 
-**Shipped today:** `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`.  
-**Default in code today:** 4 rooms **Moss Grub → Ash → Cinder Herald → Colossus**.
+**Shipped today:** `moss_grub`, `ash_wraith`, `cinder_herald`, `rattle_captain` (kit), `barrow_warden` (frost v1), `bone_colossus`.  
+**Default in code today:** 4 rooms **Moss Grub → Ash → Cinder Herald → Colossus** (full 6 selectable via teacher).
 
 Teacher may still override `campaignLength` / `roomBossIds`.
 
@@ -179,18 +179,43 @@ Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / A
 
 ---
 
-### 5.5 Room 5 — Barrow Warden (`barrow_warden`)
+### 5.5 Room 5 — Barrow Warden (`barrow_warden`) — **frost signature**
 
-**Teaching sentence:** “Bad grades feed the grave; hexed allies hit who we mark with the magnet.”
+**Teaching sentence:** “The frost wave hurts everyone — cleanse the freeze or it walks the front half and shatters.”
 
 | | |
 |--|--|
-| HP | **~200** |
-| Adds | **Grave Thrall** (see §6) — conditional heal vs attack |
-| Attacks | Poison + light Regen + moderate pressure; light Cascade optional; not full Colossus summon spam |
-| Traits | `MindHex` (Dominated — §7), thrall grade AI |
+| HP | **270** |
+| Theme | Frost / ice — dress rehearsal before Colossus |
+| Adds | **None in v1** (Grave Thrall + Dominated deferred — see §6–7) |
+| Attacks | `FrontSlam` (warden **15/11/7**), `LineAttack` (**9**), **`SpreadingFrost`** (w4), light `Regenerate` (w1) |
+| Enrage | &lt;40% HP, **1.3×** |
+| Art key | `barrow_warden` |
 
-Dress rehearsal: multi-threat, grade pool matters, still before final.
+#### Signature — `SpreadingFrost` (line wave + optional front freeze → Shatter)
+
+Separate status **`Frozen`** (not the token-downgrade Ice DoT). Cleansed like Ice.
+
+| Step | Rule |
+|------|------|
+| **Gate** | Do **not** *pick* if anyone is already `Frozen` (one chain at a time). If cast anyway, still does line damage. |
+| **Line damage** | Always hits the **whole living line** for **11** (enrage applies). This is the big part of the attack. |
+| **Freeze roll** | **65%** chance to freeze **pos 1 or pos 2** (pick among living front seats). **35%** nobody freezes — damage still landed. |
+| **While Frozen** | Cannot **attack** (token wasted). Cannot **be healed**. Each DoT phase: **3** cold chip, then spread or shatter. |
+| **Spread** | Each **DoT phase**: one seat toward center. Origin **1** → `1→2→3`; origin **2** → `2→3→4`. Skip dead seats. |
+| **Shatter** | After stage 2, next DoT phase: **18** on Frozen, **6** splash on others, clear Frozen. |
+| **Cleanse** | **FireMage** / **Doomcaller** / **Healer** (logs thaw when strip clears Frozen) |
+
+**Timeline example (freeze lands on pos 1):**
+
+1. Boss casts → whole line takes **11**; pos **1** Frozen (stage 0)  
+2. Next DoT phase → pos **2** freezes (stage 1)  
+3. Next DoT phase → pos **3** freezes (stage 2)  
+4. Next DoT phase → **Shatter**
+
+**FX (no per-archetype frozen art required):** persistent ice/frozen portrait tint + status chip; spread log + ice focus; shatter burst / hurt on victims.
+
+**Deferred on Warden:** Grave Thrall (§6), Dominated/MindHex (§7) — keep design notes; do not ship with frost v1 so room 5 stays one clear lesson.
 
 ---
 
@@ -309,9 +334,9 @@ Do **not** ship all six fantasy kits + Dominated in one PR.
 
 ### Slice C — Signature systems
 
-1. Grave Thrall heal-on-drop-composition.  
-2. **Dominated** status + cleanse + magnet thrall strikes + order.  
-3. **Barrow Warden** full pack.
+1. **Barrow Warden** frost pack (`SpreadingFrost` / `Frozen` → shatter). ✅ engine v1  
+2. Grave Thrall heal-on-drop-composition (deferred).  
+3. **Dominated** status + cleanse + magnet thrall strikes + order (deferred).
 
 ### Slice D — Polish
 

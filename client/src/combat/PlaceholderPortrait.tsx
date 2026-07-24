@@ -6,10 +6,11 @@ import type { CombatPose } from "./poses";
  * Portrait: real PNG if present under /art/{key}/{pose}.png, else SVG stub.
  *
  *   /art/vanguard/standing.png
+ *   /art/vanguard/ice.png        (party Frozen / SpreadingFrost)
  *   /art/ash_wraith/windup.png   (boss charge pose)
  *   /art/ash_wraith/attack.png
  *
- * Missing windup.png: browser 404 → SVG placeholder until you drop the file.
+ * Missing windup.png / ice.png: browser 404 → SVG placeholder until you drop the file.
  * Prefer a real windup over reusing attack.png so wind-up never looks like impact.
  */
 
@@ -107,6 +108,14 @@ function poseTransform(pose: CombatPose): {
         opacity: 1,
         filter: "brightness(0.85) saturate(0.7)",
       };
+    case "ice":
+      // Locked solid — stiff upright, cold filter (SVG fallback)
+      return {
+        body: "translate(0, 1)",
+        arm: "rotate(5 70 55)",
+        opacity: 1,
+        filter: "brightness(1.12) saturate(0.45) hue-rotate(175deg)",
+      };
     case "death":
       return {
         body: "translate(0, 18) rotate(70)",
@@ -178,6 +187,9 @@ export function PlaceholderPortrait({
         />
         {pose === "hit" && (
           <div className="pointer-events-none absolute inset-0 bg-crimson/25 mix-blend-overlay" />
+        )}
+        {pose === "ice" && (
+          <div className="pointer-events-none absolute inset-0 portrait-ice-veil" />
         )}
         {pose === "windup" && (
           <div className="pointer-events-none absolute inset-0 portrait-windup-veil" />

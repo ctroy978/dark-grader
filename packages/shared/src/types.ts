@@ -51,12 +51,33 @@ export interface ChargeStatus {
   amount: number;
 }
 
+/**
+ * Barrow Warden SpreadingFrost lock.
+ * Cannot attack or be healed until cleansed; spreads toward center each DoT phase,
+ * then shatters (see docs/BOSS_PLAN.md §5.5).
+ */
+export interface FrozenStatus {
+  kind: "Frozen";
+  /**
+   * Seat that started the chain (Warden: pos 1 or 2).
+   * Spread walks toward the center along frostChainPath(origin).
+   */
+  origin: number;
+  /**
+   * 0 = just applied (origin seat only).
+   * 1 = one spread done.
+   * 2 = two spreads done (third seat frozen) — next DoT phase shatters.
+   */
+  stage: number;
+}
+
 export type StatusTag =
   | DotInstance
   | MarkStatus
   | StunStatus
   | WeakenStatus
-  | ChargeStatus;
+  | ChargeStatus
+  | FrozenStatus;
 
 export interface Soldier {
   id: string;

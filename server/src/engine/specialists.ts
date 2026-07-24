@@ -50,8 +50,10 @@ export function endPartyActionPhase(): void {
 }
 
 export type SpecialistResolveResult = {
-  /** False when stun (or death) skipped the attack — do not play attack cue. */
+  /** False when stun / frozen / death skipped the attack — do not play attack cue. */
   acted: boolean;
+  /** Why the attack was skipped (for presentation bubbles). */
+  skipReason?: "stun" | "frozen";
 };
 
 export function resolveSpecialistAction(
@@ -68,12 +70,18 @@ export function resolveSpecialistAction(
     claim.effectiveGrade !== claim.token ? `→${claim.effectiveGrade}` : ""
   }`;
 
+  // Frozen (Barrow Warden) — token wasted; freeze stays until cleansed
+  if (soldier.statuses.some((s) => s.kind === "Frozen")) {
+    log(`${label}: FROZEN — token wasted, cannot act!`);
+    return { acted: false, skipReason: "frozen" };
+  }
+
   // Party stun (Thundercaller F / Rattle Captain) — lose this attack, then clear stun
   const stun = soldier.statuses.find((s) => s.kind === "Stun");
   if (stun && stun.kind === "Stun" && stun.duration > 0) {
     soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Stun");
     log(`${label}: STUNNED — loses their attack!`);
-    return { acted: false };
+    return { acted: false, skipReason: "stun" };
   }
 
   switch (soldier.archetype) {
@@ -317,32 +325,51 @@ function healer(
   }
   if (g === "A") {
     let total = 0;
+    let thawed = 0;
     for (const s of livingParty(team)) {
+      // Thaw before heal — Frozen blocks HP restore
+      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
+      s.statuses = s.statuses.filter(
+        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
+      );
       total += healSoldier(s, 10);
-      s.statuses = s.statuses.filter((st) => st.kind !== "Mark");
     }
-    log(`${label}: heals party ${total} total, removes Marks`);
+    log(
+      `${label}: heals party ${total} total, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+    );
     return;
   }
   if (g === "B") {
     let total = 0;
+    let thawed = 0;
     for (const s of livingParty(team).filter((x) => x.position && x.position <= 3)) {
+      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
+      s.statuses = s.statuses.filter(
+        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
+      );
       total += healSoldier(s, 10);
-      s.statuses = s.statuses.filter((st) => st.kind !== "Mark");
     }
-    log(`${label}: heals front ${total}, removes Marks`);
+    log(
+      `${label}: heals front ${total}, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+    );
     return;
   }
   if (g === "C") {
-    // Back line (pos 4–6): smaller heal + Mark clear
+    // Back line (pos 4–6): smaller heal + Mark / Frozen clear
     let total = 0;
+    let thawed = 0;
     for (const s of livingParty(team).filter(
       (x) => x.position && x.position >= 4,
     )) {
+      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
+      s.statuses = s.statuses.filter(
+        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
+      );
       total += healSoldier(s, 6);
-      s.statuses = s.statuses.filter((st) => st.kind !== "Mark");
     }
-    log(`${label}: heals back ${total}, removes Marks`);
+    log(
+      `${label}: heals back ${total}, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+    );
     return;
   }
   // D
@@ -417,16 +444,28 @@ function doomcaller(
     const front = livingParty(team).filter(
       (s) => s.position && s.position <= 3,
     );
+    const beforeFrozen = front.filter((s) =>
+      s.statuses.some((st) => st.kind === "Frozen"),
+    ).length;
     const n = stripDotsAndMarks(front).length;
-    log(`${label}: strips DoTs/Marks from front (${n} removed)`);
+    const thawed = beforeFrozen; // strip always clears Frozen
+    log(
+      `${label}: strips DoTs/Marks from front (${n} DoT/Mark${thawed ? `, thawed ${thawed} Frozen` : ""} removed)`,
+    );
     return;
   }
   if (g === "D") {
     const back = livingParty(team).filter(
       (s) => s.position && s.position >= 4,
     );
+    const beforeFrozen = back.filter((s) =>
+      s.statuses.some((st) => st.kind === "Frozen"),
+    ).length;
     const n = stripDotsAndMarks(back).length;
-    log(`${label}: strips DoTs/Marks from back (${n} removed)`);
+    const thawed = beforeFrozen;
+    log(
+      `${label}: strips DoTs/Marks from back (${n} DoT/Mark${thawed ? `, thawed ${thawed} Frozen` : ""} removed)`,
+    );
     return;
   }
 
@@ -452,9 +491,16 @@ function doomcaller(
 
   // A / B — strip whole living party, transfer to boss
   const party = livingParty(team);
+  const thawed = party.filter((s) =>
+    s.statuses.some((st) => st.kind === "Frozen"),
+  ).length;
   const collected = stripDotsAndMarks(party);
-  if (!collected.length) {
+  if (!collected.length && thawed === 0) {
     log(`${label}: party has no DoTs/Marks to transfer`);
+    return;
+  }
+  if (!collected.length && thawed > 0) {
+    log(`${label}: thaws ${thawed} Frozen (no DoTs to transfer)`);
     return;
   }
 
@@ -470,7 +516,7 @@ function doomcaller(
       parts.push(`${type}×${stacks}`);
     }
     log(
-      `${label}: transfers all stacks to boss for 2 rounds — ${parts.join(", ")}`,
+      `${label}: transfers all stacks to boss for 2 rounds — ${parts.join(", ")}${thawed ? `; thawed ${thawed} Frozen` : ""}`,
     );
     return;
   }
@@ -481,7 +527,7 @@ function doomcaller(
     applyBossDot(team.boss, type, 1, 3);
   }
   log(
-    `${label}: transfers one of each type to boss for 3 rounds — ${[...unique].join(", ")}`,
+    `${label}: transfers one of each type to boss for 3 rounds — ${[...unique].join(", ")}${thawed ? `; thawed ${thawed} Frozen` : ""}`,
   );
 }
 

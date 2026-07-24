@@ -11,7 +11,7 @@ import GradeToken from "../combat/GradeToken";
 function bossLabel(bossId: string, bosses: Overview["bosses"]): string {
   const b = bosses.find((x) => x.id === bossId);
   if (b) {
-    return bossId === "barrow_warden" ? `${b.name} (placeholder)` : b.name;
+    return b.name;
   }
   return bossId
     .split("_")
@@ -556,11 +556,9 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {(overview?.roomBossIds ?? []).map((bossId, roomIdx) => {
-              const isPlaceholder =
-                overview?.bosses
-                  .find((b) => b.id === bossId)
-                  ?.summary?.includes("PLACEHOLDER") ||
-                bossId === "barrow_warden";
+              const isPlaceholder = overview?.bosses
+                .find((b) => b.id === bossId)
+                ?.summary?.includes("PLACEHOLDER");
               return (
                 <div key={roomIdx} className="flex items-center gap-2">
                   <span className="text-xs text-parchment-dim w-14 shrink-0">
@@ -585,7 +583,9 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                     {overview?.bosses.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
-                        {b.id === "barrow_warden" ? " (placeholder)" : ""}
+                        {b.summary?.includes("PLACEHOLDER")
+                          ? " (placeholder)"
+                          : ""}
                         {" · "}
                         {b.difficulty}
                       </option>

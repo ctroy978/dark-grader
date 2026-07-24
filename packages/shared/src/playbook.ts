@@ -29,9 +29,9 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Explodes on the whole party (ignores shield)",
   },
   Healer: {
-    A: "Heal all + clear Marks",
-    B: "Heal front + clear Marks",
-    C: "Heal back +6 each + clear Marks",
+    A: "Heal all + clear Marks & Frozen",
+    B: "Heal front + clear Marks & Frozen",
+    C: "Heal back +6 each + clear Marks & Frozen",
     D: "Heal self only",
     F: "Backlash — heals the boss (+8)",
   },

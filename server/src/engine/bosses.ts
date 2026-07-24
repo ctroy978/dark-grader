@@ -2,6 +2,8 @@ import {
   isRattleStunKitAttack,
   RATTLE_NEIGHBOR_STUN_PENALTY,
   RATTLE_SPARK_STUN_CHANCE,
+  SPREADING_FROST_CHANCE,
+  SPREADING_FROST_LINE_DAMAGE,
   THUNDERCALLER_BOSS_STUN_CHANCE,
   type Minion,
   type Soldier,
@@ -9,7 +11,7 @@ import {
 } from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
 import { applyPartyDamage, livingParty, soldierAt } from "./damage.js";
-import { applyDot } from "./dots.js";
+import { applyDot, applyFrozen, partyHasFrozen } from "./dots.js";
 import {
   attackDef,
   getBossTemplate,
@@ -326,10 +328,16 @@ function pickWeightedAttack(
   const blockStunKit =
     template.id === "rattle_captain" && !!team.bossLastAttackWasStunKit;
 
+  const freezeActive = partyHasFrozen(team);
+
   const weights = attackIds.map((id) => {
     const def = attackDef(template, id);
     let w = def?.weight ?? 2;
     if (blockStunKit && isRattleStunKitAttack(id)) {
+      w = 0;
+    }
+    // One freeze chain at a time — no re-cast while anyone is Frozen
+    if (id === "SpreadingFrost" && freezeActive) {
       w = 0;
     }
     const summon = resolveSummonSpec(template, id);
@@ -485,6 +493,7 @@ export function resolveBossPhase(
     fx: [
       ...(rage > 1 ? ["enraged"] : []),
       ...(boss.id === "rattle_captain" ? ["shock-flash"] : []),
+      ...(attackId === "SpreadingFrost" ? ["ice-tint", "frost-flash"] : []),
     ],
   });
 
@@ -539,10 +548,22 @@ function performAttack(
   switch (attackId) {
     case "FrontSlam": {
       log(`${boss.name} uses Front Slam!`);
+      // Warden: heavier front tax (room-5 pressure without Cascade)
+      const warden = boss.id === "barrow_warden";
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
         if (!s) continue;
-        const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
+        const base = warden
+          ? pos === 1
+            ? 15
+            : pos === 2
+              ? 11
+              : 7
+          : pos === 1
+            ? 12
+            : pos === 2
+              ? 9
+              : 5;
         const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
       }
@@ -592,8 +613,9 @@ function performAttack(
     }
     case "LineAttack": {
       log(`${boss.name} uses Line Attack!`);
+      const lineBase = boss.id === "barrow_warden" ? 9 : 7;
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(7));
+        const hpLost = hit(s, dmg(lineBase));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;
@@ -694,6 +716,36 @@ function performAttack(
           log(`  ${s.name} is burning (ramps each round if left up)`);
         }
       }
+      break;
+    }
+    case "SpreadingFrost": {
+      // Big frost wave across the line, then a chance to freeze front seat 1 or 2
+      log(`${boss.name} casts Spreading Frost!`);
+      for (const s of livingParty(team)) {
+        const hpLost = hit(s, dmg(SPREADING_FROST_LINE_DAMAGE));
+        log(`  ${s.name} takes ${hpLost}`);
+      }
+      if (partyHasFrozen(team)) {
+        log(`  Frost already grips the line — no new freeze locks on`);
+        break;
+      }
+      const frontSeats = ([1, 2] as const).filter((pos) => soldierAt(team, pos));
+      if (!frontSeats.length) {
+        log(`  No one in seats 1–2 to freeze`);
+        break;
+      }
+      // Chance nobody freezes — damage already landed
+      if (random() >= SPREADING_FROST_CHANCE) {
+        log(`  The ice fails to lock anyone solid`);
+        break;
+      }
+      const origin = frontSeats[Math.floor(random() * frontSeats.length)]!;
+      const target = soldierAt(team, origin);
+      if (!target) break;
+      applyFrozen(target, origin, 0);
+      log(
+        `  ${target.name} (pos ${origin}) is FROZEN solid — cleanse or the ice spreads toward the center!`,
+      );
       break;
     }
     default: {

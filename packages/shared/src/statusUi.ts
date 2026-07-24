@@ -55,6 +55,19 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       colorClass: "text-yellow-200 border-yellow-400/40 bg-yellow-950/40",
     };
   }
+  if (st.kind === "Frozen") {
+    const until =
+      st.stage >= 2
+        ? "next DoT phase: SHATTER"
+        : `${2 - st.stage} spread(s) left before shatter window`;
+    return {
+      key: `frozen-${index}`,
+      icon: "🧊",
+      label: st.stage >= 2 ? "Frozen ⚠" : `Frozen ${st.stage}/2`,
+      title: `Frozen — cannot attack or be healed · ${until} · cleanse with FireMage / Doomcaller / Healer`,
+      colorClass: "text-cyan-200 border-cyan-400/50 bg-cyan-950/50",
+    };
+  }
   if (st.kind === "Charge") {
     return {
       key: `charge-${index}`,

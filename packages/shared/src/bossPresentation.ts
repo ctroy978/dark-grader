@@ -22,8 +22,9 @@ export type BossThreatTier = "light" | "heavy" | "ultimate";
  * - poison: toxin cloud (green bubbles)
  * - summon: calling adds (void / dark)
  * - shock: electric yellow (Rattle Captain)
+ * - frost: ice / SpreadingFrost (cyan)
  */
-export type BossWindupTheme = "ember" | "poison" | "summon" | "shock";
+export type BossWindupTheme = "ember" | "poison" | "summon" | "shock" | "frost";
 
 /** Presentation weight of an attack (not damage math). */
 export function bossThreatTier(attackId: string): BossThreatTier {
@@ -33,6 +34,7 @@ export function bossThreatTier(attackId: string): BossThreatTier {
     case "CrushMagnet":
     case "PoisonCloud":
     case "FireCloud":
+    case "SpreadingFrost":
     case "SummonBoneArchers":
     case "SummonCinderImps":
     case "SummonMossMites":
@@ -58,6 +60,8 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
       return "summon";
     case "RattleSpark":
       return "shock";
+    case "SpreadingFrost":
+      return "frost";
     // FireCloud, Cascade, FrontSlam, LineAttack, CrushMagnet, Regenerate, …
     default:
       return "ember";

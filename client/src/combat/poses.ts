@@ -1,26 +1,38 @@
+import type { StatusTag } from "@dungeon-grades/shared";
 import type { PresentationCue } from "../api";
 
 /** Darkest Dungeon–style combat poses. */
-export type CombatPose = "standing" | "windup" | "attack" | "hit" | "death";
+export type CombatPose =
+  | "standing"
+  | "windup"
+  | "attack"
+  | "hit"
+  | "death"
+  /** SpreadingFrost lock — ice.png (party) while Frozen status is active */
+  | "ice";
 
 /**
- * Derive pose for a unit from the active presentation cue.
- * Dead units always stay on death.
+ * Derive pose for a unit from the active presentation cue + live statuses.
+ * Dead units always stay on death. Frozen sticks on ice.png until cleansed.
  *
  * Rules (DD-style):
+ * - Dead → death (sticky)
+ * - Frozen → ice (sticky; overrides attack/hit while locked)
  * - Speaker / actor → attack (or claim = brief standing flex)
  * - Boss telegraph → windup (charge pose + telegraph SFX)
  * - Boss impact → attack
  * - Targets of enemy damage → hit
- * - Dead → death (sticky)
  * - Else → standing
  */
 export function poseForUnit(
   unitId: string,
   alive: boolean,
   cue: PresentationCue | null | undefined,
+  statuses?: StatusTag[],
 ): CombatPose {
   if (!alive) return "death";
+  // Sticky freeze portrait while status remains (classroom-readable)
+  if (statuses?.some((s) => s.kind === "Frozen")) return "ice";
   if (!cue) return "standing";
 
   const isSpeaker = cue.bubble?.speakerId === unitId;
@@ -33,6 +45,8 @@ export function poseForUnit(
       return isSpeaker ? "standing" : "standing";
 
     case "action":
+      // Frozen skip (token waste) — ice pose, not a swing
+      if (isSpeaker && fx.includes("party-frozen")) return "ice";
       // Party stun skip — reel, don't swing
       if (
         isSpeaker &&
@@ -107,10 +121,11 @@ export function threatTierFromCue(
 /** Wind-up color theme from presentation fx (server tags windup-*). */
 export function windupThemeFromCue(
   cue: PresentationCue | null | undefined,
-): "ember" | "poison" | "summon" | "shock" {
+): "ember" | "poison" | "summon" | "shock" | "frost" {
   if (cue?.fx?.includes("windup-poison")) return "poison";
   if (cue?.fx?.includes("windup-summon")) return "summon";
   if (cue?.fx?.includes("windup-shock")) return "shock";
+  if (cue?.fx?.includes("windup-frost")) return "frost";
   return "ember";
 }
 
@@ -133,9 +148,13 @@ export function fxClassesForUnit(
       if (f === "fire-tint" || f === "fire-flash") return !isBoss ? "fx-fire-tint" : "";
       if (f === "ice-tint") return !isBoss ? "fx-ice-tint" : "";
       if (f === "slime-tint") return !isBoss ? "fx-slime-tint" : "";
+      if (f === "frost-flash" || f === "frost-shatter") {
+        return !isBoss ? "fx-frost-flash" : "fx-frost-flash";
+      }
       if (f === "shock-flash") return "fx-shock-flash";
       if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
+      if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
       if (f === "magnet-lock") return ""; // magnet strip handles this
@@ -157,6 +176,7 @@ export function fxClassesForUnit(
       if (f === "windup-poison") return isBoss ? "fx-windup-poison" : "";
       if (f === "windup-summon") return isBoss ? "fx-windup-summon" : "";
       if (f === "windup-shock") return isBoss ? "fx-windup-shock" : "";
+      if (f === "windup-frost") return isBoss ? "fx-windup-frost" : "";
       return "";
     })
     .filter(Boolean)

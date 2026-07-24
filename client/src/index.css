@@ -258,6 +258,40 @@ body {
   border-color: rgba(140, 210, 255, 0.5);
 }
 
+/* SpreadingFrost lock — stronger than soft Ice DoT, readable at classroom distance */
+.fx-frozen-tint,
+.fx-party-frozen {
+  filter: drop-shadow(0 0 10px rgba(140, 230, 255, 0.9))
+    drop-shadow(0 0 20px rgba(80, 180, 255, 0.55)) grayscale(0.25);
+}
+.fx-frozen-tint .portrait-frame,
+.fx-party-frozen .portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(180, 240, 255, 0.75),
+    0 0 18px rgba(100, 200, 255, 0.65),
+    0 0 32px rgba(60, 160, 230, 0.4);
+  border-color: rgba(170, 230, 255, 0.75);
+}
+.fx-frozen-tint .portrait-frame img,
+.fx-frozen-tint .portrait-frame svg,
+.fx-party-frozen .portrait-frame img,
+.fx-party-frozen .portrait-frame svg {
+  filter: brightness(1.12) saturate(0.55) hue-rotate(175deg)
+    drop-shadow(0 0 8px rgba(160, 230, 255, 0.65));
+}
+.fx-frost-flash {
+  animation: frost-flash 0.55s ease-out;
+  filter: drop-shadow(0 0 12px rgba(200, 240, 255, 0.95));
+}
+@keyframes frost-flash {
+  0% {
+    filter: brightness(1.4) drop-shadow(0 0 18px rgba(220, 250, 255, 1));
+  }
+  100% {
+    filter: brightness(1) drop-shadow(0 0 8px rgba(120, 200, 255, 0.5));
+  }
+}
+
 .fx-slime-tint {
   filter: drop-shadow(0 0 8px rgba(80, 220, 160, 0.7))
     drop-shadow(0 0 14px rgba(40, 160, 120, 0.4));
@@ -651,6 +685,37 @@ body {
   box-shadow: inset 0 0 0 2px rgba(255, 230, 100, 0.45);
 }
 
+/* Frost cyan (Barrow Warden SpreadingFrost) */
+.fx-boss-windup.fx-windup-frost {
+  filter: drop-shadow(0 0 12px rgba(120, 210, 255, 0.55));
+}
+.fx-boss-windup.fx-windup-frost .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(160, 230, 255, 0.55),
+    0 0 20px rgba(100, 190, 255, 0.55),
+    0 0 40px rgba(60, 150, 230, 0.35),
+    0 0 60px rgba(180, 240, 255, 0.15);
+  border-color: rgba(150, 220, 255, 0.55);
+}
+.fx-boss-windup.fx-windup-frost.fx-threat-heavy .portrait-frame,
+.fx-boss-windup.fx-windup-frost.fx-threat-ultimate .portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(180, 240, 255, 0.7),
+    0 0 28px rgba(120, 210, 255, 0.7),
+    0 0 52px rgba(80, 170, 240, 0.45),
+    0 0 80px rgba(200, 245, 255, 0.2);
+}
+.fx-boss-windup.fx-windup-frost .portrait-windup-veil {
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      rgba(140, 220, 255, 0.28) 0%,
+      transparent 55%
+    ),
+    linear-gradient(to top, rgba(20, 40, 70, 0.4) 0%, transparent 45%);
+  box-shadow: inset 0 0 0 2px rgba(140, 220, 255, 0.45);
+}
+
 .fx-shock-flash {
   filter: drop-shadow(0 0 8px rgba(255, 230, 90, 0.75))
     drop-shadow(0 0 14px rgba(220, 180, 40, 0.4));
@@ -793,6 +858,38 @@ body {
     transparent 60%
   );
   box-shadow: inset 0 0 0 2px rgba(255, 80, 40, 0.45);
+}
+
+/* Frozen lock (ice.png) — light crystal sheen; pairs with fx-frozen-tint aura */
+.portrait-ice-veil {
+  background:
+    radial-gradient(
+      ellipse at 50% 35%,
+      rgba(180, 235, 255, 0.28) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      to top,
+      rgba(30, 60, 100, 0.3) 0%,
+      transparent 50%
+    );
+  box-shadow: inset 0 0 0 2px rgba(140, 220, 255, 0.45);
+  animation: ice-veil-shimmer 2s ease-in-out infinite;
+}
+@keyframes ice-veil-shimmer {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.portrait-frame[data-pose="ice"] {
+  box-shadow:
+    0 0 0 1px rgba(160, 230, 255, 0.4),
+    0 0 12px rgba(100, 190, 255, 0.35);
 }
 
 /* --- Ash wind-up particle field (sibling overlay on boss) --- */
@@ -951,6 +1048,38 @@ body {
   height: 10px;
   animation-duration: 1.6s;
   filter: brightness(1.1);
+}
+
+/* Frost wind-up — cyan ice motes */
+.ash-windup-fx--frost .ash-heat-haze {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(140, 220, 255, 0.22) 0%,
+    transparent 65%
+  );
+}
+.ash-windup-fx--frost .ash-smoke-ring {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(40, 90, 140, 0.35) 0%,
+    rgba(80, 160, 220, 0.15) 45%,
+    transparent 70%
+  );
+}
+.ash-windup-fx--frost .ash-ember {
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(240, 250, 255, 0.95) 0%,
+    rgba(140, 220, 255, 0.75) 40%,
+    rgba(60, 140, 220, 0.4) 75%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 6px 2px rgba(140, 220, 255, 0.75),
+    0 0 14px 3px rgba(80, 170, 240, 0.35);
 }
 .ash-windup-fx--poison.ash-windup-fx--ultimate .ash-ember,
 .ash-windup-fx--poison.ash-windup-fx--heavy .ash-ember {

@@ -1,8 +1,12 @@
 import {
   DOT_STATS,
+  FROST_LOCKED_TICK_DAMAGE,
+  FROST_SHATTER_FROZEN_DAMAGE,
+  FROST_SHATTER_SPLASH_DAMAGE,
   MAX_PARTY_FIRE_STACKS,
   type BossState,
   type DotType,
+  type FrozenStatus,
   type Minion,
   type Soldier,
   type TeamState,
@@ -15,6 +19,139 @@ import {
   noteMinionSlain,
   soldierAt,
 } from "./damage.js";
+
+/** True when any living party member is Frozen. */
+export function partyHasFrozen(team: TeamState): boolean {
+  return livingParty(team).some((s) =>
+    s.statuses.some((st) => st.kind === "Frozen"),
+  );
+}
+
+/** Apply / replace Frozen on a soldier (one freeze status max). */
+export function applyFrozen(
+  soldier: Soldier,
+  origin: number,
+  stage: number,
+): void {
+  soldier.statuses = soldier.statuses.filter((st) => st.kind !== "Frozen");
+  soldier.statuses.push({ kind: "Frozen", origin, stage });
+}
+
+export function isFrozen(soldier: Soldier): boolean {
+  return soldier.statuses.some((st) => st.kind === "Frozen");
+}
+
+/**
+ * Frost path from origin toward center (3 seats).
+ * Warden freezes pos 1 or 2: 1→2→3, 2→3→4.
+ */
+export function frostChainPath(origin: number): readonly number[] {
+  if (origin === 1) return [1, 2, 3];
+  if (origin === 2) return [2, 3, 4];
+  if (origin === 6) return [6, 5, 4]; // legacy / future back-line freeze
+  if (origin === 5) return [5, 4, 3];
+  // Fallback: walk toward seat 3.5
+  const step = origin < 3.5 ? 1 : -1;
+  return [origin, origin + step, origin + 2 * step];
+}
+
+/**
+ * DoT-phase freeze chain: spread one seat toward center, or shatter after stage 2.
+ * Called from tickDots when any Frozen remains.
+ */
+export function tickFrozenChain(
+  team: TeamState,
+  log: (text: string) => void,
+): void {
+  const party = livingParty(team);
+  const frozenSoldiers = party.filter(isFrozen);
+  if (!frozenSoldiers.length) return;
+
+  const sample = frozenSoldiers[0]!.statuses.find(
+    (st): st is FrozenStatus => st.kind === "Frozen",
+  );
+  if (!sample) return;
+
+  const { origin, stage } = sample;
+
+  // Cold bite while locked (makes cleanse urgent even before shatter)
+  if (FROST_LOCKED_TICK_DAMAGE > 0 && stage < 2) {
+    for (const s of frozenSoldiers) {
+      const result = applyPartyDamage(
+        s,
+        FROST_LOCKED_TICK_DAMAGE,
+        team.partyShield,
+      );
+      log(
+        `  [Frost] ${s.name} freezes deeper: ${FROST_LOCKED_TICK_DAMAGE} raw → ${formatPartyHit(s, result)}`,
+      );
+    }
+  }
+
+  // Shatter after two spreads (third seat locked)
+  if (stage >= 2) {
+    log(
+      `  [Frost] The ice SHATTERS! (${frozenSoldiers.length} frozen take the blast)`,
+    );
+    const frozenIds = new Set(frozenSoldiers.map((s) => s.id));
+    for (const s of party) {
+      if (frozenIds.has(s.id)) {
+        const result = applyPartyDamage(
+          s,
+          FROST_SHATTER_FROZEN_DAMAGE,
+          team.partyShield,
+        );
+        log(
+          `    ${s.name}: shatter ${FROST_SHATTER_FROZEN_DAMAGE} raw → ${formatPartyHit(s, result)}`,
+        );
+      } else {
+        const result = applyPartyDamage(
+          s,
+          FROST_SHATTER_SPLASH_DAMAGE,
+          team.partyShield,
+        );
+        log(
+          `    ${s.name}: ice shards ${FROST_SHATTER_SPLASH_DAMAGE} raw → ${formatPartyHit(s, result)}`,
+        );
+      }
+    }
+    for (const s of party) {
+      s.statuses = s.statuses.filter((st) => st.kind !== "Frozen");
+    }
+    return;
+  }
+
+  // Spread toward center (skip dead seats in this same step)
+  const path = frostChainPath(origin);
+  const nextStage = stage + 1;
+  let spreadTo: Soldier | undefined;
+  for (let i = stage + 1; i < path.length; i++) {
+    const seat = soldierAt(team, path[i]!);
+    if (seat && !isFrozen(seat)) {
+      spreadTo = seat;
+      break;
+    }
+  }
+  if (spreadTo) {
+    applyFrozen(spreadTo, origin, nextStage);
+    log(
+      `  [Frost] Ice spreads to ${spreadTo.name} (pos ${spreadTo.position}) — cleanse before it shatters!`,
+    );
+  } else {
+    log(
+      `  [Frost] Ice has no living seat left toward center — pressure builds (stage ${nextStage})`,
+    );
+  }
+  // Keep chain stage in sync on every Frozen carrier
+  for (const s of livingParty(team)) {
+    for (const st of s.statuses) {
+      if (st.kind === "Frozen") {
+        st.stage = nextStage;
+        st.origin = origin;
+      }
+    }
+  }
+}
 
 /**
  * Apply / stack a DoT on a party soldier.
@@ -123,8 +260,9 @@ export function stripDotsAndMarks(
         collected.push({ type: st.type, stacks: st.stacks });
       }
     }
+    // Frozen strips with marks/DoTs but never transfers to the boss
     s.statuses = s.statuses.filter(
-      (st) => st.kind !== "Dot" && st.kind !== "Mark",
+      (st) => st.kind !== "Dot" && st.kind !== "Mark" && st.kind !== "Frozen",
     );
   }
   return collected;
@@ -135,11 +273,15 @@ export function cleanseDots(
   types: DotType[],
 ): number {
   let removed = 0;
+  const cleanseFrozen = types.includes("Ice");
   for (const s of soldiers) {
     const before = s.statuses.length;
-    s.statuses = s.statuses.filter(
-      (st) => !(st.kind === "Dot" && types.includes(st.type)),
-    );
+    s.statuses = s.statuses.filter((st) => {
+      if (st.kind === "Dot" && types.includes(st.type)) return false;
+      // SpreadingFrost lock cleanses with Ice
+      if (st.kind === "Frozen" && cleanseFrozen) return false;
+      return true;
+    });
     removed += before - s.statuses.length;
   }
   return removed;
@@ -153,7 +295,7 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   const party = livingParty(team);
   let slimeActive = false;
 
-  // Snapshot active DoTs for a readable header
+  // Snapshot active DoTs / Frozen for a readable header
   const summary: string[] = [];
   for (const soldier of party) {
     for (const st of soldier.statuses) {
@@ -161,6 +303,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
         summary.push(
           `${soldier.name}:${st.type}×${st.stacks}(${st.duration}r left)`,
         );
+      } else if (st.kind === "Frozen") {
+        summary.push(`${soldier.name}:Frozen(s${st.stage})`);
       }
     }
   }
@@ -281,6 +425,12 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
 
   // --- Minion DoTs (FireMage Wildfire on adds) ---
   tickMinionDots(team, log);
+
+  // --- SpreadingFrost chain (Barrow Warden) — after other ticks so cleanse same round wins ---
+  // Note: cleanse happens during party actions before this phase.
+  if (partyHasFrozen(team)) {
+    tickFrozenChain(team, log);
+  }
 
   log(`— End DoT phase —`);
 }

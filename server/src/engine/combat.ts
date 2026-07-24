@@ -369,7 +369,7 @@ export function commitRound(team: TeamState): TeamState {
         hp: m.currentHp,
       }));
 
-      const { acted } = resolveSpecialistAction(
+      const { acted, skipReason } = resolveSpecialistAction(
         team,
         soldier,
         claim,
@@ -378,8 +378,9 @@ export function commitRound(team: TeamState): TeamState {
       );
       markClaimerResolved(soldier.id);
 
-      // Stunned claimers keep their token claim but must not play an attack beat
+      // Stunned / Frozen claimers keep their token claim but must not play an attack beat
       if (!acted) {
+        const frozen = skipReason === "frozen";
         pushCue(team, {
           kind: "action",
           focusIds: [soldier.id],
@@ -388,9 +389,11 @@ export function commitRound(team: TeamState): TeamState {
             speakerId: soldier.id,
             speakerName: soldier.name,
             side: "party",
-            text: "Stunned!",
+            text: frozen ? "Frozen!" : "Stunned!",
           },
-          fx: ["party-stunned", "hurt-flash"],
+          fx: frozen
+            ? ["party-frozen", "ice-tint", "hurt-flash"]
+            : ["party-stunned", "hurt-flash"],
           sfxId: "fizzle",
           durationMs: 900,
         });
@@ -442,33 +445,39 @@ export function commitRound(team: TeamState): TeamState {
 
   // One compact DoT beat (visuals on chips, not a speech parade).
   // FX tint follows actual DoT types — never force poison-green on Fire ticks.
+  // Also covers SpreadingFrost spread / shatter log lines.
   let sawDot = false;
   tickDots(team, (text) => {
     pushLog(team, text, ["dot"]);
     if (!sawDot && !text.includes("— DoT") && !text.includes("— End")) {
       sawDot = true;
       const dotted = livingParty(team).filter((s) =>
-        s.statuses.some((st) => st.kind === "Dot"),
+        s.statuses.some((st) => st.kind === "Dot" || st.kind === "Frozen"),
       );
       const types = new Set<string>();
+      let hasFrozen = false;
       for (const s of dotted) {
         for (const st of s.statuses) {
           if (st.kind === "Dot") types.add(st.type);
+          if (st.kind === "Frozen") hasFrozen = true;
         }
       }
+      const isShatter = text.includes("SHATTER");
+      const isFrostSpread = text.includes("[Frost]");
       const fx: string[] = ["dot-tick"];
       if (types.has("Fire")) fx.push("fire-tint");
       if (types.has("Poison")) fx.push("poison-tint");
-      if (types.has("Ice")) fx.push("ice-tint");
+      if (types.has("Ice") || hasFrozen || isFrostSpread) fx.push("ice-tint");
       if (types.has("Slime")) fx.push("slime-tint");
+      if (isShatter) fx.push("frost-shatter", "hurt-flash");
       // Fallback if type set empty somehow
       if (fx.length === 1) fx.push("hurt-flash");
       pushCue(team, {
         kind: "dot",
         focusIds: dotted.map((s) => s.id),
         fx,
-        sfxId: "dot_tick",
-        durationMs: 700,
+        sfxId: isShatter ? "boss_attack" : "dot_tick",
+        durationMs: isShatter ? 1100 : 700,
       });
     }
   });

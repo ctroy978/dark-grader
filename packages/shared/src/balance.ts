@@ -82,6 +82,20 @@ export const DOT_STATS = {
 /** Max Fire stacks on a party soldier (Clouds / imp hits stop piling past this). */
 export const MAX_PARTY_FIRE_STACKS = 2;
 
+/**
+ * Barrow Warden SpreadingFrost:
+ * Always hits the whole line for LINE damage, then may freeze pos 1 or 2.
+ */
+export const SPREADING_FROST_LINE_DAMAGE = 11;
+/** Chance that the frost wave also locks pos 1 or 2 (else nobody freezes). */
+export const SPREADING_FROST_CHANCE = 0.65;
+/** Shatter damage to each currently Frozen soldier. */
+export const FROST_SHATTER_FROZEN_DAMAGE = 18;
+/** Shatter chip to each living non-Frozen party member. */
+export const FROST_SHATTER_SPLASH_DAMAGE = 6;
+/** Per-DoT-phase chip on each Frozen soldier (before spread/shatter). */
+export const FROST_LOCKED_TICK_DAMAGE = 3;
+
 /** Retain full fight history for classroom review */
 export const MAX_LOG_ENTRIES = 800;
 
