@@ -71,9 +71,14 @@ export function poseForUnit(
       if (unitId === "boss" && fx.includes("boss-voice")) {
         return "standing";
       }
-      // Shield Maiden energy charge: keep standing art (no party windup.png yet);
-      // silver charge FX sells the build-up.
-      if (isSpeaker && fx.includes("maiden-charge")) return "standing";
+      // Party cast charges: keep standing art (no party windup.png yet);
+      // FX sells the build-up (silver maiden / orange fire).
+      if (
+        isSpeaker &&
+        (fx.includes("maiden-charge") || fx.includes("fire-charge"))
+      ) {
+        return "standing";
+      }
       // Real wind-up: windup.png + telegraph SFX
       if (unitId === "boss" || isSpeaker) return "windup";
       return "standing";
@@ -161,6 +166,8 @@ export function fxClassesForUnit(
       // Shield Maiden energy beam: charge on caster, blast on caster + impact on targets
       if (f === "maiden-charge") return !isBoss ? "fx-maiden-charge" : "";
       if (f === "maiden-blast") return "fx-maiden-blast";
+      if (f === "fire-charge") return !isBoss ? "fx-fire-charge" : "";
+      if (f === "fire-blast") return "fx-fire-blast";
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";

@@ -34,6 +34,7 @@ import {
 import { CombatActor } from "../combat/CombatActor";
 import type { HpFloat } from "../combat/DamageFloat";
 import GradeToken, { GradeTokenSlot } from "../combat/GradeToken";
+import { poseForUnit, type CombatPose } from "../combat/poses";
 import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
 
@@ -447,6 +448,11 @@ export default function CombatScreen({
   const [visualHold, setVisualHold] = useState<EnrichedTeam | null>(null);
   const playedSigRef = useRef<string>("");
   const partyPlaybackDoneRef = useRef(false);
+  /**
+   * Last boss telegraph/impact pose — held across the gap after wind-up playback
+   * ends and before resolveBoss impact cues start (otherwise standing.png flashes).
+   */
+  const stickyBossPoseRef = useRef<CombatPose>("standing");
   /** Prevent double endPresentation (two finish effects) from double-playing horns */
   const outcomeSfxPlayedRef = useRef(false);
   const teamRef = useRef(team);
@@ -886,6 +892,56 @@ export default function CombatScreen({
   const showBossTelegraphBanner =
     team.phase === "boss_telegraph" && (!playing || activeBeat?.kind === "telegraph");
 
+  /**
+   * Boss portrait pose: sticky wind-up (or stun hit) across the commit→resolve
+   * gap so standing.png never flashes between windup and attack.
+   *
+   * Gaps covered:
+   * 1. Wind-up playback ends → ~350ms → resolveBoss request (phase still boss_telegraph)
+   * 2. resolveBoss returns (phase already awaiting_magnet) → one frame before impact queue plays
+   */
+  const bossPose = useMemo((): CombatPose | undefined => {
+    const alive = (view.boss?.currentHp ?? 0) > 0;
+    const derived = poseForUnit("boss", alive, activeBeat, view.boss?.statuses);
+    if (
+      activeBeat &&
+      (activeBeat.kind === "telegraph" ||
+        activeBeat.kind === "boss" ||
+        (activeBeat.kind === "system" &&
+          (activeBeat.fx ?? []).some(
+            (f) => f.includes("stun") || f === "stunned",
+          )))
+    ) {
+      stickyBossPoseRef.current = derived;
+    }
+    if (playing) return undefined; // live cue drives pose
+
+    const held = stickyBossPoseRef.current;
+    // Gap 1: after wind-up queue, still in telegraph phase
+    if (team.phase === "boss_telegraph") {
+      return held === "standing" || held === "attack" ? "windup" : held;
+    }
+    // Gap 2: impact payload arrived but playIndex not started yet
+    if (
+      visualHold &&
+      (held === "windup" || held === "hit") &&
+      (team.playback ?? []).some(
+        (b) => b.kind === "boss" || b.kind === "minion",
+      )
+    ) {
+      return held;
+    }
+    return undefined;
+  }, [
+    activeBeat,
+    playing,
+    team.phase,
+    team.playback,
+    visualHold,
+    view.boss?.currentHp,
+    view.boss?.statuses,
+  ]);
+
   const playbookGrades = (
     pendingGrades.length
       ? [...new Set(pendingGrades)]
@@ -1282,6 +1338,7 @@ export default function CombatScreen({
                   role: "boss",
                   bossId: (view.boss as { id?: string }).id,
                 }}
+                pose={bossPose}
                 cue={activeBeat}
                 alive={view.boss.currentHp > 0}
                 currentHp={view.boss.currentHp}

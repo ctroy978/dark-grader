@@ -567,6 +567,313 @@ body {
   }
 }
 
+/*
+ * Fire Mage — red/orange anime explosion.
+ * Charge: pulsing core that grows over the telegraph (~0.9s).
+ * Blast / impact: outward fireburst (cousin to maiden beam, warmer palette).
+ */
+.fx-fire-charge {
+  filter: drop-shadow(0 0 10px rgba(255, 120, 40, 0.7))
+    drop-shadow(0 0 18px rgba(255, 60, 20, 0.4));
+}
+.fx-fire-charge .portrait-frame {
+  animation: fire-charge-breathe 0.55s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255, 160, 60, 0.55),
+    0 0 18px rgba(255, 100, 30, 0.55),
+    0 0 32px rgba(220, 50, 10, 0.3);
+  border-color: rgba(255, 140, 50, 0.6);
+}
+.fx-fire-blast {
+  filter: drop-shadow(0 0 12px rgba(255, 140, 50, 0.85))
+    drop-shadow(0 0 22px rgba(255, 70, 20, 0.45));
+}
+.fx-fire-blast .portrait-frame {
+  animation: fire-blast-flash 0.6s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(255, 200, 100, 0.65),
+    0 0 24px rgba(255, 120, 40, 0.7),
+    0 0 42px rgba(255, 60, 10, 0.35);
+  border-color: rgba(255, 180, 80, 0.65);
+}
+
+.fire-burst-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -22% -16%;
+  z-index: 6;
+  overflow: visible;
+}
+.fire-burst-core {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 22%;
+  height: 22%;
+  margin-left: -11%;
+  margin-top: -11%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 220, 0.95) 0%,
+    rgba(255, 180, 60, 0.75) 28%,
+    rgba(255, 80, 20, 0.45) 55%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  box-shadow:
+    0 0 12px rgba(255, 140, 40, 0.7),
+    0 0 24px rgba(255, 60, 10, 0.35);
+}
+/* Grows across the full charge telegraph */
+.fire-burst-fx--charge .fire-burst-core {
+  animation: fire-core-grow 0.9s ease-out forwards;
+}
+.fire-burst-fx--blast .fire-burst-core,
+.fire-burst-fx--impact .fire-burst-core {
+  animation: fire-core-burst 0.75s ease-out forwards;
+}
+
+.fire-burst-halo {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 50%;
+  height: 50%;
+  margin-left: -25%;
+  margin-top: -25%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 100, 30, 0.35) 0%,
+    rgba(255, 60, 10, 0.12) 45%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+.fire-burst-fx--charge .fire-burst-halo {
+  animation: fire-halo-grow 0.9s ease-out forwards;
+}
+.fire-burst-fx--blast .fire-burst-halo,
+.fire-burst-fx--impact .fire-burst-halo {
+  animation: fire-halo-burst 0.7s ease-out forwards;
+}
+
+.fire-burst-ring {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 36%;
+  height: 36%;
+  margin-left: -18%;
+  margin-top: -18%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 160, 60, 0.55);
+  box-shadow:
+    0 0 10px rgba(255, 100, 30, 0.45),
+    inset 0 0 12px rgba(255, 180, 80, 0.2);
+  opacity: 0;
+}
+.fire-burst-fx--charge .fire-burst-ring--a {
+  animation: fire-ring-pulse 0.7s ease-out infinite;
+}
+.fire-burst-fx--charge .fire-burst-ring--b {
+  animation: fire-ring-pulse 0.7s ease-out infinite 0.22s;
+  border-color: rgba(255, 200, 100, 0.4);
+}
+.fire-burst-fx--blast .fire-burst-ring--a,
+.fire-burst-fx--blast .fire-burst-ring--b,
+.fire-burst-fx--impact .fire-burst-ring--a,
+.fire-burst-fx--impact .fire-burst-ring--b {
+  animation: fire-ring-burst 0.8s ease-out forwards;
+}
+.fire-burst-fx--blast .fire-burst-ring--b,
+.fire-burst-fx--impact .fire-burst-ring--b {
+  animation-delay: 0.07s;
+}
+.fire-burst-ring--shock {
+  border-width: 2.5px;
+  border-color: rgba(255, 240, 180, 0.75);
+  box-shadow:
+    0 0 14px rgba(255, 160, 40, 0.65),
+    0 0 28px rgba(255, 80, 10, 0.35);
+  animation: fire-ring-shock 0.7s ease-out forwards !important;
+}
+
+.fire-burst-embers {
+  position: absolute;
+  inset: 0;
+}
+.fire-burst-ember {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 5px;
+  height: 9px;
+  margin-left: -2.5px;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(
+    circle at 40% 30%,
+    rgba(255, 255, 200, 0.95) 0%,
+    rgba(255, 140, 40, 0.85) 45%,
+    rgba(200, 40, 10, 0.4) 100%
+  );
+  box-shadow: 0 0 5px rgba(255, 120, 30, 0.9);
+  opacity: 0;
+  transform-origin: center bottom;
+  --ember-angle: calc(var(--ember-i) * (360deg / var(--ember-n)));
+}
+.fire-burst-fx--charge .fire-burst-ember {
+  animation: fire-ember-orbit 0.85s ease-in-out infinite;
+  animation-delay: calc(var(--ember-i) * 0.05s);
+}
+.fire-burst-fx--blast .fire-burst-ember,
+.fire-burst-fx--impact .fire-burst-ember {
+  animation: fire-ember-out 0.75s ease-out forwards;
+  animation-delay: calc(var(--ember-i) * 0.018s);
+}
+.fire-burst-fx--impact {
+  inset: -14% -10%;
+}
+.fire-burst-fx--impact .fire-burst-core {
+  width: 18%;
+  height: 18%;
+  margin-left: -9%;
+  margin-top: -9%;
+}
+
+@keyframes fire-charge-breathe {
+  0%,
+  100% {
+    filter: brightness(1.08) saturate(1.15);
+  }
+  50% {
+    filter: brightness(1.28) saturate(1.35);
+  }
+}
+@keyframes fire-blast-flash {
+  0% {
+    filter: brightness(1.55) saturate(1.4);
+  }
+  35% {
+    filter: brightness(1.25) saturate(1.2);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+/* Core swells over the full charge window */
+@keyframes fire-core-grow {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.35);
+  }
+  40% {
+    opacity: 0.85;
+    transform: scale(0.85);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1.45);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.65);
+  }
+}
+@keyframes fire-halo-grow {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0.75;
+    transform: scale(1.35);
+  }
+}
+@keyframes fire-core-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0.7);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes fire-halo-burst {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes fire-ring-pulse {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+@keyframes fire-ring-burst {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.35);
+  }
+}
+@keyframes fire-ring-shock {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.7);
+  }
+}
+@keyframes fire-ember-orbit {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--ember-angle)) translateY(-12px) scale(0.5);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.35;
+    transform: rotate(var(--ember-angle)) translateY(-34px) scale(1.15);
+  }
+}
+@keyframes fire-ember-out {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--ember-angle)) translateY(-10px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ember-angle)) translateY(-48px) scale(0.55);
+  }
+}
+
 /* --- Boss telegraph / wind-up (Ash-first exploration) --- */
 .fx-boss-windup {
   /* Outer unit glow — readable from the back of the room */

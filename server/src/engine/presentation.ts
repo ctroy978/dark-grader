@@ -160,7 +160,7 @@ export function cueAction(
   // (not a second generic hit_heavy) so each kit keeps its identity.
   const sfxId = resolveSfxId(attackSfxCandidates(archetype, grade));
 
-  // Shield Maiden: short energy charge (windup pose) then strike blast.
+  // Shield Maiden: short energy charge then strike blast.
   // Telegraph has no board reveal so floats stay on the impact beat.
   const maidenEnergy = archetype === "ShieldMaiden" && grade !== "F";
   if (maidenEnergy) {
@@ -179,6 +179,27 @@ export function cueAction(
     });
   }
 
+  // Fire Mage: pulsing ember burst that grows, then anime orange explosion on cast.
+  // F backfire skips the charge (instant boom via fire-flash on the action).
+  const fireCharge = archetype === "FireMage" && grade !== "F";
+  if (fireCharge) {
+    pushCue(team, {
+      kind: "telegraph",
+      focusIds: [soldierId],
+      grade,
+      bubble: {
+        speakerId: soldierId,
+        speakerName: soldierName,
+        side: "party",
+        text:
+          grade === "A" ? "Inferno…" : grade === "B" ? "Ignite…" : "Burn…",
+      },
+      fx: ["fire-charge"],
+      durationMs: 900,
+    });
+  }
+
+  const castTelegraph = maidenEnergy || fireCharge;
   pushCue(team, {
     kind: "action",
     focusIds,
@@ -193,15 +214,16 @@ export function cueAction(
       "attack-flash",
       ...fxExtra,
       ...(maidenEnergy ? ["maiden-blast"] : []),
+      ...(fireCharge ? ["fire-blast"] : []),
       ...(slain.length ? ["minion-kill"] : []),
     ],
     sfxId,
     voId: voActionId(grade),
     playVo,
-    durationMs: maidenEnergy
+    durationMs: castTelegraph
       ? slain.length
-        ? 1400
-        : 1250
+        ? 1450
+        : 1300
       : slain.length
         ? 1300
         : 1100,

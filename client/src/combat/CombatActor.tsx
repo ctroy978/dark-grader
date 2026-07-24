@@ -131,6 +131,40 @@ function MaidenEnergyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
   );
 }
 
+/**
+ * Fire Mage — red/orange anime explosion.
+ * charge: pulsing core that grows until cast
+ * blast / impact: outward fireburst on caster + hit targets
+ */
+function FireBurstFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const emberCount = mode === "charge" ? 10 : mode === "blast" ? 12 : 8;
+  return (
+    <div className={`fire-burst-fx fire-burst-fx--${mode}`} aria-hidden>
+      <div className="fire-burst-core" />
+      <div className="fire-burst-halo" />
+      <div className="fire-burst-ring fire-burst-ring--a" />
+      <div className="fire-burst-ring fire-burst-ring--b" />
+      {mode !== "charge" && (
+        <div className="fire-burst-ring fire-burst-ring--shock" />
+      )}
+      <div className="fire-burst-embers">
+        {Array.from({ length: emberCount }, (_, i) => (
+          <span
+            key={i}
+            className="fire-burst-ember"
+            style={
+              {
+                "--ember-i": i,
+                "--ember-n": emberCount,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -248,6 +282,14 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("maiden-blast") ?? false);
+  const showFireCharge =
+    speaking && (cue?.fx?.includes("fire-charge") ?? false);
+  const showFireBlast =
+    speaking && (cue?.fx?.includes("fire-blast") ?? false);
+  const showFireImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("fire-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -279,6 +321,9 @@ export function CombatActor({
         {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
         {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
         {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
+        {showFireCharge && <FireBurstFx mode="charge" />}
+        {showFireBlast && <FireBurstFx mode="blast" />}
+        {showFireImpact && <FireBurstFx mode="impact" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}
