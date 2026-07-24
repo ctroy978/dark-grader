@@ -31,9 +31,24 @@ import {
   setVoEnabled,
 } from "../audio";
 import { CombatActor } from "../combat/CombatActor";
+import type { HpFloat } from "../combat/DamageFloat";
 import GradeToken, { GradeTokenSlot } from "../combat/GradeToken";
 import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
+
+const FLOAT_MS = 950;
+
+/** Snapshot of unit HP for floating combat numbers (diff per presentation beat). */
+function hpMapFromView(t: EnrichedTeam): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const id of t.activePartyIds) {
+    const s = t.roster.find((r) => r.id === id);
+    if (s) m.set(s.id, s.currentHp);
+  }
+  if (t.boss) m.set("boss", t.boss.currentHp);
+  for (const min of t.minions) m.set(min.id, min.currentHp);
+  return m;
+}
 
 const GRADE_CLASS: Record<Grade, string> = {
   A: "text-grade-a border-grade-a/50",
@@ -357,6 +372,10 @@ export default function CombatScreen({
   const outcomeSfxPlayedRef = useRef(false);
   const teamRef = useRef(team);
   teamRef.current = team;
+  /** Floating −N / +N over portraits while presentation plays */
+  const [hpFloats, setHpFloats] = useState<Record<string, HpFloat[]>>({});
+  const prevHpMapRef = useRef<Map<string, number> | null>(null);
+  const floatSeqRef = useRef(0);
 
   const activeBeat = playing && playQueue[playIndex] ? playQueue[playIndex] : null;
   const focusSet = useMemo(() => {
@@ -395,6 +414,68 @@ export default function CombatScreen({
     // Request in flight or playback not started yet: hold pre-drop board
     return applyBoardReveal(visualHold, team, null);
   }, [visualHold, playing, playIndex, playQueue, team]);
+
+  /**
+   * Spawn floating combat numbers when a beat's reveal changes unit HP.
+   * Baseline is set on the first frame of playback (no float for frozen board).
+   * Per-float timeouts are not cancelled on the next beat so numbers finish animating.
+   */
+  useEffect(() => {
+    if (!playing) {
+      prevHpMapRef.current = null;
+      setHpFloats({});
+      return;
+    }
+    const next = hpMapFromView(view);
+    const prev = prevHpMapRef.current;
+    if (!prev) {
+      prevHpMapRef.current = next;
+      return;
+    }
+
+    const spawned: { unitId: string; float: HpFloat }[] = [];
+    for (const [unitId, hp] of next) {
+      const old = prev.get(unitId);
+      if (old === undefined || old === hp) continue;
+      const delta = hp - old;
+      if (delta === 0) continue;
+      floatSeqRef.current += 1;
+      spawned.push({
+        unitId,
+        float: {
+          key: `${unitId}-${playIndex}-${floatSeqRef.current}`,
+          delta,
+        },
+      });
+    }
+    prevHpMapRef.current = next;
+
+    if (!spawned.length) return;
+
+    setHpFloats((cur) => {
+      const copy: Record<string, HpFloat[]> = { ...cur };
+      for (const { unitId, float } of spawned) {
+        copy[unitId] = [...(copy[unitId] ?? []), float];
+      }
+      return copy;
+    });
+
+    for (const { unitId, float } of spawned) {
+      window.setTimeout(() => {
+        setHpFloats((cur) => {
+          const list = cur[unitId];
+          if (!list?.length) return cur;
+          const nextList = list.filter((f) => f.key !== float.key);
+          if (nextList.length === list.length) return cur;
+          if (!nextList.length) {
+            const { [unitId]: _, ...rest } = cur;
+            return rest;
+          }
+          return { ...cur, [unitId]: nextList };
+        });
+      }, FLOAT_MS);
+    }
+  }, [playing, playIndex, view]);
 
   /** Grade badges appear when that soldier claims / acts, not all at drop. */
   const visibleClaims = useMemo(() => {
@@ -940,6 +1021,7 @@ export default function CombatScreen({
                     claimGrade={claim?.effectiveGrade}
                     subtitle={s.archetype}
                     size="sm"
+                    hpFloats={hpFloats[s.id]}
                   />
                 </button>
               );
@@ -1033,7 +1115,7 @@ export default function CombatScreen({
           <div className="text-[10px] uppercase tracking-widest text-parchment-dim mb-1 shrink-0">
             Gap / Adds
           </div>
-          <div className="flex flex-wrap gap-2 justify-center content-center overflow-hidden">
+          <div className="flex flex-wrap gap-2 justify-center content-center overflow-visible">
             {view.minions?.length ? (
               view.minions.map((m) => {
                 const focused = focusSet.has(m.id);
@@ -1061,6 +1143,7 @@ export default function CombatScreen({
                       size="sm"
                       subtitle={dead ? "fallen" : `ATK ${m.damage ?? 7}`}
                       showStatuses
+                      hpFloats={hpFloats[m.id]}
                     />
                   </div>
                 );
@@ -1109,6 +1192,7 @@ export default function CombatScreen({
                       ? "Winding up…"
                       : undefined
                 }
+                hpFloats={hpFloats.boss}
               />
               <BossStatusRow boss={view.boss} />
             </div>

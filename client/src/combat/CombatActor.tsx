@@ -5,6 +5,7 @@ import {
   type StatusTag,
 } from "@dungeon-grades/shared";
 import type { PresentationCue } from "../api";
+import { DamageFloatStack, type HpFloat } from "./DamageFloat";
 import GradeToken from "./GradeToken";
 import { SpeechBubble } from "./SpeechBubble";
 import { PlaceholderPortrait, type PortraitKind } from "./PlaceholderPortrait";
@@ -145,6 +146,8 @@ export function CombatActor({
   showStatuses = false,
   subtitle,
   className = "",
+  /** Floating −N / +N when HP changes this beat */
+  hpFloats,
 }: {
   unitId: string;
   name: string;
@@ -167,6 +170,7 @@ export function CombatActor({
   showStatuses?: boolean;
   subtitle?: string;
   className?: string;
+  hpFloats?: HpFloat[];
 }) {
   const pose = poseOverride ?? poseForUnit(unitId, alive, cue);
   const fx = fxClassesForUnit(unitId, cue);
@@ -214,6 +218,10 @@ export function CombatActor({
               ? "w-full aspect-[5/6] h-auto"
               : frameClass
           }
+        />
+        <DamageFloatStack
+          floats={hpFloats}
+          size={isBoss ? "lg" : size}
         />
       </div>
       {showName && (

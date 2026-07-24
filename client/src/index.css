@@ -82,6 +82,56 @@ body {
 }
 
 /*
+ * Floating combat numbers (damage / heal) — Option 1.
+ * Classroom-readable: large, high-contrast, short upward fade.
+ */
+@keyframes damage-float-up {
+  0% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--float-x, 0px)), 0) scale(1);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--float-x, 0px)), -6px) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--float-x, 0px)), -36px) scale(1.05);
+  }
+}
+
+.damage-float-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  overflow: visible;
+}
+
+.damage-float {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  animation: damage-float-up 0.95s ease-out forwards;
+  text-shadow:
+    0 0 4px rgba(0, 0, 0, 0.95),
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(0, 0, 0, 0.55);
+}
+
+.damage-float--damage {
+  color: #ff6b5a;
+}
+
+.damage-float--heal {
+  color: #4ade80;
+}
+
+/*
  * Party shield ward (Shield Maiden) — Option A envelope.
  * Soft silver aura around the whole party strip when shield is up.
  * Binary on/off (no remaining-based intensity). Idle only for v1.
