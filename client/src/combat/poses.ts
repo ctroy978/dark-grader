@@ -78,7 +78,9 @@ export function poseForUnit(
         (fx.includes("maiden-charge") ||
           fx.includes("fire-charge") ||
           fx.includes("necro-charge") ||
-          fx.includes("thunder-charge"))
+          fx.includes("thunder-charge") ||
+          fx.includes("heal-charge") ||
+          fx.includes("rune-charge"))
       ) {
         return "standing";
       }
@@ -175,6 +177,10 @@ export function fxClassesForUnit(
       if (f === "necro-blast") return "fx-necro-blast";
       if (f === "thunder-charge") return !isBoss ? "fx-thunder-charge" : "";
       if (f === "thunder-blast") return "fx-thunder-blast";
+      if (f === "heal-charge") return !isBoss ? "fx-heal-charge" : "";
+      if (f === "heal-blast") return !isBoss ? "fx-heal-blast" : "";
+      if (f === "rune-charge") return !isBoss ? "fx-rune-charge" : "";
+      if (f === "rune-blast") return !isBoss ? "fx-rune-blast" : "";
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";

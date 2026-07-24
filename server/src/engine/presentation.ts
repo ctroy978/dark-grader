@@ -196,6 +196,20 @@ export function cueAction(
         grade === "A" ? "Storm…" : grade === "B" ? "Spark…" : "Arc…",
       durationMs: 750,
     },
+    Healer: {
+      chargeFx: "heal-charge",
+      blastFx: "heal-blast",
+      bubble:
+        grade === "A" ? "Bless…" : grade === "B" ? "Mend…" : "Heal…",
+      durationMs: 850,
+    },
+    Runesinger: {
+      chargeFx: "rune-charge",
+      blastFx: "rune-blast",
+      bubble:
+        grade === "A" ? "Rewrite…" : grade === "B" ? "Hymn…" : "Sing…",
+      durationMs: 850,
+    },
   };
   const castFx = grade !== "F" ? castFxByArch[archetype] : undefined;
   if (castFx) {

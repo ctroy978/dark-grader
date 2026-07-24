@@ -226,6 +226,45 @@ function ThunderBoltFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
   );
 }
 
+/**
+ * Healer — soft green/gold rain falling onto the caster.
+ * Runesinger — golden rune motes rising from the ground (same shell, direction differs).
+ */
+function SpiritRainFx({
+  mode,
+  variant,
+}: {
+  mode: "charge" | "blast";
+  variant: "heal" | "rune";
+}) {
+  const dropCount = mode === "charge" ? 14 : 18;
+  return (
+    <div
+      className={`spirit-rain-fx spirit-rain-fx--${variant} spirit-rain-fx--${mode}`}
+      aria-hidden
+    >
+      <div className="spirit-rain-glow" />
+      <div className="spirit-rain-drops">
+        {Array.from({ length: dropCount }, (_, i) => (
+          <span
+            key={i}
+            className="spirit-rain-drop"
+            style={
+              {
+                "--drop-i": i,
+                "--drop-n": dropCount,
+                "--drop-x": `${8 + ((i * 37) % 84)}%`,
+                "--drop-delay": `${(i % 8) * 0.07}s`,
+                "--drop-dur": `${0.55 + (i % 5) * 0.08}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -367,6 +406,15 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("thunder-blast") ?? false);
+  // Rain stays on the caster (not enemy focus) — heal/hymn is about the singer
+  const showHealCharge =
+    speaking && (cue?.fx?.includes("heal-charge") ?? false);
+  const showHealBlast =
+    speaking && (cue?.fx?.includes("heal-blast") ?? false);
+  const showRuneCharge =
+    speaking && (cue?.fx?.includes("rune-charge") ?? false);
+  const showRuneBlast =
+    speaking && (cue?.fx?.includes("rune-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -407,6 +455,10 @@ export function CombatActor({
         {showThunderCharge && <ThunderBoltFx mode="charge" />}
         {showThunderBlast && <ThunderBoltFx mode="blast" />}
         {showThunderImpact && <ThunderBoltFx mode="impact" />}
+        {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
+        {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
+        {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
+        {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}
