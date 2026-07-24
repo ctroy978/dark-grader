@@ -908,14 +908,20 @@ export default function CombatScreen({
   const bossPose = useMemo((): CombatPose | undefined => {
     const alive = (view.boss?.currentHp ?? 0) > 0;
     const derived = poseForUnit("boss", alive, activeBeat, view.boss?.statuses);
+    // Only stick real boss beats — party cast telegraphs must not write windup
+    // into the sticky slot (they share kind "telegraph" with boss wind-ups).
+    const fx = activeBeat?.fx ?? [];
+    const isBossTelegraph =
+      activeBeat?.kind === "telegraph" &&
+      (fx.includes("boss-windup") ||
+        fx.includes("boss-voice") ||
+        fx.some((f) => f.startsWith("windup-") || f.includes("stun")));
     if (
       activeBeat &&
-      (activeBeat.kind === "telegraph" ||
+      (isBossTelegraph ||
         activeBeat.kind === "boss" ||
         (activeBeat.kind === "system" &&
-          (activeBeat.fx ?? []).some(
-            (f) => f.includes("stun") || f === "stunned",
-          )))
+          fx.some((f) => f.includes("stun") || f === "stunned")))
     ) {
       stickyBossPoseRef.current = derived;
     }

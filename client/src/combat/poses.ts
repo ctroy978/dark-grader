@@ -94,8 +94,8 @@ export function poseForUnit(
       if (unitId === "boss" && fx.includes("boss-voice")) {
         return "standing";
       }
-      // Party cast charges: keep standing art (no party windup.png yet);
-      // FX sells the build-up (maiden / fire / necro / thunder).
+      // Party cast charges (kind "telegraph" + *-charge): caster stays standing;
+      // boss must NOT flash windup.png between party hits — only real boss wind-ups.
       if (
         isSpeaker &&
         (fx.includes("maiden-charge") ||
@@ -110,8 +110,18 @@ export function poseForUnit(
       ) {
         return "standing";
       }
-      // Real wind-up: windup.png + telegraph SFX
-      if (unitId === "boss" || isSpeaker) return "windup";
+      // Boss wind-up only when server tags a boss telegraph (not party cast charges)
+      if (unitId === "boss") {
+        if (
+          fx.includes("boss-windup") ||
+          fx.some((f) => f.startsWith("windup-"))
+        ) {
+          return "windup";
+        }
+        // Between party attacks / other telegraphs: idle, not charging
+        return "standing";
+      }
+      if (isSpeaker) return "windup";
       return "standing";
 
     case "boss":
