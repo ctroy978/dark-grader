@@ -73,6 +73,10 @@ export const PARTY_SIZE = 6;
  */
 export const DOT_STATS = {
   Fire: { tick: 4, duration: 3 },
+  /**
+   * Flat chip (no ramp). After natural expiry without cleanse → soft one-turn
+   * freeze (see applySoftFreeze). Claim downgrade while Ice is up.
+   */
   Ice: { tick: 3, duration: 3 },
   /** Party splash total per stack at intensity 1 (split across living line) */
   Poison: { tick: 8, duration: 4 },
@@ -88,6 +92,9 @@ export const MAX_PARTY_FIRE_STACKS = 2;
 
 /** Moss Mite (etc.) slime: re-hits do not pile stacks. */
 export const MAX_PARTY_SLIME_STACKS = 1;
+
+/** Bone Archer frost arrows: re-hits refresh duration, do not pile stacks. */
+export const MAX_PARTY_ICE_STACKS = 1;
 
 /**
  * Barrow Warden SpreadingFrost:

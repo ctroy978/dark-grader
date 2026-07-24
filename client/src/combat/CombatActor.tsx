@@ -41,6 +41,43 @@ function hasSlimeDot(statuses?: StatusTag[]): boolean {
   return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Slime");
 }
 
+function hasIceDot(statuses?: StatusTag[]): boolean {
+  return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Ice");
+}
+
+/**
+ * Ice DoT: light frost-on-a-window overlay (not the full Frozen lock).
+ * Soft crystals + rim frost; readable without covering the portrait.
+ */
+function IceWindowFrostFx() {
+  return (
+    <div className="ice-window-frost-fx" aria-hidden>
+      <div className="ice-window-frost-sheen" />
+      <div className="ice-window-frost-rim ice-window-frost-rim--t" />
+      <div className="ice-window-frost-rim ice-window-frost-rim--b" />
+      <div className="ice-window-frost-rim ice-window-frost-rim--l" />
+      <div className="ice-window-frost-rim ice-window-frost-rim--r" />
+      <div className="ice-window-frost-crystals">
+        {Array.from({ length: 8 }, (_, i) => (
+          <span
+            key={i}
+            className="ice-window-frost-crystal"
+            style={
+              {
+                "--c-i": i,
+                "--c-x": `${8 + ((i * 29 + 11) % 80)}%`,
+                "--c-y": `${10 + ((i * 37 + 5) % 70)}%`,
+                "--c-delay": `${(i % 5) * 0.35}s`,
+                "--c-size": `${4 + (i % 3) * 2}px`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Persistent slime: soft goo sheen + a few wax-like drips over the portrait.
  * Subtle at desk distance, still readable from a projector.
@@ -584,6 +621,10 @@ export function CombatActor({
     inFocus &&
     (cue?.fx?.includes("archer-blast") ?? false);
   const showSlimeDrip = hasSlimeDot(statuses);
+  // Ice window frost while iced; full frozen tint/pose handles Frozen (incl. soft lock)
+  const showIceFrost =
+    hasIceDot(statuses) &&
+    !statuses?.some((st) => st.kind === "Frozen");
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -646,7 +687,8 @@ export function CombatActor({
               : frameClass
           }
         />
-        {/* After portrait so wax drips sit on top of art (not under the PNG). */}
+        {/* After portrait so overlays sit on top of art (not under the PNG). */}
+        {showIceFrost && <IceWindowFrostFx />}
         {showSlimeDrip && <SlimeDripFx />}
         <DamageFloatStack
           floats={hpFloats}

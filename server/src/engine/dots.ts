@@ -4,6 +4,7 @@ import {
   FROST_SHATTER_FROZEN_DAMAGE,
   FROST_SHATTER_SPLASH_DAMAGE,
   MAX_PARTY_FIRE_STACKS,
+  MAX_PARTY_ICE_STACKS,
   MAX_PARTY_SLIME_STACKS,
   type BossState,
   type DotType,
@@ -21,14 +22,19 @@ import {
   soldierAt,
 } from "./damage.js";
 
-/** True when any living party member is Frozen. */
+/** True when any living party member is Frozen (chain or soft). */
 export function partyHasFrozen(team: TeamState): boolean {
   return livingParty(team).some((s) =>
     s.statuses.some((st) => st.kind === "Frozen"),
   );
 }
 
-/** Apply / replace Frozen on a soldier (one freeze status max). */
+/** SpreadingFrost chain only — ignores soft Ice-lock freezes. */
+export function partyHasChainFrozen(team: TeamState): boolean {
+  return livingParty(team).some(isChainFrozen);
+}
+
+/** Apply / replace chain Frozen (SpreadingFrost). Replaces soft freeze. */
 export function applyFrozen(
   soldier: Soldier,
   origin: number,
@@ -38,8 +44,37 @@ export function applyFrozen(
   soldier.statuses.push({ kind: "Frozen", origin, stage });
 }
 
+/**
+ * Soft one-turn ice lock after Ice DoT natural expiry.
+ * Does not replace a SpreadingFrost chain freeze.
+ */
+export function applySoftFreeze(soldier: Soldier): void {
+  if (!soldier.alive) return;
+  if (isChainFrozen(soldier)) return;
+  soldier.statuses = soldier.statuses.filter((st) => st.kind !== "Frozen");
+  const origin = soldier.position ?? 1;
+  soldier.statuses.push({
+    kind: "Frozen",
+    origin,
+    stage: 0,
+    soft: true,
+  });
+}
+
 export function isFrozen(soldier: Soldier): boolean {
   return soldier.statuses.some((st) => st.kind === "Frozen");
+}
+
+export function isChainFrozen(soldier: Soldier): boolean {
+  return soldier.statuses.some(
+    (st) => st.kind === "Frozen" && !st.soft,
+  );
+}
+
+export function isSoftFrozen(soldier: Soldier): boolean {
+  return soldier.statuses.some(
+    (st) => st.kind === "Frozen" && !!st.soft,
+  );
 }
 
 /**
@@ -65,11 +100,12 @@ export function tickFrozenChain(
   log: (text: string) => void,
 ): void {
   const party = livingParty(team);
-  const frozenSoldiers = party.filter(isFrozen);
+  // Soft Ice-locks do not spread or shatter
+  const frozenSoldiers = party.filter(isChainFrozen);
   if (!frozenSoldiers.length) return;
 
   const sample = frozenSoldiers[0]!.statuses.find(
-    (st): st is FrozenStatus => st.kind === "Frozen",
+    (st): st is FrozenStatus => st.kind === "Frozen" && !st.soft,
   );
   if (!sample) return;
 
@@ -143,10 +179,10 @@ export function tickFrozenChain(
       `  [Frost] Ice has no living seat left toward center — pressure builds (stage ${nextStage})`,
     );
   }
-  // Keep chain stage in sync on every Frozen carrier
+  // Keep chain stage in sync on every chain-Frozen carrier (not soft locks)
   for (const s of livingParty(team)) {
     for (const st of s.statuses) {
-      if (st.kind === "Frozen") {
+      if (st.kind === "Frozen" && !st.soft) {
         st.stage = nextStage;
         st.origin = origin;
       }
@@ -156,9 +192,10 @@ export function tickFrozenChain(
 
 /**
  * Apply / stack a DoT on a party soldier.
- * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / minion on-hit).
+ * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / Fire minion on-hit).
  * Fire stacks are capped at MAX_PARTY_FIRE_STACKS so multi-Cloud does not spike to ×3+.
- * Slime never ramps, stacks cap at MAX_PARTY_SLIME_STACKS, and does not expire by duration.
+ * Ice / Slime never ramp; Ice stack cap 1; Slime never expires by duration.
+ * Ice natural expiry → soft one-turn freeze (see tickDots).
  */
 export function applyDot(
   soldier: Soldier,
@@ -174,9 +211,11 @@ export function applyDot(
       ? Math.min(stacks, MAX_PARTY_FIRE_STACKS)
       : type === "Slime"
         ? Math.min(stacks, MAX_PARTY_SLIME_STACKS)
-        : stacks;
-  // Slime is flat chip only — never boss-ramp intensity
-  const ramp = fromBoss && type !== "Slime";
+        : type === "Ice"
+          ? Math.min(stacks, MAX_PARTY_ICE_STACKS)
+          : stacks;
+  // Slime + Ice are flat chip only — never boss-ramp intensity
+  const ramp = fromBoss && type !== "Slime" && type !== "Ice";
   if (existing && existing.kind === "Dot") {
     if (type === "Fire") {
       existing.stacks = Math.min(
@@ -186,6 +225,11 @@ export function applyDot(
     } else if (type === "Slime") {
       existing.stacks = Math.min(
         MAX_PARTY_SLIME_STACKS,
+        existing.stacks + addStacks,
+      );
+    } else if (type === "Ice") {
+      existing.stacks = Math.min(
+        MAX_PARTY_ICE_STACKS,
         existing.stacks + addStacks,
       );
     } else {
@@ -416,6 +460,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
 
   // --- Other DoTs: per-soldier (Fire/Ice/Slime; boss Fire ramps via escalationStep) ---
   // Slime never expires by duration and never ramps — cleanse only.
+  // Ice natural expiry → soft one-turn freeze (if not already chain-frozen).
+  const iceExpiredIds: string[] = [];
   for (const soldier of party) {
     const dots = soldier.statuses.filter(
       (s) => s.kind === "Dot" && s.type !== "Poison",
@@ -437,6 +483,9 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
       if (dot.type !== "Slime") {
         dot.duration -= 1;
       }
+      if (dot.type === "Ice" && dot.duration <= 0) {
+        iceExpiredIds.push(soldier.id);
+      }
       if (dot.escalationStep != null) {
         dot.escalationStep += 1;
       }
@@ -454,6 +503,17 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     );
   }
 
+  // Ice ran its course uncleansed → soft freeze (one wasted action)
+  for (const id of iceExpiredIds) {
+    const s = party.find((x) => x.id === id);
+    if (!s?.alive) continue;
+    if (isChainFrozen(s)) continue;
+    applySoftFreeze(s);
+    log(
+      `  [Ice] ${s.name}: frost hardens — FROZEN solid for one turn!`,
+    );
+  }
+
   // --- Boss DoTs (Doomcaller transfers, death poison) ---
   tickBossDots(team, log);
 
@@ -461,8 +521,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   tickMinionDots(team, log);
 
   // --- SpreadingFrost chain (Barrow Warden) — after other ticks so cleanse same round wins ---
-  // Note: cleanse happens during party actions before this phase.
-  if (partyHasFrozen(team)) {
+  // Note: cleanse happens during party actions before this phase. Soft freezes ignored.
+  if (partyHasChainFrozen(team)) {
     tickFrozenChain(team, log);
   }
 

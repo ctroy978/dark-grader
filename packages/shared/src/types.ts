@@ -52,23 +52,35 @@ export interface ChargeStatus {
 }
 
 /**
- * Barrow Warden SpreadingFrost lock.
- * Cannot attack or be healed until a Fire Mage burns it off (A front / B back);
- * spreads toward center each DoT phase, then shatters (see docs/BOSS_PLAN.md §5.5).
+ * Freeze lock.
+ *
+ * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed
+ * until Fire Mage burns it off; spreads toward center, then shatters.
+ *
+ * **Soft (`soft: true`):** Ice DoT natural expiry (Bone Archer frost arrows) —
+ * cannot attack for **one** action (token wasted), heals still work, no spread/
+ * shatter; clears after that skip or Fire Mage thaw.
  */
 export interface FrozenStatus {
   kind: "Frozen";
   /**
    * Seat that started the chain (Warden: pos 1 or 2).
    * Spread walks toward the center along frostChainPath(origin).
+   * Soft freeze: usually the locked seat's position.
    */
   origin: number;
   /**
    * 0 = just applied (origin seat only).
    * 1 = one spread done.
    * 2 = two spreads done (third seat frozen) — next DoT phase shatters.
+   * Soft freeze: unused (keep 0).
    */
   stage: number;
+  /**
+   * Soft one-turn ice lock (Ice DoT expiry). No heal block, no chain.
+   * Omitted / false = SpreadingFrost chain freeze.
+   */
+  soft?: boolean;
 }
 
 export type StatusTag =

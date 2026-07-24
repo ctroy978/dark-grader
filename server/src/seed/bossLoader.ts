@@ -43,7 +43,7 @@ export function defaultMinionShotBubble(minionId: string): string {
     case "cinder_imp":
       return "Spit!";
     case "bone_archer":
-      return "Loose!";
+      return "Frost!";
     default:
       return "Hit!";
   }

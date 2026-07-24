@@ -12,7 +12,12 @@ import {
 } from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
 import { applyPartyDamage, livingParty, soldierAt } from "./damage.js";
-import { applyDot, applyFrozen, partyHasFrozen } from "./dots.js";
+import {
+  applyDot,
+  applyFrozen,
+  partyHasChainFrozen,
+  partyHasFrozen,
+} from "./dots.js";
 import {
   attackDef,
   getBossTemplate,
@@ -95,8 +100,9 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     maxCount: 2,
     freeVolley: true,
     openCount: 0,
+    onHitDot: { type: "Ice", stacks: 1 },
     shotSfx: "minion_bone_archer",
-    shotBubble: "Loose!",
+    shotBubble: "Frost!",
   },
   SummonMossMites: {
     minionId: "moss_mite",
@@ -180,6 +186,9 @@ function onHitDotApplyLog(
   }
   if (type === "Slime") {
     return `  ${targetName} is slimed (Slime ×${stacks}, until cleansed)`;
+  }
+  if (type === "Ice") {
+    return `  ${targetName} is chilled (Ice ×${stacks}, 3r — hardens if left)`;
   }
   return `  ${targetName} afflicted with ${type} ×${stacks}`;
 }
@@ -342,7 +351,8 @@ function pickWeightedAttack(
   const blockStunKit =
     template.id === "rattle_captain" && !!team.bossLastAttackWasStunKit;
 
-  const freezeActive = partyHasFrozen(team);
+  // Soft Ice-locks do not block SpreadingFrost re-cast
+  const freezeActive = partyHasChainFrozen(team);
 
   const weights = attackIds.map((id) => {
     const def = attackDef(template, id);
@@ -350,7 +360,7 @@ function pickWeightedAttack(
     if (blockStunKit && isRattleStunKitAttack(id)) {
       w = 0;
     }
-    // One freeze chain at a time — no re-cast while anyone is Frozen
+    // One freeze chain at a time — no re-cast while anyone is chain-Frozen
     if (id === "SpreadingFrost" && freezeActive) {
       w = 0;
     }

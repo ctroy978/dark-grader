@@ -60,6 +60,16 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
     };
   }
   if (st.kind === "Frozen") {
+    if (st.soft) {
+      return {
+        key: `frozen-soft-${index}`,
+        icon: "🧊",
+        label: "Frozen 1t",
+        title:
+          "Ice lock — cannot attack this turn (heals OK). Clears after the wasted action or Fire Mage thaw (A front / B back).",
+        colorClass: "text-cyan-200 border-cyan-400/50 bg-cyan-950/50",
+      };
+    }
     const until =
       st.stage >= 2
         ? "next DoT phase: SHATTER"

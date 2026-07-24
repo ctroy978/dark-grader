@@ -71,9 +71,17 @@ export function resolveSpecialistAction(
     claim.effectiveGrade !== claim.token ? `→${claim.effectiveGrade}` : ""
   }`;
 
-  // Frozen (Barrow Warden) — token wasted; freeze stays until cleansed
-  if (soldier.statuses.some((s) => s.kind === "Frozen")) {
-    log(`${label}: FROZEN — token wasted, cannot act!`);
+  // Frozen — token wasted. Soft ice-lock clears after this skip; chain freeze stays.
+  const frozen = soldier.statuses.find((s) => s.kind === "Frozen");
+  if (frozen && frozen.kind === "Frozen") {
+    if (frozen.soft) {
+      soldier.statuses = soldier.statuses.filter(
+        (st) => !(st.kind === "Frozen" && st.soft),
+      );
+      log(`${label}: FROZEN — token wasted (ice lock ends)!`);
+    } else {
+      log(`${label}: FROZEN — token wasted, cannot act!`);
+    }
     return { acted: false, skipReason: "frozen" };
   }
 

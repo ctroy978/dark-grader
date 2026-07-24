@@ -257,6 +257,144 @@ body {
     0 0 28px rgba(60, 140, 220, 0.28);
   border-color: rgba(140, 210, 255, 0.5);
 }
+.fx-ice-tint .portrait-frame img,
+.fx-ice-tint .portrait-frame svg {
+  filter: brightness(1.06) saturate(0.85) hue-rotate(175deg)
+    drop-shadow(0 0 5px rgba(140, 210, 255, 0.4));
+}
+
+/*
+ * Ice DoT — light frost on a cold window (not the full Frozen lock).
+ * Soft rim frost + sparse crystal sparkles over the portrait.
+ */
+.ice-window-frost-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  border-radius: 0.35rem;
+}
+.ice-window-frost-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 20% 15%,
+      rgba(200, 240, 255, 0.28) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 85% 80%,
+      rgba(160, 220, 255, 0.2) 0%,
+      transparent 50%
+    ),
+    linear-gradient(
+      160deg,
+      rgba(180, 230, 255, 0.12) 0%,
+      transparent 40%,
+      rgba(140, 200, 255, 0.08) 100%
+    );
+  mix-blend-mode: screen;
+  animation: ice-window-sheen 3.6s ease-in-out infinite;
+}
+.ice-window-frost-rim {
+  position: absolute;
+  background: linear-gradient(
+    to bottom,
+    rgba(220, 245, 255, 0.55) 0%,
+    rgba(160, 220, 255, 0.15) 55%,
+    transparent 100%
+  );
+  opacity: 0.75;
+}
+.ice-window-frost-rim--t {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
+  background: linear-gradient(
+    to bottom,
+    rgba(220, 245, 255, 0.5) 0%,
+    transparent 100%
+  );
+}
+.ice-window-frost-rim--b {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 14%;
+  background: linear-gradient(
+    to top,
+    rgba(180, 230, 255, 0.35) 0%,
+    transparent 100%
+  );
+}
+.ice-window-frost-rim--l {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 14%;
+  background: linear-gradient(
+    to right,
+    rgba(200, 240, 255, 0.4) 0%,
+    transparent 100%
+  );
+}
+.ice-window-frost-rim--r {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 14%;
+  background: linear-gradient(
+    to left,
+    rgba(200, 240, 255, 0.4) 0%,
+    transparent 100%
+  );
+}
+.ice-window-frost-crystals {
+  position: absolute;
+  inset: 0;
+}
+.ice-window-frost-crystal {
+  position: absolute;
+  left: var(--c-x);
+  top: var(--c-y);
+  width: var(--c-size, 5px);
+  height: var(--c-size, 5px);
+  border-radius: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(160, 220, 255, 0.55) 50%,
+    transparent 100%
+  );
+  box-shadow: 0 0 4px rgba(180, 230, 255, 0.7);
+  transform: rotate(45deg);
+  opacity: 0.55;
+  animation: ice-window-sparkle 2.4s ease-in-out infinite;
+  animation-delay: var(--c-delay, 0s);
+}
+@keyframes ice-window-sheen {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+@keyframes ice-window-sparkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: rotate(45deg) scale(0.85);
+  }
+  50% {
+    opacity: 0.85;
+    transform: rotate(45deg) scale(1.1);
+  }
+}
 
 /* SpreadingFrost lock — stronger than soft Ice DoT, readable at classroom distance */
 .fx-frozen-tint,

@@ -96,7 +96,8 @@ describe("boss TOML loader", () => {
     expect(summon?.summon).toMatchObject({
       minionId: "bone_archer",
       shotSfx: "minion_bone_archer",
-      shotBubble: "Loose!",
+      shotBubble: "Frost!",
+      onHitDot: { type: "Ice", stacks: 1 },
     });
   });
 

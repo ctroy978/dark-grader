@@ -221,12 +221,12 @@ Separate status **`Frozen`** (not the token-downgrade Ice DoT). **Fire Mage only
 
 ### 5.6 Room 6 — Bone Colossus (`bone_colossus`) — **shipped**
 
-**Teaching sentence:** “Everything at once — and the test pool decides if you live.”
+**Teaching sentence:** “Everything at once — clear frost archers before Ice hardens into a lock.”
 
 | | |
 |--|--|
 | HP | **230** |
-| Adds | Bone Archers **12/4**, max 2, re-summon, free-volley when full (current) |
+| Adds | Bone Archers **12/4** + **Ice** on hit (flat **3**/tick × **3**r, stack cap **1**, no ramp); free-volley when full; natural Ice expiry → **soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter) |
 | Attacks | Full kit: Cascade, Crush, Slam, Line, Poison, Regen, Summon |
 | Enrage | &lt;40% HP, **1.3×** |
 | Stun | Boss **and** minions skip |

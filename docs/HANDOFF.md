@@ -145,9 +145,10 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
 
 ### DoTs
-- Fire **4** (party stacks max **2**) / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime **2** flat (stack cap **1**, **until cleansed**, no ramp, **no token slow**) — `DOT_STATS`  
-- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and Fire minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs and **Slime** stay flat.  
-- **Moss Mite** on-hit applies party Slime (permanent until Fire Mage A/B or Doomcaller strip).  
+- Fire **4** (party stacks max **2**) / Ice **3**/tick × **3**r flat (stack cap **1**, no ramp) / Poison party splash **8**/stack (intensity 1) / Slime **2** flat (stack cap **1**, **until cleansed**, no ramp, **no token slow**) — `DOT_STATS`  
+- **Ice:** claim downgrade while up; **natural expiry → soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter; clears after wasted action or Fire Mage thaw).  
+- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and Fire minion on-hit set `escalationStep` (starts 1). **Ice / Slime** stay flat.  
+- **Moss Mite** on-hit: Slime (until cleanse). **Bone Archer** on-hit: Ice (frost arrows).  
 - Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
 - Doomcaller strips DoTs+Marks; transfers **DoTs only** → boss (not Marks, not Frozen)  
 - Healer cleanses Fire/Ice/Poison (**not Slime**); Fire Mage A/B thaws Frozen + cleanses Ice/Slime (front/back)  

@@ -67,8 +67,12 @@ export function applyPartyDamage(
 
 export function healSoldier(soldier: Soldier, amount: number): number {
   if (!soldier.alive || amount <= 0) return 0;
-  // Frozen solid — heals bounce (SpreadingFrost)
-  if (soldier.statuses.some((st) => st.kind === "Frozen")) return 0;
+  // Chain Frozen solid — heals bounce (SpreadingFrost). Soft ice-lock allows heals.
+  if (
+    soldier.statuses.some((st) => st.kind === "Frozen" && !st.soft)
+  ) {
+    return 0;
+  }
   const before = soldier.currentHp;
   soldier.currentHp = Math.min(soldier.maxHp, soldier.currentHp + amount);
   return soldier.currentHp - before;

@@ -456,7 +456,7 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 | DoT | Tick damage | Default duration | Special |
 |-----|-------------|------------------|---------|
 | **Fire** | **4** / tick | **3** rounds | High pressure; Fire Mage cannot cleanse |
-| **Ice** | **2** / tick | **2** rounds | On claim: **downgrade** effective grade by 1 before resolve |
+| **Ice** | **3** / tick | **3** rounds | Flat; claim downgrade while up. Natural expiry → soft Frozen 1 turn (attack blocked, heals OK). Bone Archer frost arrows. |
 | **Poison** | **3** / tick | **4** rounds | Damage split: magnet **30%**, adjacent **20%** each, remaining **30%** split among the other three (equal shares). Tick total = 3 × stacks. |
 | **Slime** | **2** / tick | **Until cleansed** | Flat chip only (no token slow). Stack cap 1. Fire Mage A/B or Doomcaller strip. Moss Mite on-hit. |
 

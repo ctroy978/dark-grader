@@ -170,6 +170,10 @@ export function describeMinionScout(opts: {
       );
     } else if (opts.onHitDot === "Fire") {
       parts.push(`Hits can apply Fire burn (ramps if left up).`);
+    } else if (opts.onHitDot === "Ice") {
+      parts.push(
+        `Frost arrows apply Ice (3 rounds). If it runs out uncleansed, they lock solid for one turn.`,
+      );
     } else {
       parts.push(`Hits can apply ${opts.onHitDot}.`);
     }
