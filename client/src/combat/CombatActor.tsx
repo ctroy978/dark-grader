@@ -587,15 +587,24 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("thunder-blast") ?? false);
-  // Rain stays on the caster (not enemy focus) — heal/hymn is about the singer
+  // Heal rain: charge on caster; blast on caster + impact on heal targets (party/boss)
   const showHealCharge =
     speaking && (cue?.fx?.includes("heal-charge") ?? false);
   const showHealBlast =
     speaking && (cue?.fx?.includes("heal-blast") ?? false);
+  const showHealImpact =
+    !speaking &&
+    inFocus &&
+    ((cue?.fx?.includes("heal-blast") ?? false) ||
+      (cue?.fx?.includes("heal-glow") ?? false));
   const showRuneCharge =
     speaking && (cue?.fx?.includes("rune-charge") ?? false);
   const showRuneBlast =
     speaking && (cue?.fx?.includes("rune-blast") ?? false);
+  const showRuneImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("rune-blast") ?? false);
   const showVanguardCharge =
     speaking && (cue?.fx?.includes("vanguard-charge") ?? false);
   const showVanguardBlast =
@@ -667,8 +676,10 @@ export function CombatActor({
         {showThunderImpact && <ThunderBoltFx mode="impact" />}
         {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
         {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
+        {showHealImpact && <SpiritRainFx mode="blast" variant="heal" />}
         {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
         {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
+        {showRuneImpact && <SpiritRainFx mode="blast" variant="rune" />}
         {showVanguardCharge && <VanguardBastionFx mode="charge" />}
         {showVanguardBlast && <VanguardBastionFx mode="blast" />}
         {showVanguardImpact && <VanguardBastionFx mode="impact" />}

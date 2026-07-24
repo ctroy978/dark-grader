@@ -55,8 +55,31 @@ export function poseForUnit(
         return "hit";
       }
       if (isSpeaker) return "attack";
-      // Focused non-speaker = damage target (boss or minion)
-      if (inFocus) return "hit";
+      // Focused non-speaker: flinch on strikes; soft heal/hymn recipients stay calm
+      if (inFocus) {
+        const offensive = fx.some(
+          (f) =>
+            f === "hurt-flash" ||
+            f === "shock-flash" ||
+            f === "fire-flash" ||
+            f === "fire-tint" ||
+            f === "fire-blast" ||
+            f === "thunder-blast" ||
+            f === "necro-blast" ||
+            f === "maiden-blast" ||
+            f === "vanguard-blast" ||
+            f === "doom-blast" ||
+            f === "archer-blast" ||
+            f === "party-stunned",
+        );
+        const softHeal = fx.some(
+          (f) =>
+            f === "heal-glow" || f === "heal-blast" || f === "rune-blast",
+        );
+        // Pure heal / hymn (Healer F boss backlash, party mend) — no flinch
+        if (softHeal && !offensive) return "standing";
+        return "hit";
+      }
       return "standing";
 
     case "telegraph":
@@ -171,7 +194,7 @@ export function fxClassesForUnit(
       if (f === "heal-glow") return "fx-heal-glow";
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
       if (f === "magnet-lock") return ""; // magnet strip handles this
-      // Shield Maiden energy beam: charge on caster, blast on caster + impact on targets
+      // Cast charge stays on the party caster; blast/impact may paint boss or allies
       if (f === "maiden-charge") return !isBoss ? "fx-maiden-charge" : "";
       if (f === "maiden-blast") return "fx-maiden-blast";
       if (f === "fire-charge") return !isBoss ? "fx-fire-charge" : "";
@@ -180,10 +203,11 @@ export function fxClassesForUnit(
       if (f === "necro-blast") return "fx-necro-blast";
       if (f === "thunder-charge") return !isBoss ? "fx-thunder-charge" : "";
       if (f === "thunder-blast") return "fx-thunder-blast";
+      // Heal charge on caster only; heal blast/glow allowed on boss (Healer F) + party
       if (f === "heal-charge") return !isBoss ? "fx-heal-charge" : "";
-      if (f === "heal-blast") return !isBoss ? "fx-heal-blast" : "";
+      if (f === "heal-blast") return "fx-heal-blast";
       if (f === "rune-charge") return !isBoss ? "fx-rune-charge" : "";
-      if (f === "rune-blast") return !isBoss ? "fx-rune-blast" : "";
+      if (f === "rune-blast") return "fx-rune-blast";
       if (f === "vanguard-charge") return !isBoss ? "fx-vanguard-charge" : "";
       if (f === "vanguard-blast") return "fx-vanguard-blast";
       if (f === "doom-charge") return !isBoss ? "fx-doom-charge" : "";

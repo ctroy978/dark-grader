@@ -43,10 +43,14 @@ describe("audioRoles", () => {
     ]);
   });
 
-  it("F always prefers fizzle then explosion_f", () => {
+  it("F uses the same kit attack SFX as other grades (no comic fizzle)", () => {
     for (const a of ALL) {
-      expect(attackSfxCandidates(a, "F")).toEqual(["fizzle", "explosion_f"]);
+      expect(attackSfxCandidates(a, "F")).toEqual(attackSfxCandidates(a, "A"));
     }
+    expect(attackSfxCandidates("Thundercaller", "F")[0]).toBe(
+      "act_thundercaller",
+    );
+    expect(attackSfxCandidates("Healer", "F")[0]).toBe("act_healer");
   });
 
   it("hurt candidates are gendered", () => {

@@ -55,6 +55,11 @@ export type SpecialistResolveResult = {
   acted: boolean;
   /** Why the attack was skipped (for presentation bubbles). */
   skipReason?: "stun" | "frozen";
+  /**
+   * Extra unit ids to focus for FX when board HP/status diffs miss the intent
+   * (e.g. Thundercaller F aims at an ally who shakes the stun off).
+   */
+  effectFocusIds?: string[];
 };
 
 export function resolveSpecialistAction(
@@ -93,6 +98,7 @@ export function resolveSpecialistAction(
     return { acted: false, skipReason: "stun" };
   }
 
+  let effectFocusIds: string[] = [];
   switch (soldier.archetype) {
     case "Vanguard":
       vanguard(soldier, g, team, log, label);
@@ -116,7 +122,7 @@ export function resolveSpecialistAction(
       necromancer(soldier, g, team, random, log, label);
       break;
     case "Thundercaller":
-      thundercaller(soldier, g, team, random, log, label);
+      effectFocusIds = thundercaller(soldier, g, team, random, log, label);
       break;
     case "Runesinger":
       runesinger(soldier, g, team, log, label);
@@ -124,7 +130,10 @@ export function resolveSpecialistAction(
     default:
       log(`${label}: unknown archetype`);
   }
-  return { acted: true };
+  return {
+    acted: true,
+    ...(effectFocusIds.length ? { effectFocusIds } : {}),
+  };
 }
 
 function vanguard(
@@ -630,6 +639,9 @@ function necromancer(
  * No chain. Stun on boss skips that round’s boss attack.
  * F: no damage; 30% stun a random other token-holder (they lose their attack).
  */
+/**
+ * @returns Extra focus ids for presentation (F overload always aims someone).
+ */
 function thundercaller(
   soldier: Soldier,
   g: Grade,
@@ -637,7 +649,7 @@ function thundercaller(
   random: () => number,
   log: LogFn,
   label: string,
-): void {
+): string[] {
   const tryBossStun = (): string => {
     if (!team.boss || team.boss.currentHp <= 0) return "";
     // Rattle Captain (and any StunImmune trait) cannot be stunned
@@ -662,9 +674,9 @@ function thundercaller(
     const candidates = livingParty(team).filter((s) => pending.includes(s.id));
     if (!candidates.length) {
       log(
-        `${label}: overload fizzles — no remaining token-holders left to stun`,
+        `${label}: OVERLOAD crackles with nowhere to land — no remaining token-holders`,
       );
-      return;
+      return [];
     }
     const target = candidates[Math.floor(random() * candidates.length)]!;
     if (random() < 0.3) {
@@ -678,7 +690,8 @@ function thundercaller(
         `${label}: OVERLOAD crackles at ${target.name} but they shake it off`,
       );
     }
-    return;
+    // Always FX the aimed ally (even when stun fails — shock still hits the panel)
+    return [target.id];
   }
 
   if (g === "A") {
@@ -690,7 +703,7 @@ function thundercaller(
       applyCharge(s, 3);
     }
     log(`${label}: lightning ${r}${stun}; front line charged +3 next attack`);
-    return;
+    return [];
   }
   if (g === "B") {
     const r = hitEnemies(team, 11, "single", 0, 0, soldier);
@@ -701,17 +714,18 @@ function thundercaller(
       applyCharge(s, 3);
     }
     log(`${label}: lightning ${r}${stun}; back line charged +3 next attack`);
-    return;
+    return [];
   }
   if (g === "C") {
     const r = hitEnemies(team, 9, "single", 0, 0, soldier);
     const stun = tryBossStun();
     log(`${label}: lightning ${r}${stun}`);
-    return;
+    return [];
   }
   // D
   const r = hitEnemies(team, 6, "single", 0, 0, soldier);
   log(`${label}: lightning ${r}`);
+  return [];
 }
 
 /**

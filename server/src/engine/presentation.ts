@@ -142,25 +142,22 @@ export function cueAction(
   const playVo = maybePlayVo(random, 0.28);
   const hitFocus = opts?.hitFocusIds?.filter(Boolean) ?? [];
   const slain = opts?.slainNames?.filter(Boolean) ?? [];
-  // Focus attacker + whatever they hit (minion and/or boss) so kills are readable
+  // Focus attacker + whatever they affected (enemies, allies, boss heals).
+  // Do NOT default empty focus to boss — party-only F effects must land on the party.
   const focusIds = [
     soldierId,
     ...hitFocus.filter((id) => id !== soldierId),
   ];
-  if (hitFocus.length === 0 && team.boss) {
-    focusIds.push("boss");
-  }
 
   let text = actionBubbleText(archetype, grade);
   if (slain.length) {
     text = `${text} ${slain[0]} down!`;
   }
 
-  // Unique attack cast per archetype; F = backfire. Kill weight uses same cast
-  // (not a second generic hit_heavy) so each kit keeps its identity.
+  // Unique attack cast per archetype (including F backfires — full kit identity).
   const sfxId = resolveSfxId(attackSfxCandidates(archetype, grade));
 
-  // Cast telegraphs (charge FX then impact). F skips charge for all of these.
+  // Cast telegraphs (charge FX then impact) for every grade, including F.
   // No board reveal on telegraph so floats stay on the action beat.
   type CastFx = {
     chargeFx: string;
@@ -172,42 +169,77 @@ export function cueAction(
     ShieldMaiden: {
       chargeFx: "maiden-charge",
       blastFx: "maiden-blast",
-      bubble: grade === "A" ? "Gather…" : "Charge…",
+      bubble:
+        grade === "F"
+          ? "Short…"
+          : grade === "A"
+            ? "Gather…"
+            : "Charge…",
       durationMs: 720,
     },
     FireMage: {
       chargeFx: "fire-charge",
       blastFx: "fire-blast",
       bubble:
-        grade === "A" ? "Inferno…" : grade === "B" ? "Ignite…" : "Burn…",
+        grade === "F"
+          ? "Oh no…"
+          : grade === "A"
+            ? "Inferno…"
+            : grade === "B"
+              ? "Ignite…"
+              : "Burn…",
       durationMs: 900,
     },
     Necromancer: {
       chargeFx: "necro-charge",
       blastFx: "necro-blast",
       bubble:
-        grade === "A" ? "Rise…" : grade === "B" ? "Swarm…" : "Haunt…",
+        grade === "F"
+          ? "Wrong life…"
+          : grade === "A"
+            ? "Rise…"
+            : grade === "B"
+              ? "Swarm…"
+              : "Haunt…",
       durationMs: 880,
     },
     Thundercaller: {
       chargeFx: "thunder-charge",
       blastFx: "thunder-blast",
       bubble:
-        grade === "A" ? "Storm…" : grade === "B" ? "Spark…" : "Arc…",
+        grade === "F"
+          ? "Overload…"
+          : grade === "A"
+            ? "Storm…"
+            : grade === "B"
+              ? "Spark…"
+              : "Arc…",
       durationMs: 750,
     },
     Healer: {
       chargeFx: "heal-charge",
       blastFx: "heal-blast",
       bubble:
-        grade === "A" ? "Bless…" : grade === "B" ? "Mend…" : "Heal…",
+        grade === "F"
+          ? "Wrong target…"
+          : grade === "A"
+            ? "Bless…"
+            : grade === "B"
+              ? "Mend…"
+              : "Heal…",
       durationMs: 850,
     },
     Runesinger: {
       chargeFx: "rune-charge",
       blastFx: "rune-blast",
       bubble:
-        grade === "A" ? "Rewrite…" : grade === "B" ? "Hymn…" : "Sing…",
+        grade === "F"
+          ? "Slip…"
+          : grade === "A"
+            ? "Rewrite…"
+            : grade === "B"
+              ? "Hymn…"
+              : "Sing…",
       durationMs: 850,
     },
     // Vanguard: seismic bastion plates + ground-slam shockwave (not a soft beam)
@@ -215,7 +247,13 @@ export function cueAction(
       chargeFx: "vanguard-charge",
       blastFx: "vanguard-blast",
       bubble:
-        grade === "A" ? "Hold the line!" : grade === "B" ? "Brace!" : "Stand!",
+        grade === "F"
+          ? "Weak…"
+          : grade === "A"
+            ? "Hold the line!"
+            : grade === "B"
+              ? "Brace!"
+              : "Stand!",
       durationMs: 700,
     },
     // Doomcaller: void sigils collapse inward then rupture (siphon, not ghosts)
@@ -223,7 +261,13 @@ export function cueAction(
       chargeFx: "doom-charge",
       blastFx: "doom-blast",
       bubble:
-        grade === "A" ? "Reap…" : grade === "B" ? "Bind…" : "Mark…",
+        grade === "F"
+          ? "On me…"
+          : grade === "A"
+            ? "Reap…"
+            : grade === "B"
+              ? "Bind…"
+              : "Mark…",
       durationMs: 820,
     },
     // Archer: draw focus at center, then horizontal blast toward the boss (right)
@@ -231,11 +275,17 @@ export function cueAction(
       chargeFx: "archer-charge",
       blastFx: "archer-blast",
       bubble:
-        grade === "A" ? "Loose!" : grade === "B" ? "Draw…" : "Aim…",
+        grade === "F"
+          ? "Misfire…"
+          : grade === "A"
+            ? "Loose!"
+            : grade === "B"
+              ? "Draw…"
+              : "Aim…",
       durationMs: 700,
     },
   };
-  const castFx = grade !== "F" ? castFxByArch[archetype] : undefined;
+  const castFx = castFxByArch[archetype];
   if (castFx) {
     pushCue(team, {
       kind: "telegraph",

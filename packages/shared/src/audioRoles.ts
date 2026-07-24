@@ -38,10 +38,10 @@ export const ARCHETYPE_ATTACK_SFX: Record<Archetype, string> = {
 /** Candidates in preference order (first existing file wins on server). */
 export function attackSfxCandidates(
   archetype: Archetype | string,
-  grade: Grade | string,
+  _grade: Grade | string,
 ): string[] {
-  // F tokens: comic fizzle / backfire (not the archetype's normal cast).
-  if (grade === "F") return ["fizzle", "explosion_f"];
+  // F tokens keep full kit identity (same cast as A–D). Target-side FX sells
+  // the backfire; comic fizzle made party hits look like the caster "failed."
   const preferred =
     ARCHETYPE_ATTACK_SFX[archetype as Archetype] ?? "hit_light";
   // Healer / Runesinger: prefer act_*; legacy `heal.mp3` still accepted.

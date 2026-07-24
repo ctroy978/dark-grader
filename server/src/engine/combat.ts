@@ -358,7 +358,8 @@ export function commitRound(team: TeamState): TeamState {
       const claim = claimBySoldier.get(soldier.id);
       if (!claim) continue;
 
-      // Diff enemy HP so presentation can focus the minion/boss that was hit
+      // Snapshot board so presentation focuses units this action actually touched
+      // (enemy hits, ally heals/damage, boss heals, new stun — not only enemy HP down).
       const beforeBossHp = team.boss?.currentHp ?? 0;
       const beforeBossStun = team.boss?.stunRoundsLeft ?? 0;
       const beforeMinions = team.minions.map((m) => ({
@@ -366,8 +367,13 @@ export function commitRound(team: TeamState): TeamState {
         name: m.name,
         hp: m.currentHp,
       }));
+      const beforeParty = team.roster.map((s) => ({
+        id: s.id,
+        hp: s.currentHp,
+        stunned: s.statuses.some((st) => st.kind === "Stun"),
+      }));
 
-      const { acted, skipReason } = resolveSpecialistAction(
+      const { acted, skipReason, effectFocusIds } = resolveSpecialistAction(
         team,
         soldier,
         claim,
@@ -391,8 +397,8 @@ export function commitRound(team: TeamState): TeamState {
           },
           fx: frozen
             ? ["party-frozen", "ice-tint", "hurt-flash"]
-            : ["party-stunned", "hurt-flash"],
-          sfxId: "fizzle",
+            : ["party-stunned", "shock-flash", "hurt-flash"],
+          sfxId: frozen ? "fizzle" : "hit_light",
           durationMs: 900,
         });
         continue;
@@ -400,31 +406,70 @@ export function commitRound(team: TeamState): TeamState {
 
       const hitFocusIds: string[] = [];
       const slainNames: string[] = [];
+      const pushFocus = (id: string) => {
+        if (id && !hitFocusIds.includes(id)) hitFocusIds.push(id);
+      };
+
       for (const prev of beforeMinions) {
         const now = team.minions.find((m) => m.id === prev.id);
         if (!now) continue;
         if (now.currentHp < prev.hp) {
-          hitFocusIds.push(now.id);
+          pushFocus(now.id);
           if (prev.hp > 0 && now.currentHp <= 0) {
             slainNames.push(now.name);
           }
         }
       }
-      if (team.boss && team.boss.currentHp < beforeBossHp) {
-        hitFocusIds.push("boss");
+      // Boss: damage *or* heal (Healer F backlash)
+      if (team.boss && team.boss.currentHp !== beforeBossHp) {
+        pushFocus("boss");
       }
-      // Thundercaller stun: reveal chip + FX only on this action beat
+      // Thundercaller boss stun: reveal chip + FX only on this action beat
       const bossStunnedNow =
         (team.boss?.stunRoundsLeft ?? 0) > beforeBossStun;
-      if (bossStunnedNow && !hitFocusIds.includes("boss")) {
-        hitFocusIds.push("boss");
+      if (bossStunnedNow) pushFocus("boss");
+
+      // Party: HP change (heal or damage) or newly applied stun
+      let partyDamaged = false;
+      let partyHealed = false;
+      for (const prev of beforeParty) {
+        const now = team.roster.find((s) => s.id === prev.id);
+        if (!now) continue;
+        if (now.currentHp < prev.hp) {
+          pushFocus(now.id);
+          partyDamaged = true;
+        } else if (now.currentHp > prev.hp) {
+          pushFocus(now.id);
+          partyHealed = true;
+        }
+        const nowStunned = now.statuses.some((st) => st.kind === "Stun");
+        if (!prev.stunned && nowStunned) pushFocus(now.id);
       }
+      for (const id of effectFocusIds ?? []) pushFocus(id);
+
+      const bossHealed =
+        !!team.boss && team.boss.currentHp > beforeBossHp;
 
       const fx: string[] = [];
       if (soldier.archetype === "Healer") fx.push("heal-glow");
-      if (soldier.archetype === "FireMage") fx.push("fire-flash");
       if (soldier.archetype === "Runesinger") fx.push("heal-glow");
-      if (claim.effectiveGrade === "F") fx.push("backfire");
+      if (soldier.archetype === "FireMage") {
+        fx.push("fire-flash");
+        if (partyDamaged) fx.push("fire-tint");
+      }
+      // Thundercaller party overload / any shock on allies
+      if (
+        soldier.archetype === "Thundercaller" &&
+        hitFocusIds.some((id) =>
+          team.roster.some((s) => s.id === id),
+        )
+      ) {
+        fx.push("shock-flash");
+      }
+      // Necromancer / Archer ally hits still get hurt flash on victims
+      if (partyDamaged) fx.push("hurt-flash");
+      // Soft tag: heals landing on party or boss (client uses for pose + impact)
+      if (partyHealed || bossHealed) fx.push("heal-glow");
       if (bossStunnedNow) fx.push("boss-stunned");
       cueAction(
         team,
