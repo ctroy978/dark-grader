@@ -210,6 +210,22 @@ export function cueAction(
         grade === "A" ? "Rewrite…" : grade === "B" ? "Hymn…" : "Sing…",
       durationMs: 850,
     },
+    // Vanguard: seismic bastion plates + ground-slam shockwave (not a soft beam)
+    Vanguard: {
+      chargeFx: "vanguard-charge",
+      blastFx: "vanguard-blast",
+      bubble:
+        grade === "A" ? "Hold the line!" : grade === "B" ? "Brace!" : "Stand!",
+      durationMs: 700,
+    },
+    // Doomcaller: void sigils collapse inward then rupture (siphon, not ghosts)
+    Doomcaller: {
+      chargeFx: "doom-charge",
+      blastFx: "doom-blast",
+      bubble:
+        grade === "A" ? "Reap…" : grade === "B" ? "Bind…" : "Mark…",
+      durationMs: 820,
+    },
   };
   const castFx = grade !== "F" ? castFxByArch[archetype] : undefined;
   if (castFx) {

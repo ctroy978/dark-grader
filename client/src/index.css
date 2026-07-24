@@ -1652,6 +1652,588 @@ body {
   }
 }
 
+/*
+ * Vanguard — steel bastion plates clamp shut, then seismic slam.
+ * Cool iron / stone; horizontal ground rings, not radial magic beams.
+ */
+.fx-vanguard-charge {
+  filter: drop-shadow(0 0 8px rgba(180, 195, 220, 0.55))
+    drop-shadow(0 0 14px rgba(100, 120, 150, 0.3));
+}
+.fx-vanguard-charge .portrait-frame {
+  animation: vanguard-brace 0.55s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(190, 205, 230, 0.5),
+    0 0 14px rgba(140, 160, 190, 0.4),
+    0 0 24px rgba(80, 100, 130, 0.25);
+  border-color: rgba(180, 195, 220, 0.55);
+}
+.fx-vanguard-blast {
+  filter: drop-shadow(0 0 12px rgba(220, 230, 245, 0.7))
+    drop-shadow(0 0 18px rgba(160, 180, 210, 0.4));
+}
+.fx-vanguard-blast .portrait-frame {
+  animation: vanguard-slam-flash 0.55s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(230, 240, 255, 0.6),
+    0 0 20px rgba(170, 190, 220, 0.55),
+    0 0 32px rgba(100, 120, 150, 0.3);
+  border-color: rgba(210, 220, 240, 0.6);
+}
+
+.vanguard-bastion-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -18% -14% -6%;
+  z-index: 6;
+  overflow: visible;
+}
+.vanguard-bastion-dust {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  width: 80%;
+  height: 28%;
+  margin-left: -40%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 70%,
+    rgba(160, 150, 130, 0.45) 0%,
+    rgba(100, 95, 85, 0.15) 50%,
+    transparent 75%
+  );
+  opacity: 0;
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-dust {
+  animation: vanguard-dust-build 0.7s ease-out infinite;
+}
+.vanguard-bastion-fx--blast .vanguard-bastion-dust,
+.vanguard-bastion-fx--impact .vanguard-bastion-dust {
+  animation: vanguard-dust-burst 0.7s ease-out forwards;
+}
+
+/* Steel plates slide in from sides/top */
+.vanguard-bastion-plate {
+  position: absolute;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 210, 230, 0.55) 0%,
+    rgba(120, 135, 160, 0.35) 50%,
+    rgba(70, 85, 110, 0.45) 100%
+  );
+  border: 1px solid rgba(220, 230, 245, 0.55);
+  box-shadow:
+    0 0 8px rgba(160, 180, 210, 0.4),
+    inset 0 0 6px rgba(255, 255, 255, 0.15);
+  opacity: 0;
+}
+.vanguard-bastion-plate--l {
+  left: 8%;
+  top: 28%;
+  width: 18%;
+  height: 42%;
+  clip-path: polygon(30% 0%, 100% 8%, 100% 92%, 30% 100%, 0% 50%);
+}
+.vanguard-bastion-plate--r {
+  right: 8%;
+  top: 28%;
+  width: 18%;
+  height: 42%;
+  clip-path: polygon(0% 8%, 70% 0%, 100% 50%, 70% 100%, 0% 92%);
+}
+.vanguard-bastion-plate--t {
+  left: 28%;
+  top: 10%;
+  width: 44%;
+  height: 16%;
+  clip-path: polygon(10% 100%, 50% 0%, 90% 100%);
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-plate--l {
+  animation: vanguard-plate-in-l 0.7s ease-out infinite;
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-plate--r {
+  animation: vanguard-plate-in-r 0.7s ease-out infinite;
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-plate--t {
+  animation: vanguard-plate-in-t 0.7s ease-out infinite 0.08s;
+}
+.vanguard-bastion-fx--blast .vanguard-bastion-plate,
+.vanguard-bastion-fx--impact .vanguard-bastion-plate {
+  animation: vanguard-plate-clash 0.65s ease-out forwards;
+}
+
+/* Ground-slam ellipses (horizontal, not circular magic rings) */
+.vanguard-bastion-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 50%;
+  height: 18%;
+  margin-left: -25%;
+  border-radius: 50%;
+  border: 2px solid rgba(190, 205, 230, 0.5);
+  box-shadow: 0 0 8px rgba(140, 160, 190, 0.35);
+  opacity: 0;
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-ring--a {
+  animation: vanguard-ground-pulse 0.75s ease-out infinite;
+}
+.vanguard-bastion-fx--charge .vanguard-bastion-ring--b {
+  animation: vanguard-ground-pulse 0.75s ease-out infinite 0.25s;
+  border-color: rgba(160, 175, 200, 0.35);
+}
+.vanguard-bastion-fx--blast .vanguard-bastion-ring--a,
+.vanguard-bastion-fx--blast .vanguard-bastion-ring--b,
+.vanguard-bastion-fx--impact .vanguard-bastion-ring--a,
+.vanguard-bastion-fx--impact .vanguard-bastion-ring--b {
+  animation: vanguard-ground-burst 0.75s ease-out forwards;
+}
+.vanguard-bastion-fx--blast .vanguard-bastion-ring--b,
+.vanguard-bastion-fx--impact .vanguard-bastion-ring--b {
+  animation-delay: 0.08s;
+}
+.vanguard-bastion-ring--slam {
+  border-width: 2.5px;
+  border-color: rgba(240, 245, 255, 0.7);
+  box-shadow:
+    0 0 12px rgba(200, 215, 240, 0.55),
+    0 0 20px rgba(120, 140, 170, 0.3);
+  animation: vanguard-ground-slam 0.7s ease-out forwards !important;
+}
+
+.vanguard-bastion-sparks {
+  position: absolute;
+  inset: 0;
+}
+.vanguard-bastion-spark {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  width: 3px;
+  height: 8px;
+  margin-left: -1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to top,
+    rgba(100, 120, 150, 0.2) 0%,
+    rgba(220, 230, 245, 0.95) 100%
+  );
+  box-shadow: 0 0 4px rgba(200, 215, 240, 0.8);
+  opacity: 0;
+  transform-origin: center bottom;
+  --spark-angle: calc(-70deg + var(--spark-i) * (140deg / var(--spark-n)));
+  animation: vanguard-spark-out 0.7s ease-out forwards;
+  animation-delay: calc(var(--spark-i) * 0.02s);
+}
+.vanguard-bastion-fx--impact {
+  inset: -12% -8% -4%;
+}
+
+@keyframes vanguard-brace {
+  0%,
+  100% {
+    filter: brightness(1.04);
+  }
+  50% {
+    filter: brightness(1.14);
+  }
+}
+@keyframes vanguard-slam-flash {
+  0% {
+    filter: brightness(1.4);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes vanguard-dust-build {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scaleX(0.7);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scaleX(1);
+  }
+}
+@keyframes vanguard-dust-burst {
+  0% {
+    opacity: 0.7;
+    transform: scaleX(0.8) scaleY(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.8) scaleY(1.2);
+  }
+}
+@keyframes vanguard-plate-in-l {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  40% {
+    opacity: 0.9;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translateX(-2px);
+  }
+}
+@keyframes vanguard-plate-in-r {
+  0% {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  40% {
+    opacity: 0.9;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translateX(2px);
+  }
+}
+@keyframes vanguard-plate-in-t {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  40% {
+    opacity: 0.85;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0.4;
+    transform: translateY(-2px);
+  }
+}
+@keyframes vanguard-plate-clash {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+@keyframes vanguard-ground-pulse {
+  0% {
+    opacity: 0.65;
+    transform: scale(0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes vanguard-ground-burst {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+@keyframes vanguard-ground-slam {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes vanguard-spark-out {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--spark-angle)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--spark-angle)) translateY(-36px) scale(0.6);
+  }
+}
+
+/*
+ * Doomcaller — void sigil siphon: seals orbit in, then reverse-rupture.
+ * Deep violet/black geometric marks (not floating ghosts).
+ */
+.fx-doom-charge {
+  filter: drop-shadow(0 0 10px rgba(120, 40, 160, 0.7))
+    drop-shadow(0 0 16px rgba(40, 10, 60, 0.45));
+}
+.fx-doom-charge .portrait-frame {
+  animation: doom-siphon-breathe 0.7s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(140, 60, 180, 0.5),
+    0 0 16px rgba(90, 20, 130, 0.5),
+    0 0 28px rgba(30, 5, 50, 0.4);
+  border-color: rgba(120, 50, 160, 0.55);
+}
+.fx-doom-blast {
+  filter: drop-shadow(0 0 12px rgba(180, 80, 220, 0.8))
+    drop-shadow(0 0 20px rgba(60, 15, 90, 0.5));
+}
+.fx-doom-blast .portrait-frame {
+  animation: doom-rupture-flash 0.6s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(200, 100, 255, 0.55),
+    0 0 22px rgba(120, 40, 180, 0.6),
+    0 0 36px rgba(40, 10, 70, 0.4);
+  border-color: rgba(170, 80, 220, 0.6);
+}
+
+.doom-sigil-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -22% -16%;
+  z-index: 6;
+  overflow: visible;
+}
+.doom-sigil-void {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 28%;
+  height: 28%;
+  margin-left: -14%;
+  margin-top: -14%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(20, 0, 30, 0.9) 0%,
+    rgba(80, 20, 120, 0.55) 40%,
+    transparent 70%
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.75;
+}
+.doom-sigil-fx--charge .doom-sigil-void {
+  animation: doom-void-pull 0.82s ease-in-out infinite;
+}
+.doom-sigil-fx--blast .doom-sigil-void,
+.doom-sigil-fx--impact .doom-sigil-void {
+  animation: doom-void-rupture 0.75s ease-out forwards;
+  mix-blend-mode: screen;
+}
+
+.doom-sigil-orbit {
+  position: absolute;
+  inset: 0;
+}
+/* Diamond/hex seal — no eyes, pure geometry */
+.doom-sigil-seal {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 120, 255, 0.85) 0%,
+    rgba(80, 20, 120, 0.7) 55%,
+    rgba(20, 0, 40, 0.9) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  box-shadow: 0 0 6px rgba(160, 60, 220, 0.7);
+  border: none;
+  opacity: 0;
+  --seal-angle: calc(var(--seal-i) * (360deg / var(--seal-n)));
+}
+.doom-sigil-fx--charge .doom-sigil-seal {
+  animation: doom-seal-orbit 0.85s ease-in-out infinite;
+  animation-delay: calc(var(--seal-i) * 0.08s);
+}
+.doom-sigil-fx--blast .doom-sigil-seal,
+.doom-sigil-fx--impact .doom-sigil-seal {
+  animation: doom-seal-burst 0.75s ease-out forwards;
+  animation-delay: calc(var(--seal-i) * 0.03s);
+}
+
+.doom-sigil-ring {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 40%;
+  height: 40%;
+  margin-left: -20%;
+  margin-top: -20%;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(160, 80, 220, 0.45);
+  opacity: 0;
+}
+.doom-sigil-fx--charge .doom-sigil-ring--a {
+  animation: doom-ring-in 0.9s ease-out infinite;
+}
+.doom-sigil-fx--charge .doom-sigil-ring--b {
+  animation: doom-ring-in 0.9s ease-out infinite 0.28s;
+  border-style: solid;
+  border-color: rgba(100, 30, 150, 0.35);
+}
+.doom-sigil-fx--blast .doom-sigil-ring--a,
+.doom-sigil-fx--blast .doom-sigil-ring--b,
+.doom-sigil-fx--impact .doom-sigil-ring--a,
+.doom-sigil-fx--impact .doom-sigil-ring--b {
+  animation: doom-ring-out 0.8s ease-out forwards;
+  border-style: solid;
+}
+.doom-sigil-fx--blast .doom-sigil-ring--b,
+.doom-sigil-fx--impact .doom-sigil-ring--b {
+  animation-delay: 0.07s;
+}
+
+.doom-sigil-rift {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 4%;
+  height: 55%;
+  margin-left: -2%;
+  margin-top: -20%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(220, 140, 255, 0.9) 40%,
+    rgba(40, 0, 60, 0.8) 60%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  box-shadow: 0 0 12px rgba(160, 60, 220, 0.8);
+  animation: doom-rift-slash 0.65s ease-out forwards;
+  transform-origin: center center;
+}
+.doom-sigil-fx--impact {
+  inset: -14% -10%;
+}
+.doom-sigil-fx--impact .doom-sigil-seal {
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  margin-top: -4.5px;
+}
+
+@keyframes doom-siphon-breathe {
+  0%,
+  100% {
+    filter: brightness(0.95) saturate(1.15);
+  }
+  50% {
+    filter: brightness(1.1) saturate(1.3);
+  }
+}
+@keyframes doom-rupture-flash {
+  0% {
+    filter: brightness(1.35) saturate(1.4);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes doom-void-pull {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+}
+@keyframes doom-void-rupture {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+    background: radial-gradient(
+      circle,
+      rgba(20, 0, 30, 0.95) 0%,
+      rgba(120, 40, 180, 0.6) 45%,
+      transparent 70%
+    );
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes doom-seal-orbit {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--seal-angle)) translateY(-36px) scale(0.6)
+      rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+    transform: rotate(var(--seal-angle)) translateY(-10px) scale(0.9)
+      rotate(180deg);
+  }
+}
+@keyframes doom-seal-burst {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--seal-angle)) translateY(-12px) scale(1)
+      rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--seal-angle)) translateY(-48px) scale(0.4)
+      rotate(220deg);
+  }
+}
+@keyframes doom-ring-in {
+  0% {
+    opacity: 0.7;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+}
+@keyframes doom-ring-out {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+@keyframes doom-rift-slash {
+  0% {
+    opacity: 0;
+    transform: rotate(-25deg) scaleY(0.2);
+  }
+  25% {
+    opacity: 1;
+    transform: rotate(-25deg) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-25deg) scaleY(1.3);
+  }
+}
+
 /* --- Boss telegraph / wind-up (Ash-first exploration) --- */
 .fx-boss-windup {
   /* Outer unit glow — readable from the back of the room */

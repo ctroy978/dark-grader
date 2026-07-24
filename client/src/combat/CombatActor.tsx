@@ -265,6 +265,72 @@ function SpiritRainFx({
   );
 }
 
+/**
+ * Vanguard — seismic bastion: steel plates lock in, then ground-slam shockwave.
+ * Physical fortify feel, not a soft magic beam.
+ */
+function VanguardBastionFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  return (
+    <div className={`vanguard-bastion-fx vanguard-bastion-fx--${mode}`} aria-hidden>
+      <div className="vanguard-bastion-dust" />
+      <div className="vanguard-bastion-plate vanguard-bastion-plate--l" />
+      <div className="vanguard-bastion-plate vanguard-bastion-plate--r" />
+      <div className="vanguard-bastion-plate vanguard-bastion-plate--t" />
+      <div className="vanguard-bastion-ring vanguard-bastion-ring--a" />
+      <div className="vanguard-bastion-ring vanguard-bastion-ring--b" />
+      {mode !== "charge" && (
+        <>
+          <div className="vanguard-bastion-ring vanguard-bastion-ring--slam" />
+          <div className="vanguard-bastion-sparks">
+            {Array.from({ length: 8 }, (_, i) => (
+              <span
+                key={i}
+                className="vanguard-bastion-spark"
+                style={
+                  {
+                    "--spark-i": i,
+                    "--spark-n": 8,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Doomcaller — void sigils orbit/collapse, then reverse-rupture (siphon → dump).
+ * Geometric curse seals, not ghost wisps.
+ */
+function DoomSigilFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const sealCount = mode === "charge" ? 5 : 6;
+  return (
+    <div className={`doom-sigil-fx doom-sigil-fx--${mode}`} aria-hidden>
+      <div className="doom-sigil-void" />
+      <div className="doom-sigil-orbit">
+        {Array.from({ length: sealCount }, (_, i) => (
+          <span
+            key={i}
+            className="doom-sigil-seal"
+            style={
+              {
+                "--seal-i": i,
+                "--seal-n": sealCount,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+      <div className="doom-sigil-ring doom-sigil-ring--a" />
+      <div className="doom-sigil-ring doom-sigil-ring--b" />
+      {mode !== "charge" && <div className="doom-sigil-rift" />}
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -415,6 +481,22 @@ export function CombatActor({
     speaking && (cue?.fx?.includes("rune-charge") ?? false);
   const showRuneBlast =
     speaking && (cue?.fx?.includes("rune-blast") ?? false);
+  const showVanguardCharge =
+    speaking && (cue?.fx?.includes("vanguard-charge") ?? false);
+  const showVanguardBlast =
+    speaking && (cue?.fx?.includes("vanguard-blast") ?? false);
+  const showVanguardImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("vanguard-blast") ?? false);
+  const showDoomCharge =
+    speaking && (cue?.fx?.includes("doom-charge") ?? false);
+  const showDoomBlast =
+    speaking && (cue?.fx?.includes("doom-blast") ?? false);
+  const showDoomImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("doom-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -459,6 +541,12 @@ export function CombatActor({
         {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
         {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
         {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
+        {showVanguardCharge && <VanguardBastionFx mode="charge" />}
+        {showVanguardBlast && <VanguardBastionFx mode="blast" />}
+        {showVanguardImpact && <VanguardBastionFx mode="impact" />}
+        {showDoomCharge && <DoomSigilFx mode="charge" />}
+        {showDoomBlast && <DoomSigilFx mode="blast" />}
+        {showDoomImpact && <DoomSigilFx mode="impact" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}
