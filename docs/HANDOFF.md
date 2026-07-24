@@ -146,7 +146,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
 
 ### DoTs
-- Fire 6 / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime 2 — `DOT_STATS`  
+- Fire **4** (party stacks max **2**) / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime 2 — `DOT_STATS`  
 - **Boss party DoTs ramp:** PoisonCloud, FireCloud, and minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs stay flat.  
 - Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
 - Doomcaller transfers party DoTs → boss  

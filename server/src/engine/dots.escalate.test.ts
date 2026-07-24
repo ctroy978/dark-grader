@@ -102,6 +102,24 @@ describe("boss DoT escalation", () => {
     ]);
   });
 
+  it("party Fire stacks cap at 2 (extra Clouds refresh, do not spike)", () => {
+    const team = makeAshTeam(15);
+    const mage = team.roster.find((s) => s.archetype === "FireMage")!;
+    applyDot(mage, "Fire", 1, undefined, true);
+    applyDot(mage, "Fire", 1, undefined, true);
+    applyDot(mage, "Fire", 1, undefined, true); // would be ×3 without cap
+    const st = mage.statuses.find((x) => x.kind === "Dot" && x.type === "Fire");
+    expect(st?.kind).toBe("Dot");
+    if (st?.kind === "Dot") {
+      expect(st.stacks).toBe(2);
+      expect(st.escalationStep).toBe(1);
+    }
+    const before = mage.currentHp;
+    tickDots(team, () => {});
+    // 4 base × 2 stacks × intensity 1
+    expect(before - mage.currentHp).toBe(DOT_STATS.Fire.tick * 2 * 1);
+  });
+
   it("re-applying boss poison keeps intensity (does not reset ramp)", () => {
     const team = makeAshTeam(14);
     const front = team.roster.find((s) => s.position === 1)!;

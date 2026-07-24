@@ -67,14 +67,20 @@ export const PARTY_SIZE = 6;
  * Intensity starts at 1 and +1 after each tick while the DoT remains.
  * Example Poison (base 8, 4 rounds, intensity 1→4): 8 + 16 + 24 + 32 = 80
  * if never cleansed. Player/ally DoTs stay flat (intensity 1 forever).
+ *
+ * Fire is softer than early prototypes: tick 4 + party stack cap 2 so Cloud
+ * spam buys response time without deleting the burn threat (intensity still ramps).
  */
 export const DOT_STATS = {
-  Fire: { tick: 6, duration: 3 },
+  Fire: { tick: 4, duration: 3 },
   Ice: { tick: 3, duration: 3 },
   /** Party splash total per stack at intensity 1 (split across living line) */
   Poison: { tick: 8, duration: 4 },
   Slime: { tick: 2, duration: 5 },
 } as const;
+
+/** Max Fire stacks on a party soldier (Clouds / imp hits stop piling past this). */
+export const MAX_PARTY_FIRE_STACKS = 2;
 
 /** Retain full fight history for classroom review */
 export const MAX_LOG_ENTRIES = 800;

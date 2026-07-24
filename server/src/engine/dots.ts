@@ -1,5 +1,6 @@
 import {
   DOT_STATS,
+  MAX_PARTY_FIRE_STACKS,
   type BossState,
   type DotType,
   type Minion,
@@ -18,6 +19,7 @@ import {
 /**
  * Apply / stack a DoT on a party soldier.
  * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / minion on-hit).
+ * Fire stacks are capped at MAX_PARTY_FIRE_STACKS so multi-Cloud does not spike to ×3+.
  */
 export function applyDot(
   soldier: Soldier,
@@ -28,8 +30,19 @@ export function applyDot(
 ): void {
   const existing = soldier.statuses.find((s) => s.kind === "Dot" && s.type === type);
   const duration = durationOverride ?? DOT_STATS[type].duration;
+  const addStacks =
+    type === "Fire"
+      ? Math.min(stacks, MAX_PARTY_FIRE_STACKS)
+      : stacks;
   if (existing && existing.kind === "Dot") {
-    existing.stacks += stacks;
+    if (type === "Fire") {
+      existing.stacks = Math.min(
+        MAX_PARTY_FIRE_STACKS,
+        existing.stacks + addStacks,
+      );
+    } else {
+      existing.stacks += addStacks;
+    }
     existing.duration = Math.max(existing.duration, duration);
     // Promote or keep ramping — intensity does not reset on re-apply
     if (fromBoss && existing.escalationStep == null) {
@@ -39,7 +52,7 @@ export function applyDot(
     soldier.statuses.push({
       kind: "Dot",
       type,
-      stacks,
+      stacks: addStacks,
       duration,
       ...(fromBoss ? { escalationStep: 1 } : {}),
     });

@@ -126,7 +126,7 @@ This section is for design review — update it when abilities change.
 | Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
 | Friendly fire | Many backfires **bypass** shield + block |
 | Ice DoT | On claim: **downgrade grade one step** (A→B … D→F; F stays) before resolve |
-| DoT ticks | Fire 6 / Ice 3 / Poison splash **8** per stack / Slime 2 — see `DOT_STATS`. Boss party DoTs (clouds, minion on-hit) **ramp** (×1, ×2, ×3…) while left up |
+| DoT ticks | Fire **4** (party stacks **capped at 2**) / Ice 3 / Poison splash **8** per stack / Slime 2 — see `DOT_STATS`. Boss party DoTs (clouds, minion on-hit) **ramp** (×1, ×2, ×3…) while left up |
 | Inter-room | Living Vanguard heals party 20% max HP if any living Vanguard; reform 6 |
 
 ### Roster & HP
@@ -193,7 +193,7 @@ Opening shield at fight start: **1d6** only when a living Maiden is in the party
 | **D** | **1** | **4** | — | **3** friendly fire to pos **1 and 2** (bypasses) |
 | **F** | — | — | — | No enemy hit; **3** damage to **entire** living party (bypasses) |
 
-Fire tick uses normal `DOT_STATS.Fire` (**6**/stack per DoT phase) on the **boss and any living minions** still standing after the hit (one-shots skip the chip). Minions show a Fire status under their portrait.
+Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss and any living minions** still standing after the hit (one-shots skip the chip). Minions show a Fire status under their portrait.
 
 ---
 
