@@ -93,7 +93,7 @@ Attentive magnet, mixed “typical” classroom pool unless noted.
 
 | Room | Typical attentive | Weak pool | AFK |
 |------|-------------------|-----------|-----|
-| 1 Moss Grub | ≥ 95% | ≥ 85% | ≥ 60% |
+| 1 Moss Grub | ≥ 90% | ≥ 75% | ≥ 40% (deaths likely) |
 | 2 Ash | 70–85% | 50–65% | low |
 | 3 Herald | 60–80% | 40–55% | low |
 | 4 Captain | 55–75% | 35–50% | low |
@@ -118,18 +118,18 @@ Cascade / FireMage FF left for a later pass if needed.
 
 ### 5.1 Room 1 — Moss Grub (`moss_grub`) — **shipped**
 
-**Teaching sentence:** “Learn the loop; bugs in the gap are snacks.”
+**Teaching sentence:** “Learn the loop; deaths stick — keep the gap clear.”
 
 | | |
 |--|--|
 | HP | **120–140** (start **130**) |
 | Enrage | None (or &lt;20% @ 1.1× only if needed) |
-| Attacks | Light `LineAttack`, light `FrontSlam`; **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
-| Adds | **Moss Mite** ×0–2 — **6–8 HP**, **2–3 dmg**; max 2; summon once or open with 1 |
-| Feel | Clear in **5–8** rounds even with mistakes |
+| Attacks | Light `LineAttack` (**6**), light `FrontSlam` (**10 / 8 / 4** seats 1–3); **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
+| Adds | **Moss Mite** ×0–2 — **7 HP**, **3 dmg**; max 2; open with 1 |
+| Feel | Clear in **5–8** rounds when attentive; **1–2 deaths** expected if students sleep or ignore mites |
 | Art key | `moss_grub`, mites `moss_mite` |
 
-Mistakes (F on FireMage, bad magnet) should still usually win.
+Attentive teams should still usually win; the lesson is that party members **can die** before Ash.
 
 ---
 

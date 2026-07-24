@@ -99,7 +99,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     minionId: "moss_mite",
     minionName: "Moss Mite",
     maxHp: 7,
-    damage: 2,
+    damage: 3,
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
@@ -579,12 +579,12 @@ function performAttack(
       break;
     }
     case "LightFrontSlam": {
-      // Tutorial-tier: ~60% of FrontSlam
-      log(`${boss.name} uses a soft Front Slam!`);
+      // Tutorial-tier: ~85% of FrontSlam — can kill 1–2 if ignored / unhealed
+      log(`${boss.name} uses Front Slam!`);
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
         if (!s) continue;
-        const base = pos === 1 ? 7 : pos === 2 ? 5 : 3;
+        const base = pos === 1 ? 10 : pos === 2 ? 8 : 4;
         const hpLost = hit(s, dmg(base));
         log(`  ${s.name} takes ${hpLost}`);
       }
@@ -599,9 +599,10 @@ function performAttack(
       break;
     }
     case "LightLineAttack": {
+      // Tutorial-tier: ~85% of LineAttack (7)
       log(`${boss.name} uses a light Line Attack!`);
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(4));
+        const hpLost = hit(s, dmg(6));
         log(`  ${s.name} takes ${hpLost}`);
       }
       break;

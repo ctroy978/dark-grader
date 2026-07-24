@@ -32,7 +32,7 @@ describe("boss TOML loader", () => {
     expect(summon?.summon?.freeVolley).toBe(true);
   });
 
-  it("loads Moss Grub tutorial kit with soft mites", () => {
+  it("loads Moss Grub tutorial kit with threatening mites", () => {
     const grub = getBossTemplate("moss_grub");
     expect(grub).toBeDefined();
     expect(grub!.maxHp).toBe(130);
@@ -47,7 +47,7 @@ describe("boss TOML loader", () => {
       minionId: "moss_mite",
       minionName: "Moss Mite",
       maxHp: 7,
-      damage: 2,
+      damage: 3,
       maxCount: 2,
       freeVolley: false,
       openCount: 1,
