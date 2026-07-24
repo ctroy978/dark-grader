@@ -64,7 +64,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `frozen-${index}`,
       icon: "🧊",
       label: st.stage >= 2 ? "Frozen ⚠" : `Frozen ${st.stage}/2`,
-      title: `Frozen — cannot attack or be healed · ${until} · cleanse with FireMage / Doomcaller / Healer`,
+      title: `Frozen — cannot attack or be healed · ${until} · only Fire Mage burns this off (A front / B back)`,
       colorClass: "text-cyan-200 border-cyan-400/50 bg-cyan-950/50",
     };
   }

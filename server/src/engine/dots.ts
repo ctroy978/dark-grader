@@ -249,6 +249,7 @@ export function bossDotTypes(boss: BossState): DotType[] {
 /**
  * Strip DoTs and plain Marks from soldiers; return collected DoT stacks
  * (each soldier's stacks counted — A transfer can sum to many stacks).
+ * Marks are removed but never transferred. Frozen is left alone (FireMage only).
  */
 export function stripDotsAndMarks(
   soldiers: Soldier[],
@@ -260,26 +261,48 @@ export function stripDotsAndMarks(
         collected.push({ type: st.type, stacks: st.stacks });
       }
     }
-    // Frozen strips with marks/DoTs but never transfers to the boss
     s.statuses = s.statuses.filter(
-      (st) => st.kind !== "Dot" && st.kind !== "Mark" && st.kind !== "Frozen",
+      (st) => st.kind !== "Dot" && st.kind !== "Mark",
     );
   }
   return collected;
 }
 
+/** Count of Marks removed (does not touch DoTs or Frozen). */
+export function stripMarks(soldiers: Soldier[]): number {
+  let removed = 0;
+  for (const s of soldiers) {
+    const before = s.statuses.length;
+    s.statuses = s.statuses.filter((st) => st.kind !== "Mark");
+    removed += before - s.statuses.length;
+  }
+  return removed;
+}
+
+/** FireMage only — burn off SpreadingFrost locks. */
+export function thawFrozen(soldiers: Soldier[]): number {
+  let thawed = 0;
+  for (const s of soldiers) {
+    if (!s.statuses.some((st) => st.kind === "Frozen")) continue;
+    s.statuses = s.statuses.filter((st) => st.kind !== "Frozen");
+    thawed += 1;
+  }
+  return thawed;
+}
+
+/**
+ * Remove matching DoT types. Does **not** affect Frozen (FireMage thaw only)
+ * or Marks (Doomcaller / dedicated strip).
+ */
 export function cleanseDots(
   soldiers: Soldier[],
   types: DotType[],
 ): number {
   let removed = 0;
-  const cleanseFrozen = types.includes("Ice");
   for (const s of soldiers) {
     const before = s.statuses.length;
     s.statuses = s.statuses.filter((st) => {
       if (st.kind === "Dot" && types.includes(st.type)) return false;
-      // SpreadingFrost lock cleanses with Ice
-      if (st.kind === "Frozen" && cleanseFrozen) return false;
       return true;
     });
     removed += before - s.statuses.length;

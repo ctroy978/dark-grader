@@ -194,7 +194,7 @@ Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / A
 
 #### Signature — `SpreadingFrost` (line wave + optional front freeze → Shatter)
 
-Separate status **`Frozen`** (not the token-downgrade Ice DoT). Cleansed like Ice.
+Separate status **`Frozen`** (not the token-downgrade Ice DoT). **Fire Mage only** burns it off (A front / B back) — not Healer, not Doomcaller.
 
 | Step | Rule |
 |------|------|
@@ -204,7 +204,7 @@ Separate status **`Frozen`** (not the token-downgrade Ice DoT). Cleansed like Ic
 | **While Frozen** | Cannot **attack** (token wasted). Cannot **be healed**. Each DoT phase: **3** cold chip, then spread or shatter. |
 | **Spread** | Each **DoT phase**: one seat toward center. Origin **1** → `1→2→3`; origin **2** → `2→3→4`. Skip dead seats. |
 | **Shatter** | After stage 2, next DoT phase: **18** on Frozen, **6** splash on others, clear Frozen. |
-| **Cleanse** | **FireMage** / **Doomcaller** / **Healer** (logs thaw when strip clears Frozen) |
+| **Cleanse Frozen** | **FireMage only** (A front / B back). Healer and Doomcaller do **not** thaw. |
 
 **Timeline example (freeze lands on pos 1):**
 
@@ -294,9 +294,9 @@ On resolving a claim, if boss has trait **MindHex**:
 
 | Source | Clears? |
 |--------|---------|
-| Healer A/B/C (Mark clear) | **Yes** |
-| Doomcaller strip Marks | **Yes** |
-| FireMage DoT cleanse | **No** |
+| Healer A/B/C (Fire/Ice/Poison) | **No** (not Marks) |
+| Doomcaller strip Marks | **Yes** (no transfer) |
+| FireMage Frozen thaw | **No** (Frozen ≠ Mark) |
 | Duration expiry | **Yes** |
 
 ### Action order (critical)

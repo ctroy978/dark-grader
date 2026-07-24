@@ -25,6 +25,7 @@ import {
   bossDotTypes,
   cleanseDots,
   stripDotsAndMarks,
+  thawFrozen,
 } from "./dots.js";
 
 export type LogFn = (text: string, tags?: string[]) => void;
@@ -192,8 +193,10 @@ function shieldMaiden(
 }
 
 /**
- * FireMage — Wildfire: reduced per-target damage, AOE by grade, Fire burn on
- * every living foe hit (minions + boss). Targets: A/B ≤3, C ≤2, D 1. F unchanged.
+ * FireMage — Wildfire AOE + boss Fire burn.
+ * A/B: burn off Frozen and cleanse Ice/Slime on half the line (A front, B back).
+ * Does not clear Fire/Poison (Healer) or Marks (Doomcaller).
+ * Targets: A/B ≤3, C ≤2, D 1. F unchanged.
  */
 function fireMage(
   soldier: Soldier,
@@ -202,7 +205,8 @@ function fireMage(
   log: LogFn,
   label: string,
 ): void {
-  const cleanseable = ["Ice", "Poison", "Slime"] as const;
+  /** Ice + Slime only — Fire/Poison are Healer; Frozen is thawFrozen. */
+  const mageCleanse: DotType[] = ["Ice", "Slime"];
 
   if (g === "F") {
     // F unchanged — party explosion, no enemy hit
@@ -262,17 +266,20 @@ function fireMage(
   }
   const burnNote = burnBits.length ? `; ${burnBits.join(", ")}` : "";
 
-  if (g === "A") {
-    const n = cleanseDots(livingParty(team), [...cleanseable]);
-    log(`${label}: Wildfire ${r}${burnNote}; cleansed ${n} non-Fire DoTs`);
-    return;
-  }
-  if (g === "B") {
-    const front = livingParty(team).filter(
-      (s) => s.position && s.position <= 3,
-    );
-    const n = cleanseDots(front, [...cleanseable]);
-    log(`${label}: Wildfire ${r}${burnNote}; cleansed front (${n})`);
+  if (g === "A" || g === "B") {
+    // A = front (1–3), B = back (4–6): thaw Frozen + cleanse Ice/Slime
+    const seats =
+      g === "A"
+        ? livingParty(team).filter((s) => s.position && s.position <= 3)
+        : livingParty(team).filter((s) => s.position && s.position >= 4);
+    const side = g === "A" ? "front" : "back";
+    const thawed = thawFrozen(seats);
+    const n = cleanseDots(seats, mageCleanse);
+    const extras: string[] = [];
+    if (thawed) extras.push(`burned off Frozen (${thawed})`);
+    if (n) extras.push(`cleansed Ice/Slime (${n})`);
+    const extraNote = extras.length ? `; ${side}: ${extras.join(", ")}` : "";
+    log(`${label}: Wildfire ${r}${burnNote}${extraNote}`);
     return;
   }
   if (g === "C") {
@@ -311,6 +318,7 @@ function fireMage(
   );
 }
 
+/** Healer — HP restore + cleanse Fire / Ice / Poison (not Slime, Marks, or Frozen). */
 function healer(
   soldier: Soldier,
   g: Grade,
@@ -318,61 +326,54 @@ function healer(
   log: LogFn,
   label: string,
 ): void {
+  const healCleanse: DotType[] = ["Fire", "Ice", "Poison"];
+
   if (g === "F") {
     const healed = healBoss(team, 8);
     log(`${label}: BACKLASH — boss heals ${healed}`);
     return;
   }
   if (g === "A") {
+    const targets = livingParty(team);
+    const cleansed = cleanseDots(targets, healCleanse);
     let total = 0;
-    let thawed = 0;
-    for (const s of livingParty(team)) {
-      // Thaw before heal — Frozen blocks HP restore
-      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
-      s.statuses = s.statuses.filter(
-        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
-      );
+    for (const s of targets) {
       total += healSoldier(s, 10);
     }
     log(
-      `${label}: heals party ${total} total, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+      `${label}: heals party ${total} total${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
     );
     return;
   }
   if (g === "B") {
+    const targets = livingParty(team).filter(
+      (x) => x.position && x.position <= 3,
+    );
+    const cleansed = cleanseDots(targets, healCleanse);
     let total = 0;
-    let thawed = 0;
-    for (const s of livingParty(team).filter((x) => x.position && x.position <= 3)) {
-      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
-      s.statuses = s.statuses.filter(
-        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
-      );
+    for (const s of targets) {
       total += healSoldier(s, 10);
     }
     log(
-      `${label}: heals front ${total}, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+      `${label}: heals front ${total}${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
     );
     return;
   }
   if (g === "C") {
-    // Back line (pos 4–6): smaller heal + Mark / Frozen clear
-    let total = 0;
-    let thawed = 0;
-    for (const s of livingParty(team).filter(
+    const targets = livingParty(team).filter(
       (x) => x.position && x.position >= 4,
-    )) {
-      if (s.statuses.some((st) => st.kind === "Frozen")) thawed += 1;
-      s.statuses = s.statuses.filter(
-        (st) => st.kind !== "Mark" && st.kind !== "Frozen",
-      );
+    );
+    const cleansed = cleanseDots(targets, healCleanse);
+    let total = 0;
+    for (const s of targets) {
       total += healSoldier(s, 6);
     }
     log(
-      `${label}: heals back ${total}, removes Marks${thawed ? ` & Frozen (${thawed})` : ""}`,
+      `${label}: heals back ${total}${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
     );
     return;
   }
-  // D
+  // D — self heal only (no cleanse)
   const h = healSoldier(soldier, 8);
   log(`${label}: self-heal ${h}`);
 }
@@ -423,8 +424,8 @@ function archer(
 }
 
 /**
- * Doomcaller — strip / transfer party DoTs ("marks") to the boss.
- * Death leaves poison based on last claim grade (Weaken duration encodes tier).
+ * Doomcaller — strip party DoTs + Marks; transfer **DoTs only** to the boss.
+ * Never clears Frozen (FireMage only). Death poison by last claim grade.
  */
 function doomcaller(
   soldier: Soldier,
@@ -444,13 +445,10 @@ function doomcaller(
     const front = livingParty(team).filter(
       (s) => s.position && s.position <= 3,
     );
-    const beforeFrozen = front.filter((s) =>
-      s.statuses.some((st) => st.kind === "Frozen"),
-    ).length;
-    const n = stripDotsAndMarks(front).length;
-    const thawed = beforeFrozen; // strip always clears Frozen
+    const dots = stripDotsAndMarks(front).length;
+    // stripDotsAndMarks already removed Marks; count is DoT entries only
     log(
-      `${label}: strips DoTs/Marks from front (${n} DoT/Mark${thawed ? `, thawed ${thawed} Frozen` : ""} removed)`,
+      `${label}: strips DoTs/Marks from front (${dots} DoT stack group(s); Marks cleared; Frozen stays)`,
     );
     return;
   }
@@ -458,13 +456,9 @@ function doomcaller(
     const back = livingParty(team).filter(
       (s) => s.position && s.position >= 4,
     );
-    const beforeFrozen = back.filter((s) =>
-      s.statuses.some((st) => st.kind === "Frozen"),
-    ).length;
-    const n = stripDotsAndMarks(back).length;
-    const thawed = beforeFrozen;
+    const dots = stripDotsAndMarks(back).length;
     log(
-      `${label}: strips DoTs/Marks from back (${n} DoT/Mark${thawed ? `, thawed ${thawed} Frozen` : ""} removed)`,
+      `${label}: strips DoTs/Marks from back (${dots} DoT stack group(s); Marks cleared; Frozen stays)`,
     );
     return;
   }
@@ -477,30 +471,32 @@ function doomcaller(
   if (g === "F") {
     const types = bossDotTypes(team.boss);
     if (!types.length) {
-      log(`${label}: boss has no marks — nothing to copy`);
+      log(`${label}: boss has no DoTs — nothing to copy`);
       return;
     }
     for (const type of types) {
       applyDot(soldier, type, 1);
     }
-    log(
-      `${label}: copies boss mark types onto self — ${types.join(", ")}`,
-    );
+    log(`${label}: copies boss DoT types onto self — ${types.join(", ")}`);
     return;
   }
 
-  // A / B — strip whole living party, transfer to boss
+  // A / B — strip whole living party; transfer DoTs only (Marks strip, no transfer)
   const party = livingParty(team);
-  const thawed = party.filter((s) =>
-    s.statuses.some((st) => st.kind === "Frozen"),
-  ).length;
+  const markCount = party.reduce(
+    (n, s) => n + s.statuses.filter((st) => st.kind === "Mark").length,
+    0,
+  );
   const collected = stripDotsAndMarks(party);
-  if (!collected.length && thawed === 0) {
-    log(`${label}: party has no DoTs/Marks to transfer`);
-    return;
-  }
-  if (!collected.length && thawed > 0) {
-    log(`${label}: thaws ${thawed} Frozen (no DoTs to transfer)`);
+  const marksNote =
+    markCount > 0 ? `; stripped ${markCount} Mark(s) (not transferred)` : "";
+
+  if (!collected.length) {
+    log(
+      markCount > 0
+        ? `${label}: strips Marks only — no DoTs to transfer${marksNote}`
+        : `${label}: party has no DoTs/Marks to strip`,
+    );
     return;
   }
 
@@ -516,7 +512,7 @@ function doomcaller(
       parts.push(`${type}×${stacks}`);
     }
     log(
-      `${label}: transfers all stacks to boss for 2 rounds — ${parts.join(", ")}${thawed ? `; thawed ${thawed} Frozen` : ""}`,
+      `${label}: transfers all DoT stacks to boss for 2 rounds — ${parts.join(", ")}${marksNote}`,
     );
     return;
   }
@@ -527,7 +523,7 @@ function doomcaller(
     applyBossDot(team.boss, type, 1, 3);
   }
   log(
-    `${label}: transfers one of each type to boss for 3 rounds — ${[...unique].join(", ")}${thawed ? `; thawed ${thawed} Frozen` : ""}`,
+    `${label}: transfers one of each DoT type to boss for 3 rounds — ${[...unique].join(", ")}${marksNote}`,
   );
 }
 

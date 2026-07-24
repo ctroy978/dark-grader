@@ -13,7 +13,7 @@ export type CombatPose =
 
 /**
  * Derive pose for a unit from the active presentation cue + live statuses.
- * Dead units always stay on death. Frozen sticks on ice.png until cleansed.
+ * Dead units always stay on death. Frozen sticks on ice.png until Fire Mage thaw.
  *
  * Rules (DD-style):
  * - Dead → death (sticky)

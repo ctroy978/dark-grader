@@ -53,8 +53,8 @@ export interface ChargeStatus {
 
 /**
  * Barrow Warden SpreadingFrost lock.
- * Cannot attack or be healed until cleansed; spreads toward center each DoT phase,
- * then shatters (see docs/BOSS_PLAN.md §5.5).
+ * Cannot attack or be healed until a Fire Mage burns it off (A front / B back);
+ * spreads toward center each DoT phase, then shatters (see docs/BOSS_PLAN.md §5.5).
  */
 export interface FrozenStatus {
   kind: "Frozen";

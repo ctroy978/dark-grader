@@ -179,16 +179,16 @@ Opening shield at fight start: **1d6** only when a living Maiden is in the party
 
 ---
 
-### FireMage — Wildfire AOE + boss Fire burn + cleanse (risky mid grades)
+### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw (risky mid grades)
 
-**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss, cleanse Ice/Poison/Slime (not Fire). Per-target damage is lower than the old single-target burst so multi-hit doesn’t race the boss alone. C/D/F still punish the party.
+**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (Healer) or Marks (Doomcaller). C/D/F still punish the party.
 
 **AOE rules:** minions first, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots are unused (no minions → single boss hit).
 
 | Grade | Targets | Direct each | Boss Fire | Also |
 |-------|---------|-------------|-----------|------|
-| **A** | ≤**3** | **9** | **1** stack, **2** rounds | Cleanse **all** living party Ice/Poison/Slime |
-| **B** | ≤**3** | **7** | **1** stack, **2** rounds | Cleanse **front** (pos 1–3) |
+| **A** | ≤**3** | **9** | **1** stack, **2** rounds | **Front** (1–3): burn **Frozen** + cleanse **Ice/Slime** |
+| **B** | ≤**3** | **7** | **1** stack, **2** rounds | **Back** (4–6): burn **Frozen** + cleanse **Ice/Slime** |
 | **C** | ≤**2** | **6** | **1** stack, **2** rounds | **2** friendly fire to pos **1 and 2** (bypasses shield/block) |
 | **D** | **1** | **4** | — | **3** friendly fire to pos **1 and 2** (bypasses) |
 | **F** | — | — | — | No enemy hit; **3** damage to **entire** living party (bypasses) |
@@ -197,16 +197,16 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Healer — restore HP + clear Marks
+### Healer — restore HP + cleanse Fire / Ice / Poison
 
-**Job (as coded):** stabilize line; F is catastrophic for the boss clock.
+**Job (as coded):** stabilize line and strip the main damage DoTs. Does **not** clear Frozen (Fire Mage only), Slime, or Marks. F is catastrophic for the boss clock.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | Heal **all** living **+10** each; remove **Marks** from all |
-| **B** | Heal **front** (pos 1–3) **+10** each; remove Marks from them |
-| **C** | Heal **back** (pos 4–6) **+6** each; remove Marks from them |
-| **D** | Heal **self** **+8** only |
+| **A** | Heal **all** living **+10** each; cleanse **Fire / Ice / Poison** on all |
+| **B** | Heal **front** (pos 1–3) **+10** each; cleanse Fire/Ice/Poison on front |
+| **C** | Heal **back** (pos 4–6) **+6** each; cleanse Fire/Ice/Poison on back |
+| **D** | Heal **self** **+8** only (no cleanse) |
 | **F** | Heal **boss** **+8** |
 
 ---
@@ -227,19 +227,19 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Doomcaller — transfer party DoTs (“marks”) to the boss
+### Doomcaller — strip DoTs + Marks; transfer DoTs only
 
-**Job (as coded):** cleanse the line by moving DoTs onto the boss (they tick boss HP). Death leaves **Poison** based on last claim grade.
+**Job (as coded):** strip the line’s DoTs and Marks; good grades move **DoTs onto the boss** (they tick boss HP). **Marks strip but never transfer.** **Frozen is never cleared** (Fire Mage only). Death leaves **Poison** based on last claim grade.
 
-In code, “marks” = **DoTs** (Fire / Ice / Poison / Slime) plus plain **Mark** tags when stripping. Boss holds DoTs on `boss.statuses` and takes DoT damage each DoT phase.
+Boss holds DoTs on `boss.statuses` and takes DoT damage each DoT phase.
 
 | Grade | On claim |
 |-------|----------|
-| **A** | Strip **all** party DoTs/Marks; boss gets **all stacks** of each type for **2** rounds (can be huge if many stacks) |
-| **B** | Strip **all** party DoTs/Marks; boss gets **one stack of each distinct type** for **3** rounds |
+| **A** | Strip **all** party DoTs + Marks; boss gets **all DoT stacks** of each type for **2** rounds (Marks not transferred) |
+| **B** | Strip **all** party DoTs + Marks; boss gets **one stack of each distinct DoT type** for **3** rounds |
 | **C** | Strip DoTs/Marks from **front** (pos 1–3) only — no transfer |
 | **D** | Strip DoTs/Marks from **back** (pos 4–6) only — no transfer |
-| **F** | Doomcaller gains **1 stack of each DoT type currently on the boss** (boss keeps its marks) |
+| **F** | Doomcaller gains **1 stack of each DoT type currently on the boss** (boss keeps its DoTs) |
 
 | Last claim | On death |
 |------------|----------|
@@ -308,14 +308,14 @@ Useful when weighing “who is just DPS?”
 | Archetype | A damage-ish | Notes |
 |-----------|--------------|--------|
 | Archer | **10** each ≤3 foes (12 vs minion) | Arrow Storm AOE |
-| FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + cleanse |
+| FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + Frozen thaw (A front) |
 | Thundercaller | 14 + stun/charge | Single target |
 | ShieldMaiden | 14 + shield 1d6 | |
 | Necromancer | 12 + heal 10 | |
 | Vanguard | 11 + block 6 self + 3 party | |
-| Doomcaller | 0 direct | DoT transfer / cleanse |
+| Doomcaller | 0 direct | DoT transfer; strip Marks |
 | Runesinger | 0 direct | Token rewrite + heal |
-| Healer | 0 direct | Heal 10 all |
+| Healer | 0 direct | Heal 10 all + Fire/Ice/Poison |
 
 ---
 

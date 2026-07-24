@@ -55,7 +55,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   SpreadingFrost: {
     name: "Spreading Frost",
     description:
-      "A hard frost wave across the whole line. May also freeze seat 1 or 2 — frozen soldiers cannot attack or be healed; the ice spreads toward the center and shatters if not cleansed. Only one freeze chain at a time.",
+      "A hard frost wave across the whole line. May also freeze seat 1 or 2 — frozen soldiers cannot attack or be healed; the ice spreads toward the center and shatters if not burned off. Only a Fire Mage can clear Frozen (A = front, B = back). Seat Fire mid/back so they can still act. Only one freeze chain at a time.",
   },
   Regenerate: {
     name: "Regenerate",

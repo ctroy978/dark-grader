@@ -149,7 +149,9 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Fire **4** (party stacks max **2**) / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime 2 — `DOT_STATS`  
 - **Boss party DoTs ramp:** PoisonCloud, FireCloud, and minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs stay flat.  
 - Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
-- Doomcaller transfers party DoTs → boss  
+- Doomcaller strips DoTs+Marks; transfers **DoTs only** → boss (not Marks, not Frozen)  
+- Healer cleanses Fire/Ice/Poison; Fire Mage only thaws Frozen (A front / B back)  
+
 - **UI today:** small status chips only (`statusUi` / `StatusChips`). Easy to miss on a Chromebook from across the table.  
 
 ### Bosses
@@ -169,10 +171,10 @@ Full tables live in **`README.md` → Character abilities**. High level:
 |-----------|------|
 | **Vanguard** | Personal block + hit; A–C also +party block (self A=6+3, B=4+2) |
 | **ShieldMaiden** | Damage ladder; A refresh shield; F dump shield |
-| **FireMage** | Wildfire AOE (A/B≤3, C≤2, D1) + boss Fire burn; cleanse; C/D/F friendly fire |
-| **Healer** | A all / B front / C **back** heal+Marks; F boss heal +8 |
+| **FireMage** | Wildfire AOE (A/B≤3, C≤2, D1) + boss Fire burn; **A front / B back** thaw **Frozen** + Ice/Slime; C/D/F friendly fire |
+| **Healer** | A all / B front / C back heal + cleanse **Fire/Ice/Poison**; F boss heal +8 |
 | **Archer** | Arrow Storm AOE (A/B≤3, C≤2, D1) + small minion bonus; F misfire |
-| **Doomcaller** | Strip/transfer DoTs to boss (A stacks 2r, B unique 3r, C/D cleanse lines); F copy boss types onto self; death → poison by last claim tier |
+| **Doomcaller** | Strip DoTs+Marks; transfer **DoTs only** (A stacks 2r, B unique 3r, C/D strip lines); **never** Frozen; F copy boss DoT types onto self; death → poison by last claim tier |
 | **Necromancer** | Drain + heal lowest; F hit **highest-HP ally 10** (no boss heal) |
 | **Thundercaller** | Single lightning (no chain); A/B/C 30% boss stun; A front Charge+3 / B back Charge+3; F 30% stun **unresolved** claimer |
 | **Runesinger** | **Always first**; rewrite tokens + heal holders (A all→A +5, B floor B +4, C lowest→C +3, D heal+3, F shift all down) |

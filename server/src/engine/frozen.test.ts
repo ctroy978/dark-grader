@@ -144,19 +144,18 @@ describe("SpreadingFrost / Frozen", () => {
     ).toBe(1);
   });
 
-  it("FireMage Ice cleanse and Doomcaller strip remove Frozen", () => {
+  it("Ice cleanse and Doomcaller strip do not remove Frozen", () => {
     const team = wardenTeam();
     applyFrozen(soldierAt(team, 1)!, 1, 0);
     applyFrozen(soldierAt(team, 2)!, 1, 1);
 
     const front = livingParty(team).filter((s) => (s.position ?? 0) <= 3);
-    const n = cleanseDots(front, ["Ice", "Poison", "Slime"]);
-    expect(n).toBeGreaterThanOrEqual(2);
-    expect(partyHasFrozen(team)).toBe(false);
+    cleanseDots(front, ["Ice", "Poison", "Slime", "Fire"]);
+    expect(partyHasFrozen(team)).toBe(true);
 
-    applyFrozen(soldierAt(team, 6)!, 6, 0);
     stripDotsAndMarks(livingParty(team));
-    expect(partyHasFrozen(team)).toBe(false);
+    expect(partyHasFrozen(team)).toBe(true);
+    expect(isFrozen(soldierAt(team, 1)!)).toBe(true);
   });
 
   it("does not pick SpreadingFrost while anyone is Frozen", () => {
@@ -223,7 +222,7 @@ describe("SpreadingFrost / Frozen", () => {
     expect(isFrozen(soldierAt(team, 2)!)).toBe(true);
   });
 
-  it("Healer A thaws then heals", () => {
+  it("Healer A does not thaw Frozen (heal still blocked)", () => {
     const team = wardenTeam();
     const s = soldierAt(team, 1)!;
     s.currentHp = 10;
@@ -247,7 +246,63 @@ describe("SpreadingFrost / Frozen", () => {
       () => 0.5,
       () => {},
     );
-    expect(isFrozen(s)).toBe(false);
-    expect(s.currentHp).toBeGreaterThan(10);
+    expect(isFrozen(s)).toBe(true);
+    expect(s.currentHp).toBe(10);
+  });
+
+  function seatMageMid(team: ReturnType<typeof wardenTeam>) {
+    const mage = team.roster.find((x) => x.archetype === "FireMage" && x.alive)!;
+    // Ensure mage is in active party
+    if (!team.activePartyIds.includes(mage.id)) {
+      const drop = team.activePartyIds[2]!;
+      const old = team.roster.find((r) => r.id === drop)!;
+      old.position = null;
+      team.activePartyIds[2] = mage.id;
+    }
+    const others = livingParty(team).filter((s) => s.id !== mage.id);
+    mage.position = 3;
+    const seats: Array<1 | 2 | 4 | 5 | 6> = [1, 2, 4, 5, 6];
+    others.forEach((s, i) => {
+      s.position = seats[i] ?? 6;
+    });
+    team.activePartyIds = livingParty(team)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((s) => s.id);
+    return mage;
+  }
+
+  it("FireMage A burns Frozen on front only", () => {
+    const team = wardenTeam();
+    const mage = seatMageMid(team);
+    applyFrozen(soldierAt(team, 1)!, 1, 0);
+    applyFrozen(soldierAt(team, 6)!, 6, 0);
+    expect(isFrozen(mage)).toBe(false);
+
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(isFrozen(soldierAt(team, 1)!)).toBe(false);
+    expect(isFrozen(soldierAt(team, 6)!)).toBe(true);
+  });
+
+  it("FireMage B burns Frozen on back only", () => {
+    const team = wardenTeam();
+    const mage = seatMageMid(team);
+    applyFrozen(soldierAt(team, 2)!, 2, 0);
+    applyFrozen(soldierAt(team, 5)!, 5, 0);
+
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "B", soldierId: mage.id, effectiveGrade: "B" },
+      () => 0.5,
+      () => {},
+    );
+    expect(isFrozen(soldierAt(team, 2)!)).toBe(true);
+    expect(isFrozen(soldierAt(team, 5)!)).toBe(false);
   });
 });

@@ -29,10 +29,10 @@ A soldier only performs a meaningful action if they **claim at least one token**
 |--------------------|-------|----------------------------------------|----------------------------------------|----------------------------------------|----------------------------------------|----------------------------------------|
 | **Vanguard**       | 2     | Solid block + good attack              | Good block + good attack               | Block + attack                         | Poor block, no attack                  | No block, no attack                    |
 | **Shield Maiden**  | 3     | Solid attack                           | Good attack                            | Reroll shield                          | Bad attack                             | No attack + shield short-circuits (lose 1 HP if active) |
-| **Fire Mage**      | 3     | Powerful attack + burn all DoTs (except Fire) | Good attack + burn front-line DoTs (except Fire) | Good attack + 2 dmg to front           | Poor attack + 3 dmg to front           | Explosion: 3 dmg to everyone (front + behind), no attack |
-| **Healer**         | 3     | Good heal to everyone + remove Marks   | Good heal to front + remove Marks      | Okay heal to front                     | Okay heal to self                      | Backlash: heals enemy                  |
+| **Fire Mage**      | 3     | Wildfire + boss Fire; front: burn Frozen + Ice/Slime | Wildfire + boss Fire; back: burn Frozen + Ice/Slime | Wildfire + friendly fire front | Ember + worse friendly fire | Explosion: party damage, no attack |
+| **Healer**         | 3     | Heal all + clear Fire/Ice/Poison       | Heal front + clear Fire/Ice/Poison     | Heal back + clear Fire/Ice/Poison      | Heal self only                         | Backlash: heals boss                   |
 | **Archer**         | 8     | Powerful volley                        | Good volley                            | Normal volley                          | Weak volley                            | Misfire: low dmg + 1–2 dmg to random ally |
-| **Doomcaller**     | 1     | Strong curse + strong zombie on death  | Good curse + decent zombie             | Mild curse + neutral zombie            | Weak curse + risky zombie              | Harmful curse + bad backfire on death  |
+| **Doomcaller**     | 2     | Strip DoTs+Marks; transfer all DoT stacks → boss | Strip; transfer one of each DoT → boss | Strip front DoTs/Marks (no transfer) | Strip back DoTs/Marks (no transfer) | Copy boss DoT types onto self |
 | **Necromancer**    | 2–3   | Strong drain (boss dmg + heal ally)    | Good drain (dmg + small heal)          | Mild drain                             | Weak drain + self dmg                  | Backlash (boss heals or self dmg)      |
 | **Thundercaller**  | 2–3   | Massive chain lightning + stun chance  | Good chain + minor chain               | Normal lightning strike                | Unstable strike + random party dmg     | Overload: party dmg, no boss dmg       |
 | **Runesinger**     | 2–3   | Powerful rune (big buff or debuff)     | Good rune (solid buff/debuff)          | Basic rune (small team buff)           | Weak rune (self buff only)             | Corrupted rune (boss buff or party penalty) |
@@ -40,7 +40,7 @@ A soldier only performs a meaningful action if they **claim at least one token**
 **Notes**:
 - Shield Maidens start every fight with a **party-wide 1d6 shield**.
 - Once the shield is depleted, Shield Maidens become normal fighters.
-- Fire Mages cannot cleanse **Fire DoTs**.
+- **Cleanse split (current):** Healer → Fire/Ice/Poison; Fire Mage → Frozen (only) + Ice/Slime on A/B half-line; Doomcaller → all DoTs + Marks (transfer **DoTs only**). Frozen is never cleared by Healer or Doomcaller.
 
 ---
 
@@ -89,15 +89,16 @@ All DoTs **hit Shield Maiden party-wide shield first**, then characters.
 
 ### 5.1 The Four DoT Types
 
-| DoT Type   | Damage Speed | Duration     | Special Effect                                      | Fire Mage Interaction      |
+| DoT Type   | Damage Speed | Duration     | Special Effect                                      | Who clears (soft)          |
 |------------|--------------|--------------|-----------------------------------------------------|----------------------------|
-| **Fire**   | Fast         | Medium       | High damage per tick                                | Cannot cleanse             |
-| **Ice**    | Slow         | Short        | Reduces token quality by 1 step (A→B, D→F, F unchanged) | Can cleanse                |
-| **Poison** | Medium       | Long         | Magnet character takes 30%, adjacent 20%, splash reduced to rest | Can cleanse                |
-| **Slime**  | Very Slow    | Very Long    | Slows party (fewer tokens next round or reduced effectiveness) | Can cleanse                |
+| **Fire**   | Fast         | Medium       | High damage per tick; boss-sourced ramps            | **Healer** (also Doomcaller strip/transfer) |
+| **Ice**    | Slow         | Short        | Reduces token quality by 1 step (A→B, D→F, F unchanged) | **Healer** + **Fire Mage** A/B half-line |
+| **Poison** | Medium       | Long         | Party splash (magnet-weighted); boss-sourced ramps  | **Healer** (also Doomcaller) |
+| **Slime**  | Very Slow    | Very Long    | Fewer tokens next drop                              | **Fire Mage** A/B half-line (also Doomcaller) |
 
 ### 5.2 Other Status
-- **Mark**: Removed by Healer on A/B token.
+- **Mark**: Stripped by **Doomcaller** (not transferred to boss). Not cleared by Healer.
+- **Frozen** (SpreadingFrost): Cannot attack or be healed; spreads then shatters. **Fire Mage only** burns it off (A front / B back). Not a DoT; not an Ice DoT.
 - **Stun / Weaken / etc.**: As defined in boss attack library.
 
 ---

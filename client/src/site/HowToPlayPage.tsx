@@ -126,11 +126,45 @@ export default function HowToPlayPage() {
           </ul>
         </section>
 
+        <section className="rounded-2xl border border-parchment/12 bg-navy-light/40 p-6 md:p-8 space-y-3">
+          <h2 className="text-xl font-bold">Who clears what</h2>
+          <p className="text-sm text-parchment-dim leading-relaxed">
+            Sticky effects need the right specialist. Full grade lists are on each{" "}
+            <button
+              type="button"
+              className="text-rune underline underline-offset-2"
+              onClick={() => navigate({ page: "characters" })}
+            >
+              character
+            </button>{" "}
+            page.
+          </p>
+          <ul className="space-y-2 text-sm text-parchment-dim">
+            <li>
+              <strong className="text-parchment">Healer</strong> — heals and
+              clears <strong className="text-parchment">Fire, Ice, Poison</strong>{" "}
+              DoTs (not Frozen, Slime, or Marks).
+            </li>
+            <li>
+              <strong className="text-parchment">Fire Mage</strong> — only class
+              that burns off <strong className="text-parchment">Frozen</strong>{" "}
+              (A = front, B = back). Those grades also clear Ice and Slime on
+              that half of the line. Seat them mid/back against frost bosses.
+            </li>
+            <li>
+              <strong className="text-parchment">Doomcaller</strong> — strips
+              DoTs and Marks; good grades move DoTs onto the boss. Marks never
+              transfer. Cannot clear Frozen.
+            </li>
+          </ul>
+        </section>
+
         <section className="rounded-2xl border border-rune/25 bg-rune/5 p-6 space-y-3">
           <h2 className="text-xl font-bold text-rune">Classroom rules of thumb</h2>
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
             <li>Deaths are permanent until the teacher resets the team.</li>
             <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
+            <li>Poison and Fire clouds get worse every round if left up — cleanse or transfer.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>
             <li>Wrong invite code? You’re on the wrong team (or period).</li>
           </ul>

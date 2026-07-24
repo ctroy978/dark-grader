@@ -24,13 +24,13 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   ShieldMaiden:
     "Strikes hard and controls the party shield. A refreshes the shield; F drops it to zero.",
   FireMage:
-    "Hits several enemies with fire and can burn the boss. Weak grades can hurt allies.",
+    "Hits several enemies with fire and can burn the boss. The only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime on that half of the line. Weak grades can hurt allies.",
   Healer:
-    "Heals allies and clears Marks. F heals the boss instead.",
+    "Heals allies and cleanses Fire, Ice, and Poison DoTs (A all, B front, C back). Does not clear Frozen, Slime, or Marks. F heals the boss instead.",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. F can misfire.",
   Doomcaller:
-    "Moves DoTs and Marks between the party and the boss.",
+    "Strips party DoTs and Marks. Good grades transfer DoTs onto the boss (Marks strip but never transfer). Cannot clear Frozen — only Fire Mage can.",
   Necromancer:
     "Drains the boss and heals allies. Weak grades can backfire.",
   Thundercaller:
