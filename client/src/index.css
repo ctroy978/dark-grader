@@ -874,6 +874,521 @@ body {
   }
 }
 
+/*
+ * Necromancer — purple eyeless ghost swarm.
+ * Charge: wisps drift in / orbit as a mist cloud.
+ * Blast: ghosts explode outward in a violet burst.
+ */
+.fx-necro-charge {
+  filter: drop-shadow(0 0 10px rgba(160, 100, 255, 0.65))
+    drop-shadow(0 0 18px rgba(100, 40, 180, 0.4));
+}
+.fx-necro-charge .portrait-frame {
+  animation: necro-charge-breathe 0.75s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(180, 120, 255, 0.5),
+    0 0 18px rgba(130, 70, 220, 0.5),
+    0 0 30px rgba(80, 30, 140, 0.3);
+  border-color: rgba(160, 100, 240, 0.55);
+}
+.fx-necro-blast {
+  filter: drop-shadow(0 0 12px rgba(200, 140, 255, 0.8))
+    drop-shadow(0 0 22px rgba(120, 50, 200, 0.45));
+}
+.fx-necro-blast .portrait-frame {
+  animation: necro-blast-flash 0.6s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(210, 160, 255, 0.6),
+    0 0 24px rgba(150, 80, 240, 0.65),
+    0 0 40px rgba(90, 30, 160, 0.35);
+  border-color: rgba(200, 140, 255, 0.65);
+}
+
+.necro-swarm-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -24% -18%;
+  z-index: 6;
+  overflow: visible;
+}
+.necro-swarm-cloud {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 55%;
+  height: 48%;
+  margin-left: -27.5%;
+  margin-top: -24%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(140, 80, 220, 0.45) 0%,
+    rgba(80, 30, 140, 0.22) 45%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  filter: blur(2px);
+}
+.necro-swarm-fx--charge .necro-swarm-cloud {
+  animation: necro-cloud-swirl 0.88s ease-in-out infinite;
+}
+.necro-swarm-fx--blast .necro-swarm-cloud,
+.necro-swarm-fx--impact .necro-swarm-cloud {
+  animation: necro-cloud-burst 0.75s ease-out forwards;
+}
+
+.necro-swarm-ring {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 42%;
+  height: 42%;
+  margin-left: -21%;
+  margin-top: -21%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(180, 120, 255, 0.4);
+  box-shadow: 0 0 10px rgba(130, 70, 220, 0.35);
+  opacity: 0;
+}
+.necro-swarm-fx--charge .necro-swarm-ring--a {
+  animation: necro-ring-swirl 1s ease-out infinite;
+}
+.necro-swarm-fx--charge .necro-swarm-ring--b {
+  animation: necro-ring-swirl 1s ease-out infinite 0.3s;
+  border-color: rgba(210, 160, 255, 0.3);
+}
+.necro-swarm-fx--blast .necro-swarm-ring--a,
+.necro-swarm-fx--blast .necro-swarm-ring--b,
+.necro-swarm-fx--impact .necro-swarm-ring--a,
+.necro-swarm-fx--impact .necro-swarm-ring--b {
+  animation: necro-ring-burst 0.8s ease-out forwards;
+}
+.necro-swarm-fx--blast .necro-swarm-ring--b,
+.necro-swarm-fx--impact .necro-swarm-ring--b {
+  animation-delay: 0.08s;
+}
+
+.necro-swarm-ghosts {
+  position: absolute;
+  inset: 0;
+}
+/* Eyeless ghost wisp — soft teardrop head + trailing body, no face */
+.necro-swarm-ghost {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 11px;
+  height: 14px;
+  margin-left: -5.5px;
+  margin-top: -7px;
+  border-radius: 50% 50% 42% 42%;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(230, 200, 255, 0.95) 0%,
+    rgba(150, 90, 230, 0.75) 45%,
+    rgba(70, 20, 120, 0.35) 100%
+  );
+  box-shadow:
+    0 0 6px rgba(170, 100, 255, 0.7),
+    0 4px 8px rgba(90, 30, 160, 0.35);
+  opacity: 0;
+  transform-origin: center center;
+  --ghost-angle: calc(var(--ghost-i) * (360deg / var(--ghost-n)) + 8deg);
+}
+.necro-swarm-ghost::after {
+  content: "";
+  position: absolute;
+  left: 15%;
+  bottom: -35%;
+  width: 70%;
+  height: 55%;
+  border-radius: 40% 40% 50% 50%;
+  background: linear-gradient(
+    to bottom,
+    rgba(160, 100, 240, 0.7) 0%,
+    transparent 100%
+  );
+  filter: blur(0.5px);
+}
+.necro-swarm-fx--charge .necro-swarm-ghost {
+  animation: necro-ghost-swarm 0.9s ease-in-out infinite;
+  animation-delay: calc(var(--ghost-i) * 0.07s);
+}
+.necro-swarm-fx--blast .necro-swarm-ghost,
+.necro-swarm-fx--impact .necro-swarm-ghost {
+  animation: necro-ghost-burst 0.8s ease-out forwards;
+  animation-delay: calc(var(--ghost-i) * 0.025s);
+}
+.necro-swarm-fx--impact {
+  inset: -16% -12%;
+}
+.necro-swarm-fx--impact .necro-swarm-ghost {
+  width: 9px;
+  height: 11px;
+  margin-left: -4.5px;
+  margin-top: -5.5px;
+}
+
+@keyframes necro-charge-breathe {
+  0%,
+  100% {
+    filter: brightness(1.05) hue-rotate(0deg);
+  }
+  50% {
+    filter: brightness(1.2) hue-rotate(-8deg);
+  }
+}
+@keyframes necro-blast-flash {
+  0% {
+    filter: brightness(1.4) saturate(1.3);
+  }
+  40% {
+    filter: brightness(1.15);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes necro-cloud-swirl {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.85) rotate(-4deg);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1) rotate(4deg);
+  }
+}
+@keyframes necro-cloud-burst {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+@keyframes necro-ring-swirl {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes necro-ring-burst {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes necro-ghost-swarm {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--ghost-angle)) translateY(-10px) scale(0.55);
+  }
+  30% {
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.85;
+    transform: rotate(calc(var(--ghost-angle) + 12deg)) translateY(-22px)
+      scale(1);
+  }
+  100% {
+    opacity: 0.25;
+    transform: rotate(calc(var(--ghost-angle) + 24deg)) translateY(-8px)
+      scale(0.75);
+  }
+}
+@keyframes necro-ghost-burst {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--ghost-angle)) translateY(-12px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ghost-angle)) translateY(-52px) scale(0.45);
+  }
+}
+
+/*
+ * Thundercaller — yellow lightning charge + outward bolt explosion.
+ */
+.fx-thunder-charge {
+  filter: drop-shadow(0 0 10px rgba(255, 230, 90, 0.7))
+    drop-shadow(0 0 18px rgba(240, 200, 40, 0.4));
+}
+.fx-thunder-charge .portrait-frame {
+  animation: thunder-charge-breathe 0.45s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255, 240, 120, 0.55),
+    0 0 18px rgba(250, 210, 50, 0.55),
+    0 0 30px rgba(220, 170, 20, 0.3);
+  border-color: rgba(255, 230, 100, 0.55);
+}
+.fx-thunder-blast {
+  filter: drop-shadow(0 0 12px rgba(255, 245, 160, 0.85))
+    drop-shadow(0 0 22px rgba(255, 210, 50, 0.5));
+}
+.fx-thunder-blast .portrait-frame {
+  animation: thunder-blast-flash 0.55s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 180, 0.7),
+    0 0 24px rgba(255, 220, 60, 0.7),
+    0 0 40px rgba(240, 180, 30, 0.35);
+  border-color: rgba(255, 240, 140, 0.65);
+}
+
+.thunder-bolt-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -20% -14%;
+  z-index: 6;
+  overflow: visible;
+}
+.thunder-bolt-core {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 18%;
+  height: 18%;
+  margin-left: -9%;
+  margin-top: -9%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 240, 120, 0.75) 35%,
+    rgba(240, 180, 30, 0.25) 65%,
+    transparent 75%
+  );
+  mix-blend-mode: screen;
+  box-shadow: 0 0 14px rgba(255, 230, 80, 0.8);
+}
+.thunder-bolt-fx--charge .thunder-bolt-core {
+  animation: thunder-core-pulse 0.4s ease-in-out infinite;
+}
+.thunder-bolt-fx--blast .thunder-bolt-core,
+.thunder-bolt-fx--impact .thunder-bolt-core {
+  animation: thunder-core-burst 0.65s ease-out forwards;
+}
+
+.thunder-bolt-ring {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 38%;
+  height: 38%;
+  margin-left: -19%;
+  margin-top: -19%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 230, 100, 0.5);
+  box-shadow: 0 0 10px rgba(250, 210, 40, 0.4);
+  opacity: 0;
+}
+.thunder-bolt-fx--charge .thunder-bolt-ring {
+  animation: thunder-ring-charge 0.55s ease-out infinite;
+}
+.thunder-bolt-fx--blast .thunder-bolt-ring,
+.thunder-bolt-fx--impact .thunder-bolt-ring {
+  animation: thunder-ring-burst 0.7s ease-out forwards;
+}
+
+.thunder-bolt-bolts {
+  position: absolute;
+  inset: 0;
+}
+/* Jagged-ish lightning ray via skewed gradient bar */
+.thunder-bolt-ray {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 3px;
+  height: 28px;
+  margin-left: -1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to top,
+    rgba(240, 180, 30, 0.15) 0%,
+    rgba(255, 240, 120, 0.95) 40%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  box-shadow:
+    0 0 4px rgba(255, 240, 100, 0.95),
+    0 0 10px rgba(255, 200, 40, 0.55);
+  opacity: 0;
+  transform-origin: center bottom;
+  --bolt-angle: calc(var(--bolt-i) * (360deg / var(--bolt-n)));
+  clip-path: polygon(
+    40% 0%,
+    70% 0%,
+    55% 28%,
+    85% 28%,
+    35% 100%,
+    50% 55%,
+    20% 55%,
+    45% 28%,
+    15% 28%
+  );
+}
+.thunder-bolt-fx--charge .thunder-bolt-ray {
+  animation: thunder-ray-charge 0.5s ease-in-out infinite;
+  animation-delay: calc(var(--bolt-i) * 0.06s);
+}
+.thunder-bolt-fx--blast .thunder-bolt-ray,
+.thunder-bolt-fx--impact .thunder-bolt-ray {
+  animation: thunder-ray-burst 0.7s ease-out forwards;
+  animation-delay: calc(var(--bolt-i) * 0.02s);
+}
+
+.thunder-bolt-flash {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 8%;
+  height: 55%;
+  margin-left: -4%;
+  margin-top: -10%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 220, 0.9) 40%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  filter: blur(0.5px);
+  transform-origin: top center;
+}
+.thunder-bolt-flash--a {
+  transform: rotate(-18deg);
+  animation: thunder-flash-strike 0.55s ease-out forwards;
+}
+.thunder-bolt-flash--b {
+  transform: rotate(22deg);
+  animation: thunder-flash-strike 0.55s ease-out 0.05s forwards;
+}
+.thunder-bolt-fx--impact {
+  inset: -14% -10%;
+}
+.thunder-bolt-fx--impact .thunder-bolt-ray {
+  height: 22px;
+}
+
+@keyframes thunder-charge-breathe {
+  0%,
+  100% {
+    filter: brightness(1.08);
+  }
+  50% {
+    filter: brightness(1.3);
+  }
+}
+@keyframes thunder-blast-flash {
+  0% {
+    filter: brightness(1.55);
+  }
+  30% {
+    filter: brightness(1.25);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes thunder-core-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+@keyframes thunder-core-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes thunder-ring-charge {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes thunder-ring-burst {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.3);
+  }
+}
+@keyframes thunder-ray-charge {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: rotate(var(--bolt-angle)) translateY(-6px) scaleY(0.55);
+  }
+  50% {
+    opacity: 0.95;
+    transform: rotate(var(--bolt-angle)) translateY(-18px) scaleY(1.05);
+  }
+}
+@keyframes thunder-ray-burst {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--bolt-angle)) translateY(-8px) scaleY(0.7);
+  }
+  35% {
+    opacity: 1;
+    transform: rotate(var(--bolt-angle)) translateY(-28px) scaleY(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--bolt-angle)) translateY(-50px) scaleY(0.5);
+  }
+}
+@keyframes thunder-flash-strike {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.3);
+  }
+  20% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1.2);
+  }
+}
+
 /* --- Boss telegraph / wind-up (Ash-first exploration) --- */
 .fx-boss-windup {
   /* Outer unit glow — readable from the back of the room */

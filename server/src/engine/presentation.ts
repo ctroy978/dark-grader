@@ -160,29 +160,45 @@ export function cueAction(
   // (not a second generic hit_heavy) so each kit keeps its identity.
   const sfxId = resolveSfxId(attackSfxCandidates(archetype, grade));
 
-  // Shield Maiden: short energy charge then strike blast.
-  // Telegraph has no board reveal so floats stay on the impact beat.
-  const maidenEnergy = archetype === "ShieldMaiden" && grade !== "F";
-  if (maidenEnergy) {
-    pushCue(team, {
-      kind: "telegraph",
-      focusIds: [soldierId],
-      grade,
-      bubble: {
-        speakerId: soldierId,
-        speakerName: soldierName,
-        side: "party",
-        text: grade === "A" ? "Gather…" : "Charge…",
-      },
-      fx: ["maiden-charge"],
+  // Cast telegraphs (charge FX then impact). F skips charge for all of these.
+  // No board reveal on telegraph so floats stay on the action beat.
+  type CastFx = {
+    chargeFx: string;
+    blastFx: string;
+    bubble: string;
+    durationMs: number;
+  };
+  const castFxByArch: Partial<Record<string, CastFx>> = {
+    ShieldMaiden: {
+      chargeFx: "maiden-charge",
+      blastFx: "maiden-blast",
+      bubble: grade === "A" ? "Gather…" : "Charge…",
       durationMs: 720,
-    });
-  }
-
-  // Fire Mage: pulsing ember burst that grows, then anime orange explosion on cast.
-  // F backfire skips the charge (instant boom via fire-flash on the action).
-  const fireCharge = archetype === "FireMage" && grade !== "F";
-  if (fireCharge) {
+    },
+    FireMage: {
+      chargeFx: "fire-charge",
+      blastFx: "fire-blast",
+      bubble:
+        grade === "A" ? "Inferno…" : grade === "B" ? "Ignite…" : "Burn…",
+      durationMs: 900,
+    },
+    Necromancer: {
+      chargeFx: "necro-charge",
+      blastFx: "necro-blast",
+      bubble:
+        grade === "A" ? "Rise…" : grade === "B" ? "Swarm…" : "Haunt…",
+      durationMs: 880,
+    },
+    Thundercaller: {
+      chargeFx: "thunder-charge",
+      blastFx: "thunder-blast",
+      bubble:
+        grade === "A" ? "Storm…" : grade === "B" ? "Spark…" : "Arc…",
+      durationMs: 750,
+    },
+  };
+  const castFx = grade !== "F" ? castFxByArch[archetype] : undefined;
+  if (castFx) {
     pushCue(team, {
       kind: "telegraph",
       focusIds: [soldierId],
@@ -191,15 +207,13 @@ export function cueAction(
         speakerId: soldierId,
         speakerName: soldierName,
         side: "party",
-        text:
-          grade === "A" ? "Inferno…" : grade === "B" ? "Ignite…" : "Burn…",
+        text: castFx.bubble,
       },
-      fx: ["fire-charge"],
-      durationMs: 900,
+      fx: [castFx.chargeFx],
+      durationMs: castFx.durationMs,
     });
   }
 
-  const castTelegraph = maidenEnergy || fireCharge;
   pushCue(team, {
     kind: "action",
     focusIds,
@@ -213,14 +227,13 @@ export function cueAction(
     fx: [
       "attack-flash",
       ...fxExtra,
-      ...(maidenEnergy ? ["maiden-blast"] : []),
-      ...(fireCharge ? ["fire-blast"] : []),
+      ...(castFx ? [castFx.blastFx] : []),
       ...(slain.length ? ["minion-kill"] : []),
     ],
     sfxId,
     voId: voActionId(grade),
     playVo,
-    durationMs: castTelegraph
+    durationMs: castFx
       ? slain.length
         ? 1450
         : 1300

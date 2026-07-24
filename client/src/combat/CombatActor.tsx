@@ -165,6 +165,67 @@ function FireBurstFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
   );
 }
 
+/**
+ * Necromancer — purple ghost cloud (eyeless wisps) that swarm then burst outward.
+ */
+function NecroSwarmFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const ghostCount = mode === "charge" ? 9 : mode === "blast" ? 11 : 7;
+  return (
+    <div className={`necro-swarm-fx necro-swarm-fx--${mode}`} aria-hidden>
+      <div className="necro-swarm-cloud" />
+      <div className="necro-swarm-ring necro-swarm-ring--a" />
+      <div className="necro-swarm-ring necro-swarm-ring--b" />
+      <div className="necro-swarm-ghosts">
+        {Array.from({ length: ghostCount }, (_, i) => (
+          <span
+            key={i}
+            className="necro-swarm-ghost"
+            style={
+              {
+                "--ghost-i": i,
+                "--ghost-n": ghostCount,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Thundercaller — electric charge then outward lightning burst.
+ */
+function ThunderBoltFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const boltCount = mode === "charge" ? 6 : mode === "blast" ? 8 : 5;
+  return (
+    <div className={`thunder-bolt-fx thunder-bolt-fx--${mode}`} aria-hidden>
+      <div className="thunder-bolt-core" />
+      <div className="thunder-bolt-ring" />
+      <div className="thunder-bolt-bolts">
+        {Array.from({ length: boltCount }, (_, i) => (
+          <span
+            key={i}
+            className="thunder-bolt-ray"
+            style={
+              {
+                "--bolt-i": i,
+                "--bolt-n": boltCount,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+      {mode !== "charge" && (
+        <>
+          <div className="thunder-bolt-flash thunder-bolt-flash--a" />
+          <div className="thunder-bolt-flash thunder-bolt-flash--b" />
+        </>
+      )}
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -290,6 +351,22 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("fire-blast") ?? false);
+  const showNecroCharge =
+    speaking && (cue?.fx?.includes("necro-charge") ?? false);
+  const showNecroBlast =
+    speaking && (cue?.fx?.includes("necro-blast") ?? false);
+  const showNecroImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("necro-blast") ?? false);
+  const showThunderCharge =
+    speaking && (cue?.fx?.includes("thunder-charge") ?? false);
+  const showThunderBlast =
+    speaking && (cue?.fx?.includes("thunder-blast") ?? false);
+  const showThunderImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("thunder-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -324,6 +401,12 @@ export function CombatActor({
         {showFireCharge && <FireBurstFx mode="charge" />}
         {showFireBlast && <FireBurstFx mode="blast" />}
         {showFireImpact && <FireBurstFx mode="impact" />}
+        {showNecroCharge && <NecroSwarmFx mode="charge" />}
+        {showNecroBlast && <NecroSwarmFx mode="blast" />}
+        {showNecroImpact && <NecroSwarmFx mode="impact" />}
+        {showThunderCharge && <ThunderBoltFx mode="charge" />}
+        {showThunderBlast && <ThunderBoltFx mode="blast" />}
+        {showThunderImpact && <ThunderBoltFx mode="impact" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}

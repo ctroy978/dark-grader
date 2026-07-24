@@ -72,10 +72,13 @@ export function poseForUnit(
         return "standing";
       }
       // Party cast charges: keep standing art (no party windup.png yet);
-      // FX sells the build-up (silver maiden / orange fire).
+      // FX sells the build-up (maiden / fire / necro / thunder).
       if (
         isSpeaker &&
-        (fx.includes("maiden-charge") || fx.includes("fire-charge"))
+        (fx.includes("maiden-charge") ||
+          fx.includes("fire-charge") ||
+          fx.includes("necro-charge") ||
+          fx.includes("thunder-charge"))
       ) {
         return "standing";
       }
@@ -168,6 +171,10 @@ export function fxClassesForUnit(
       if (f === "maiden-blast") return "fx-maiden-blast";
       if (f === "fire-charge") return !isBoss ? "fx-fire-charge" : "";
       if (f === "fire-blast") return "fx-fire-blast";
+      if (f === "necro-charge") return !isBoss ? "fx-necro-charge" : "";
+      if (f === "necro-blast") return "fx-necro-blast";
+      if (f === "thunder-charge") return !isBoss ? "fx-thunder-charge" : "";
+      if (f === "thunder-blast") return "fx-thunder-blast";
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";
