@@ -538,17 +538,39 @@ export function CombatActor({
   className?: string;
   hpFloats?: HpFloat[];
 }) {
-  const pose = poseOverride ?? poseForUnit(unitId, alive, cue, statuses);
-  // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
-  const fx = [
-    fxClassesForUnit(unitId, cue),
-    ...dotTintClasses(statuses),
-  ]
-    .filter(Boolean)
-    .join(" ");
   const speaking = cue?.bubble?.speakerId === unitId;
   const inFocus = cue?.focusIds?.includes(unitId) ?? false;
   const isBoss = portrait.role === "boss";
+  // Siphon heal seat: same cue has necro-blast for the drain, but the ally only
+  // gained HP — skip purple impact / hit pose so the green +N float is readable.
+  const partyHurtFx =
+    (cue?.fx?.includes("hurt-flash") ?? false) ||
+    (cue?.fx?.includes("shock-flash") ?? false) ||
+    (cue?.fx?.includes("fire-tint") ?? false) ||
+    (cue?.fx?.includes("fire-flash") ?? false) ||
+    (cue?.fx?.includes("party-stunned") ?? false);
+  const siphonHealSeat =
+    portrait.role === "party" &&
+    inFocus &&
+    !speaking &&
+    (cue?.fx?.includes("heal-glow") ?? false) &&
+    !partyHurtFx;
+
+  const pose =
+    poseOverride ??
+    (siphonHealSeat
+      ? "standing"
+      : poseForUnit(unitId, alive, cue, statuses));
+  // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
+  let cueFx = fxClassesForUnit(unitId, cue);
+  if (siphonHealSeat) {
+    // Drop drain blast filter; keep soft heal-glow if present
+    cueFx = cueFx
+      .split(/\s+/)
+      .filter((c) => c && c !== "fx-necro-blast" && c !== "fx-attack-flash")
+      .join(" ");
+  }
+  const fx = [cueFx, ...dotTintClasses(statuses)].filter(Boolean).join(" ");
   const threat = threatTierFromCue(cue) ?? "light";
   const windupTheme = windupThemeFromCue(cue);
   const showBossWindup =
@@ -578,7 +600,8 @@ export function CombatActor({
   const showNecroImpact =
     !speaking &&
     inFocus &&
-    (cue?.fx?.includes("necro-blast") ?? false);
+    (cue?.fx?.includes("necro-blast") ?? false) &&
+    !siphonHealSeat;
   const showThunderCharge =
     speaking && (cue?.fx?.includes("thunder-charge") ?? false);
   const showThunderBlast =
@@ -645,7 +668,7 @@ export function CombatActor({
         : "w-full h-20 md:h-24";
 
   return (
-    <div className={`relative flex flex-col items-center ${className} ${fx}`}>
+    <div className={`relative flex flex-col items-center ${className}`}>
       {claimGrade && (
         <GradeToken
           grade={claimGrade}
@@ -656,51 +679,58 @@ export function CombatActor({
         />
       )}
       {speaking && cue && <SpeechBubble cue={cue} anchor="top" />}
+      {/*
+        Portrait box is unfiltered. Cast FX (which use CSS filter) sit in an
+        inner wrapper so −N / +N floats are never clipped by that filter —
+        important for small necro siphon heals on party seats.
+      */}
       <div
         className={`relative overflow-visible ${isBoss ? "w-full max-w-[12rem] md:max-w-[14rem] mx-auto" : "w-full"}`}
       >
-        {showBossWindup && (
-          <BossWindupFx threat={threat} theme={windupTheme} />
-        )}
-        {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
-        {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
-        {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
-        {showFireCharge && <FireBurstFx mode="charge" />}
-        {showFireBlast && <FireBurstFx mode="blast" />}
-        {showFireImpact && <FireBurstFx mode="impact" />}
-        {showNecroCharge && <NecroSwarmFx mode="charge" />}
-        {showNecroBlast && <NecroSwarmFx mode="blast" />}
-        {showNecroImpact && <NecroSwarmFx mode="impact" />}
-        {showThunderCharge && <ThunderBoltFx mode="charge" />}
-        {showThunderBlast && <ThunderBoltFx mode="blast" />}
-        {showThunderImpact && <ThunderBoltFx mode="impact" />}
-        {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
-        {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
-        {showHealImpact && <SpiritRainFx mode="blast" variant="heal" />}
-        {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
-        {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
-        {showRuneImpact && <SpiritRainFx mode="blast" variant="rune" />}
-        {showVanguardCharge && <VanguardBastionFx mode="charge" />}
-        {showVanguardBlast && <VanguardBastionFx mode="blast" />}
-        {showVanguardImpact && <VanguardBastionFx mode="impact" />}
-        {showDoomCharge && <DoomSigilFx mode="charge" />}
-        {showDoomBlast && <DoomSigilFx mode="blast" />}
-        {showDoomImpact && <DoomSigilFx mode="impact" />}
-        {showArcherCharge && <ArcherVolleyFx mode="charge" />}
-        {showArcherBlast && <ArcherVolleyFx mode="blast" />}
-        {showArcherImpact && <ArcherVolleyFx mode="impact" />}
-        <PlaceholderPortrait
-          kind={portrait}
-          pose={pose}
-          className={
-            isBoss
-              ? "w-full aspect-[5/6] h-auto"
-              : frameClass
-          }
-        />
-        {/* After portrait so overlays sit on top of art (not under the PNG). */}
-        {showIceFrost && <IceWindowFrostFx />}
-        {showSlimeDrip && <SlimeDripFx />}
+        <div className={`relative ${fx}`}>
+          {showBossWindup && (
+            <BossWindupFx threat={threat} theme={windupTheme} />
+          )}
+          {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
+          {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
+          {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
+          {showFireCharge && <FireBurstFx mode="charge" />}
+          {showFireBlast && <FireBurstFx mode="blast" />}
+          {showFireImpact && <FireBurstFx mode="impact" />}
+          {showNecroCharge && <NecroSwarmFx mode="charge" />}
+          {showNecroBlast && <NecroSwarmFx mode="blast" />}
+          {showNecroImpact && <NecroSwarmFx mode="impact" />}
+          {showThunderCharge && <ThunderBoltFx mode="charge" />}
+          {showThunderBlast && <ThunderBoltFx mode="blast" />}
+          {showThunderImpact && <ThunderBoltFx mode="impact" />}
+          {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
+          {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
+          {showHealImpact && <SpiritRainFx mode="blast" variant="heal" />}
+          {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
+          {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
+          {showRuneImpact && <SpiritRainFx mode="blast" variant="rune" />}
+          {showVanguardCharge && <VanguardBastionFx mode="charge" />}
+          {showVanguardBlast && <VanguardBastionFx mode="blast" />}
+          {showVanguardImpact && <VanguardBastionFx mode="impact" />}
+          {showDoomCharge && <DoomSigilFx mode="charge" />}
+          {showDoomBlast && <DoomSigilFx mode="blast" />}
+          {showDoomImpact && <DoomSigilFx mode="impact" />}
+          {showArcherCharge && <ArcherVolleyFx mode="charge" />}
+          {showArcherBlast && <ArcherVolleyFx mode="blast" />}
+          {showArcherImpact && <ArcherVolleyFx mode="impact" />}
+          <PlaceholderPortrait
+            kind={portrait}
+            pose={pose}
+            className={
+              isBoss
+                ? "w-full aspect-[5/6] h-auto"
+                : frameClass
+            }
+          />
+          {/* After portrait so overlays sit on top of art (not under the PNG). */}
+          {showIceFrost && <IceWindowFrostFx />}
+          {showSlimeDrip && <SlimeDripFx />}
+        </div>
         <DamageFloatStack
           floats={hpFloats}
           size={isBoss ? "lg" : size}

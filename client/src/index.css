@@ -103,8 +103,10 @@ body {
 .damage-float-layer {
   position: absolute;
   inset: 0;
-  z-index: 40;
+  /* Above cast FX wrappers (z-index 6) and seat chrome */
+  z-index: 50;
   overflow: visible;
+  pointer-events: none;
 }
 
 .damage-float {
