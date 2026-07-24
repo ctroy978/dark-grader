@@ -34,6 +34,12 @@ import {
 import { CombatActor } from "../combat/CombatActor";
 import type { HpFloat } from "../combat/DamageFloat";
 import GradeToken, { GradeTokenSlot } from "../combat/GradeToken";
+import {
+  CombatLogPanel,
+  LogToggleButton,
+  loadLogVisible,
+  saveLogVisible,
+} from "../combat/CombatLogPanel";
 import { poseForUnit, type CombatPose } from "../combat/poses";
 import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
@@ -431,10 +437,10 @@ export default function CombatScreen({
   const [mute, setMuteState] = useState(false);
   const [voOn, setVoOn] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
+  const [logOpen, setLogOpen] = useState(false);
   const logLenRef = useRef(0);
   const phaseRef = useRef(team.phase);
   const bossResolveLock = useRef(false);
-  const logEndRef = useRef<HTMLDivElement | null>(null);
 
   // Sequential story playback (party drop + boss phase)
   const [playQueue, setPlayQueue] = useState<PresentationCue[]>([]);
@@ -575,6 +581,7 @@ export default function CombatScreen({
     setMuteState(isMuted());
     setVoOn(isVoEnabled());
     setMusicOn(isMusicEnabled());
+    setLogOpen(loadLogVisible());
     // Combat: stop ambient so SFX stay clear; music pref still toggles for lobby
     setAmbientDesired(false);
     void loadAudioManifest();
@@ -663,8 +670,6 @@ export default function CombatScreen({
       }
       phaseRef.current = team.phase;
     }
-    const el = logEndRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
   }, [team.log, team.phase, team.round, playing, visualHold, team.playback]);
 
   const partyVisual = useMemo(() => {
@@ -1362,7 +1367,14 @@ export default function CombatScreen({
         </div>
       </div>
 
-      {/* Compact action HUD — log omitted from play surface */}
+      {/* Floating combat log — toggle via Log button; sits above HUD */}
+      <CombatLogPanel
+        log={team.log}
+        open={logOpen}
+        className="absolute bottom-[5.25rem] left-2 z-30 w-[min(22rem,calc(100vw-1rem))]"
+      />
+
+      {/* Compact action HUD */}
       <div className="shrink-0 border-t border-parchment/10 bg-navy/95 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2 justify-between">
           <div className="text-xs text-parchment-dim">
@@ -1422,6 +1434,13 @@ export default function CombatScreen({
             >
               VO
             </button>
+            <LogToggleButton
+              open={logOpen}
+              onToggle={(next) => {
+                saveLogVisible(next);
+                setLogOpen(next);
+              }}
+            />
             {playing && (
               <button
                 type="button"
@@ -1488,27 +1507,6 @@ export default function CombatScreen({
 
         {error && <p className="text-grade-f text-sm mt-1">{error}</p>}
 
-        {/* Hidden log sink keeps auto-scroll ref valid without eating viewport */}
-        <div ref={logEndRef} className="sr-only" aria-hidden>
-          {team.log.map((entry, i) => (
-            <div
-              key={`${entry.round}-${i}-${entry.text.slice(0, 24)}`}
-              className={
-                entry.tags?.includes("telegraph")
-                  ? "text-grade-f font-semibold"
-                  : entry.tags?.includes("boss")
-                    ? "text-grade-d"
-                    : entry.tags?.includes("dot")
-                      ? "text-grade-d/90"
-                      : entry.tags?.includes("tokens")
-                        ? "text-rune"
-                        : "text-parchment-dim"
-              }
-            >
-              <span className="text-rune/70">R{entry.round}</span> {entry.text}
-            </div>
-          ))}
-        </div>
         <p className="text-[10px] text-parchment-dim text-center mt-1 leading-tight">
           Front nearest boss · magnet{" "}
           <kbd className="px-1 border border-parchment/30 rounded">←</kbd>{" "}

@@ -27,6 +27,12 @@ import {
   setMuted,
   unlockAmbientFromGesture,
 } from "../audio";
+import {
+  CombatLogPanel,
+  LogToggleButton,
+  loadLogVisible,
+  saveLogVisible,
+} from "../combat/CombatLogPanel";
 import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
 
 const PARTY_SIZE = 6;
@@ -391,11 +397,13 @@ export default function LobbyScreen({
   const [intelSoldierId, setIntelSoldierId] = useState<string | null>(null);
   const [mute, setMuteState] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
+  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     loadAudioPrefs();
     setMuteState(isMuted());
     setMusicOn(isMusicEnabled());
+    setLogOpen(loadLogVisible());
     void loadAudioManifest().then(() => {
       setAmbientDesired(true);
     });
@@ -617,6 +625,13 @@ export default function LobbyScreen({
           >
             {mute ? "🔇" : "🔊"}
           </button>
+          <LogToggleButton
+            open={logOpen}
+            onToggle={(next) => {
+              saveLogVisible(next);
+              setLogOpen(next);
+            }}
+          />
           <button
             type="button"
             onClick={onLeave}
@@ -626,6 +641,12 @@ export default function LobbyScreen({
           </button>
         </div>
       </header>
+
+      <CombatLogPanel
+        log={team.log}
+        open={logOpen}
+        className="fixed bottom-3 left-3 z-40 w-[min(22rem,calc(100vw-1.5rem))]"
+      />
 
       {/* Campaign progress */}
       <section className="rounded-xl border border-parchment/15 bg-navy/50 p-4 space-y-2">
