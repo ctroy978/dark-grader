@@ -82,7 +82,8 @@ export function poseForUnit(
           fx.includes("heal-charge") ||
           fx.includes("rune-charge") ||
           fx.includes("vanguard-charge") ||
-          fx.includes("doom-charge"))
+          fx.includes("doom-charge") ||
+          fx.includes("archer-charge"))
       ) {
         return "standing";
       }
@@ -187,6 +188,8 @@ export function fxClassesForUnit(
       if (f === "vanguard-blast") return "fx-vanguard-blast";
       if (f === "doom-charge") return !isBoss ? "fx-doom-charge" : "";
       if (f === "doom-blast") return "fx-doom-blast";
+      if (f === "archer-charge") return !isBoss ? "fx-archer-charge" : "";
+      if (f === "archer-blast") return "fx-archer-blast";
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";

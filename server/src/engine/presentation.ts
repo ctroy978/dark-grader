@@ -226,6 +226,14 @@ export function cueAction(
         grade === "A" ? "Reap…" : grade === "B" ? "Bind…" : "Mark…",
       durationMs: 820,
     },
+    // Archer: draw focus at center, then horizontal blast toward the boss (right)
+    Archer: {
+      chargeFx: "archer-charge",
+      blastFx: "archer-blast",
+      bubble:
+        grade === "A" ? "Loose!" : grade === "B" ? "Draw…" : "Aim…",
+      durationMs: 700,
+    },
   };
   const castFx = grade !== "F" ? castFxByArch[archetype] : undefined;
   if (castFx) {

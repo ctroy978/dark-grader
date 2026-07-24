@@ -331,6 +331,49 @@ function DoomSigilFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
   );
 }
 
+/**
+ * Archer — focused draw at center, then a powerful horizontal explosion to the right
+ * on the caster (toward the boss). On impact targets (boss), the volley arrives from
+ * the left into center so it reads as arrows hitting from the party side.
+ */
+function ArcherVolleyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const shardCount = mode === "charge" ? 6 : 10;
+  return (
+    <div className={`archer-volley-fx archer-volley-fx--${mode}`} aria-hidden>
+      <div className="archer-volley-core" />
+      {mode === "charge" && (
+        <>
+          <div className="archer-volley-string archer-volley-string--a" />
+          <div className="archer-volley-string archer-volley-string--b" />
+        </>
+      )}
+      {mode !== "charge" && (
+        <>
+          <div className="archer-volley-blast archer-volley-blast--a" />
+          <div className="archer-volley-blast archer-volley-blast--b" />
+          <div className="archer-volley-blast archer-volley-blast--c" />
+          <div className="archer-volley-shock" />
+        </>
+      )}
+      <div className="archer-volley-shards">
+        {Array.from({ length: shardCount }, (_, i) => (
+          <span
+            key={i}
+            className="archer-volley-shard"
+            style={
+              {
+                "--shard-i": i,
+                "--shard-n": shardCount,
+                "--shard-y": `${-18 + (i % 5) * 9}%`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -497,6 +540,14 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("doom-blast") ?? false);
+  const showArcherCharge =
+    speaking && (cue?.fx?.includes("archer-charge") ?? false);
+  const showArcherBlast =
+    speaking && (cue?.fx?.includes("archer-blast") ?? false);
+  const showArcherImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("archer-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -547,6 +598,9 @@ export function CombatActor({
         {showDoomCharge && <DoomSigilFx mode="charge" />}
         {showDoomBlast && <DoomSigilFx mode="blast" />}
         {showDoomImpact && <DoomSigilFx mode="impact" />}
+        {showArcherCharge && <ArcherVolleyFx mode="charge" />}
+        {showArcherBlast && <ArcherVolleyFx mode="blast" />}
+        {showArcherImpact && <ArcherVolleyFx mode="impact" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}
