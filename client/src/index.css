@@ -203,7 +203,11 @@ body {
   border-radius: 0.75rem;
 }
 
-/* Toxic green — distinct from fire orange / hurt crimson */
+/*
+ * Persistent DoT body tints — must stay distinct at classroom distance.
+ * Fire = orange/ember · Poison = toxic green · Ice = cold blue · Slime = emerald goo
+ * (Bug: DoT ticks used to always apply poison-tint, so Fire looked green.)
+ */
 .fx-poison-tint {
   filter: drop-shadow(0 0 8px rgba(80, 220, 80, 0.75))
     drop-shadow(0 0 16px rgba(40, 160, 60, 0.45));
@@ -220,8 +224,49 @@ body {
   filter: brightness(1.05) saturate(1.15)
     drop-shadow(0 0 6px rgba(90, 255, 100, 0.4));
 }
+
+.fx-fire-tint,
 .fx-fire-flash {
-  box-shadow: 0 0 16px rgba(255, 120, 40, 0.7);
+  filter: drop-shadow(0 0 8px rgba(255, 120, 40, 0.8))
+    drop-shadow(0 0 16px rgba(220, 70, 20, 0.5));
+}
+.fx-fire-tint .portrait-frame,
+.fx-fire-flash .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(255, 160, 60, 0.55),
+    0 0 16px rgba(255, 100, 30, 0.6),
+    0 0 28px rgba(200, 50, 10, 0.35);
+  border-color: rgba(255, 140, 50, 0.55);
+}
+.fx-fire-tint .portrait-frame img,
+.fx-fire-tint .portrait-frame svg,
+.fx-fire-flash .portrait-frame img,
+.fx-fire-flash .portrait-frame svg {
+  filter: brightness(1.08) saturate(1.2)
+    drop-shadow(0 0 6px rgba(255, 130, 40, 0.5));
+}
+
+.fx-ice-tint {
+  filter: drop-shadow(0 0 8px rgba(120, 200, 255, 0.75))
+    drop-shadow(0 0 16px rgba(80, 160, 230, 0.4));
+}
+.fx-ice-tint .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(160, 220, 255, 0.5),
+    0 0 16px rgba(100, 180, 255, 0.5),
+    0 0 28px rgba(60, 140, 220, 0.28);
+  border-color: rgba(140, 210, 255, 0.5);
+}
+
+.fx-slime-tint {
+  filter: drop-shadow(0 0 8px rgba(80, 220, 160, 0.7))
+    drop-shadow(0 0 14px rgba(40, 160, 120, 0.4));
+}
+.fx-slime-tint .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(100, 230, 180, 0.45),
+    0 0 14px rgba(50, 190, 140, 0.45);
+  border-color: rgba(90, 220, 160, 0.45);
 }
 .fx-heal-glow {
   box-shadow: 0 0 14px rgba(110, 220, 140, 0.65);

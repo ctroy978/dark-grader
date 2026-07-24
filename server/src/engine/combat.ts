@@ -440,18 +440,33 @@ export function commitRound(team: TeamState): TeamState {
     endPartyActionPhase();
   }
 
-  // One compact DoT beat (visuals on chips, not a speech parade)
+  // One compact DoT beat (visuals on chips, not a speech parade).
+  // FX tint follows actual DoT types — never force poison-green on Fire ticks.
   let sawDot = false;
   tickDots(team, (text) => {
     pushLog(team, text, ["dot"]);
     if (!sawDot && !text.includes("— DoT") && !text.includes("— End")) {
       sawDot = true;
+      const dotted = livingParty(team).filter((s) =>
+        s.statuses.some((st) => st.kind === "Dot"),
+      );
+      const types = new Set<string>();
+      for (const s of dotted) {
+        for (const st of s.statuses) {
+          if (st.kind === "Dot") types.add(st.type);
+        }
+      }
+      const fx: string[] = ["dot-tick"];
+      if (types.has("Fire")) fx.push("fire-tint");
+      if (types.has("Poison")) fx.push("poison-tint");
+      if (types.has("Ice")) fx.push("ice-tint");
+      if (types.has("Slime")) fx.push("slime-tint");
+      // Fallback if type set empty somehow
+      if (fx.length === 1) fx.push("hurt-flash");
       pushCue(team, {
         kind: "dot",
-        focusIds: livingParty(team)
-          .filter((s) => s.statuses.some((st) => st.kind === "Dot"))
-          .map((s) => s.id),
-        fx: ["dot-tick", "poison-tint"],
+        focusIds: dotted.map((s) => s.id),
+        fx,
         sfxId: "dot_tick",
         durationMs: 700,
       });
@@ -602,7 +617,7 @@ export function resolveBoss(team: TeamState): TeamState {
           info.attackId === "PoisonCloud"
             ? ["poison-tint"]
             : info.attackId === "FireCloud"
-              ? ["fire-flash"]
+              ? ["fire-tint"]
               : isShockBoss
                 ? ["shock-flash"]
                 : hurt

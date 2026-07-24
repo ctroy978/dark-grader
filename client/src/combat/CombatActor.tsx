@@ -19,6 +19,20 @@ import {
 
 type WindupTheme = "ember" | "poison" | "summon" | "shock";
 
+/** Persistent portrait tint while a DoT is on the unit (not only on tick flash). */
+function dotTintClasses(statuses?: StatusTag[]): string[] {
+  if (!statuses?.length) return [];
+  const out: string[] = [];
+  for (const st of statuses) {
+    if (st.kind !== "Dot") continue;
+    if (st.type === "Fire") out.push("fx-fire-tint");
+    else if (st.type === "Poison") out.push("fx-poison-tint");
+    else if (st.type === "Ice") out.push("fx-ice-tint");
+    else if (st.type === "Slime") out.push("fx-slime-tint");
+  }
+  return out;
+}
+
 /**
  * Telegraph particle field over the boss.
  * Theme: ember / poison / summon / shock (yellow lightning).
@@ -173,7 +187,13 @@ export function CombatActor({
   hpFloats?: HpFloat[];
 }) {
   const pose = poseOverride ?? poseForUnit(unitId, alive, cue);
-  const fx = fxClassesForUnit(unitId, cue);
+  // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
+  const fx = [
+    fxClassesForUnit(unitId, cue),
+    ...dotTintClasses(statuses),
+  ]
+    .filter(Boolean)
+    .join(" ");
   const speaking = cue?.bubble?.speakerId === unitId;
   const isBoss = portrait.role === "boss";
   const threat = threatTierFromCue(cue) ?? "light";

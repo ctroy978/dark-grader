@@ -5,6 +5,7 @@ import {
   describeGradeEffect,
   gradeRiskNote,
   statusToChip,
+  type DotType,
   type Grade,
   type StatusTag,
 } from "@dungeon-grades/shared";
@@ -48,6 +49,59 @@ function hpMapFromView(t: EnrichedTeam): Map<string, number> {
   if (t.boss) m.set("boss", t.boss.currentHp);
   for (const min of t.minions) m.set(min.id, min.currentHp);
   return m;
+}
+
+const DOT_BANNER: Record<
+  DotType,
+  { icon: string; word: string; className: string }
+> = {
+  Fire: {
+    icon: "🔥",
+    word: "BURNING",
+    className: "border-orange-400/50 bg-orange-950/70 text-orange-200",
+  },
+  Poison: {
+    icon: "☠️",
+    word: "POISONED",
+    className: "border-lime-400/50 bg-lime-950/70 text-lime-200",
+  },
+  Ice: {
+    icon: "❄️",
+    word: "CHILLED",
+    className: "border-sky-400/50 bg-sky-950/70 text-sky-200",
+  },
+  Slime: {
+    icon: "🟢",
+    word: "SLIMED",
+    className: "border-emerald-400/50 bg-emerald-950/70 text-emerald-200",
+  },
+};
+
+/** Aggregate party DoTs for the gap warning (type → max stacks / intensity / count). */
+function partyDotSummary(
+  soldiers: { alive: boolean; statuses?: StatusTag[] }[],
+): {
+  type: DotType;
+  stacks: number;
+  intensity: number;
+  count: number;
+}[] {
+  const map = new Map<
+    DotType,
+    { stacks: number; intensity: number; count: number }
+  >();
+  for (const s of soldiers) {
+    if (!s.alive) continue;
+    for (const st of s.statuses ?? []) {
+      if (st.kind !== "Dot") continue;
+      const cur = map.get(st.type) ?? { stacks: 0, intensity: 0, count: 0 };
+      cur.stacks = Math.max(cur.stacks, st.stacks);
+      cur.intensity = Math.max(cur.intensity, st.escalationStep ?? 0);
+      cur.count += 1;
+      map.set(st.type, cur);
+    }
+  }
+  return [...map.entries()].map(([type, v]) => ({ type, ...v }));
 }
 
 const GRADE_CLASS: Record<Grade, string> = {
@@ -1018,6 +1072,7 @@ export default function CombatScreen({
                     alive={s.alive}
                     currentHp={s.currentHp}
                     maxHp={s.maxHp}
+                    statuses={s.statuses}
                     claimGrade={claim?.effectiveGrade}
                     subtitle={s.archetype}
                     size="sm"
@@ -1110,9 +1165,9 @@ export default function CombatScreen({
           </div>
         </div>
 
-        {/* Minions */}
-        <div className="col-span-12 md:col-span-3 flex flex-col items-center justify-center min-h-0">
-          <div className="text-[10px] uppercase tracking-widest text-parchment-dim mb-1 shrink-0">
+        {/* Minions + party DoT warning (gap is less busy than party column) */}
+        <div className="col-span-12 md:col-span-3 flex flex-col items-center justify-center min-h-0 gap-1.5">
+          <div className="text-[10px] uppercase tracking-widest text-parchment-dim mb-0.5 shrink-0">
             Gap / Adds
           </div>
           <div className="flex flex-wrap gap-2 justify-center content-center overflow-visible">
@@ -1154,6 +1209,38 @@ export default function CombatScreen({
               </div>
             )}
           </div>
+          {(() => {
+            const dots = partyDotSummary(partyVisual);
+            if (!dots.length) return null;
+            return (
+              <div
+                className="w-full max-w-[14rem] shrink-0 flex flex-col gap-1"
+                role="status"
+                aria-live="polite"
+              >
+                {dots.map((d) => {
+                  const meta = DOT_BANNER[d.type];
+                  const stackNote = d.stacks > 1 ? ` ×${d.stacks}` : "";
+                  const rampNote =
+                    d.intensity > 1 ? ` · ramp ⬆${d.intensity}` : "";
+                  return (
+                    <div
+                      key={d.type}
+                      className={`rounded-md border px-2 py-1.5 text-center text-[11px] md:text-xs font-bold tracking-wide ${meta.className}`}
+                      title={`${d.count} party member(s) have ${d.type}. Damage ticks each round and ramps if left up.`}
+                    >
+                      <span aria-hidden>{meta.icon}</span> Party {meta.word}
+                      {stackNote}
+                      {rampNote}
+                      <div className="text-[9px] md:text-[10px] font-semibold opacity-90 mt-0.5 normal-case tracking-normal">
+                        Ticks each round · clear it or it grows
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Boss */}

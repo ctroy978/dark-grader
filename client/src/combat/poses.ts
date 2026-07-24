@@ -127,7 +127,9 @@ export function fxClassesForUnit(
     .map((f) => {
       // Victim tints — party only (boss impact/wind-up glow is separate)
       if (f === "poison-tint") return !isBoss ? "fx-poison-tint" : "";
-      if (f === "fire-flash") return !isBoss ? "fx-fire-flash" : "";
+      if (f === "fire-tint" || f === "fire-flash") return !isBoss ? "fx-fire-tint" : "";
+      if (f === "ice-tint") return !isBoss ? "fx-ice-tint" : "";
+      if (f === "slime-tint") return !isBoss ? "fx-slime-tint" : "";
       if (f === "shock-flash") return "fx-shock-flash";
       if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
