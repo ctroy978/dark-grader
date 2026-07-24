@@ -51,6 +51,31 @@ function hpMapFromView(t: EnrichedTeam): Map<string, number> {
   return m;
 }
 
+/** HP deltas for floating −N / +N (only units present in both maps). */
+function hpFloatSpawns(
+  prev: Map<string, number>,
+  next: Map<string, number>,
+  playIndex: number,
+  seq: { current: number },
+): { unitId: string; float: HpFloat }[] {
+  const spawned: { unitId: string; float: HpFloat }[] = [];
+  for (const [unitId, hp] of next) {
+    const old = prev.get(unitId);
+    if (old === undefined || old === hp) continue;
+    const delta = hp - old;
+    if (delta === 0) continue;
+    seq.current += 1;
+    spawned.push({
+      unitId,
+      float: {
+        key: `${unitId}-${playIndex}-${seq.current}`,
+        delta,
+      },
+    });
+  }
+  return spawned;
+}
+
 const DOT_BANNER: Record<
   DotType,
   { icon: string; word: string; className: string }
@@ -471,7 +496,12 @@ export default function CombatScreen({
 
   /**
    * Spawn floating combat numbers when a beat's reveal changes unit HP.
-   * Baseline is set on the first frame of playback (no float for frozen board).
+   *
+   * Important: baseline must be the *pre-resolve* board (visualHold), not the
+   * first revealed view. Boss resolve often starts with a single `boss` cue
+   * whose reveal already includes Line Attack damage on the whole party — if we
+   * baseline on that view, every delta is zero and no floats appear.
+   *
    * Per-float timeouts are not cancelled on the next beat so numbers finish animating.
    */
   useEffect(() => {
@@ -481,27 +511,13 @@ export default function CombatScreen({
       return;
     }
     const next = hpMapFromView(view);
-    const prev = prevHpMapRef.current;
+    let prev = prevHpMapRef.current;
     if (!prev) {
-      prevHpMapRef.current = next;
-      return;
+      prev = visualHold ? hpMapFromView(visualHold) : next;
+      prevHpMapRef.current = prev;
     }
 
-    const spawned: { unitId: string; float: HpFloat }[] = [];
-    for (const [unitId, hp] of next) {
-      const old = prev.get(unitId);
-      if (old === undefined || old === hp) continue;
-      const delta = hp - old;
-      if (delta === 0) continue;
-      floatSeqRef.current += 1;
-      spawned.push({
-        unitId,
-        float: {
-          key: `${unitId}-${playIndex}-${floatSeqRef.current}`,
-          delta,
-        },
-      });
-    }
+    const spawned = hpFloatSpawns(prev, next, playIndex, floatSeqRef);
     prevHpMapRef.current = next;
 
     if (!spawned.length) return;
@@ -529,7 +545,7 @@ export default function CombatScreen({
         });
       }, FLOAT_MS);
     }
-  }, [playing, playIndex, view]);
+  }, [playing, playIndex, view, visualHold]);
 
   /** Grade badges appear when that soldier claims / acts, not all at drop. */
   const visibleClaims = useMemo(() => {
@@ -1015,7 +1031,7 @@ export default function CombatScreen({
               When party shield is up: soft silver envelope around the whole strip
               (dead seats included — still inside the ward). On/off only. */}
           <div
-            className={`relative shrink-0 flex items-end gap-1 md:gap-1.5 p-1 ${
+            className={`relative shrink-0 flex items-end gap-1 md:gap-1.5 p-1 overflow-visible ${
               view.partyShield.active && view.partyShield.remaining > 0
                 ? "party-shield-ward"
                 : ""
@@ -1049,7 +1065,7 @@ export default function CombatScreen({
                         : `Place magnet on #${pos}`
                   }
                   onClick={() => void setMagnet(pos)}
-                  className={`relative flex-1 min-w-0 rounded-lg border bg-navy-light/70 p-0.5 md:p-1 text-center transition ${
+                  className={`relative flex-1 min-w-0 overflow-visible rounded-lg border bg-navy-light/70 p-0.5 md:p-1 text-center transition ${
                     !s.alive
                       ? "opacity-40 border-parchment/10 cursor-not-allowed"
                       : focused || isSpeaker
