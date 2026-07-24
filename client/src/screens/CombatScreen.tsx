@@ -775,6 +775,71 @@ export default function CombatScreen({
     }
   }, [team.teamId, onTeamUpdate]);
 
+  /**
+   * Server applies party damage on Drop Tokens, but boss impact waits for the
+   * browser to POST resolve-boss. Leaving mid-telegraph used to abandon that
+   * step so rejoin looked like a rollback. Flush before exit / tab close.
+   */
+  const flushPendingBossResolve = useCallback(
+    async (opts?: { keepalive?: boolean }): Promise<void> => {
+      if (teamRef.current.phase !== "boss_telegraph") return;
+      if (bossResolveLock.current) return;
+      bossResolveLock.current = true;
+      const teamId = team.teamId;
+      try {
+        if (opts?.keepalive) {
+          // Must outlive the page; ignore body (server mutates from store).
+          await fetch(`/api/team/${encodeURIComponent(teamId)}/resolve-boss`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+            keepalive: true,
+          });
+        } else {
+          await api.resolveBoss(teamId);
+        }
+      } catch {
+        // Leave / unload anyway — in-flight auto-resolve may already own it
+        bossResolveLock.current = false;
+      }
+    },
+    [team.teamId],
+  );
+
+  const handleLeave = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await flushPendingBossResolve();
+    } finally {
+      onLeave();
+    }
+  }, [flushPendingBossResolve, onLeave]);
+
+  // Best-effort flush on tab close / refresh (Leave uses handleLeave instead)
+  useEffect(() => {
+    const onPageExit = () => {
+      if (teamRef.current.phase !== "boss_telegraph") return;
+      if (bossResolveLock.current) return;
+      bossResolveLock.current = true;
+      void fetch(
+        `/api/team/${encodeURIComponent(team.teamId)}/resolve-boss`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+          keepalive: true,
+        },
+      );
+    };
+    window.addEventListener("pagehide", onPageExit);
+    window.addEventListener("beforeunload", onPageExit);
+    return () => {
+      window.removeEventListener("pagehide", onPageExit);
+      window.removeEventListener("beforeunload", onPageExit);
+    };
+  }, [team.teamId]);
+
   // Boss resolve only after party playback finishes (+ short wind-up)
   useEffect(() => {
     if (team.phase !== "boss_telegraph") {
@@ -1503,8 +1568,14 @@ export default function CombatScreen({
             )}
             <button
               type="button"
-              onClick={onLeave}
-              className="rounded-lg border border-parchment/20 px-2.5 py-1.5 text-sm"
+              disabled={busy}
+              onClick={() => void handleLeave()}
+              className="rounded-lg border border-parchment/20 px-2.5 py-1.5 text-sm disabled:opacity-50"
+              title={
+                team.phase === "boss_telegraph"
+                  ? "Applies the pending boss attack, then leaves"
+                  : "Leave combat (progress is saved on the server)"
+              }
             >
               Leave
             </button>
