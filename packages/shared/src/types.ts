@@ -57,7 +57,7 @@ export interface ChargeStatus {
  * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed
  * until Fire Mage burns it off; spreads toward center, then shatters.
  *
- * **Soft (`soft: true`):** Ice DoT natural expiry (Bone Archer frost arrows) —
+ * **Soft (`soft: true`):** Ice DoT natural expiry (Frost Archer arrows) —
  * cannot attack for **one** action (token wasted), heals still work, no spread/
  * shatter; clears after that skip or Fire Mage thaw.
  */

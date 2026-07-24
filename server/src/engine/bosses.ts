@@ -94,7 +94,7 @@ export type LogFn = (text: string) => void;
 const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
   SummonBoneArchers: {
     minionId: "bone_archer",
-    minionName: "Bone Archer",
+    minionName: "Frost Archer",
     maxHp: 12,
     damage: 4,
     maxCount: 2,

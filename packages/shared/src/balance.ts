@@ -93,7 +93,7 @@ export const MAX_PARTY_FIRE_STACKS = 2;
 /** Moss Mite (etc.) slime: re-hits do not pile stacks. */
 export const MAX_PARTY_SLIME_STACKS = 1;
 
-/** Bone Archer frost arrows: re-hits refresh duration, do not pile stacks. */
+/** Frost Archer (id bone_archer) Ice on-hit: re-hits refresh duration, do not pile stacks. */
 export const MAX_PARTY_ICE_STACKS = 1;
 
 /**

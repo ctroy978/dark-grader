@@ -49,7 +49,7 @@ moss_grub
 | 3 | `cinder_herald` | **Primary add lesson** | Imps (real) |
 | 4 | `rattle_captain` | Practice + magnet tax | Light scraps |
 | 5 | `barrow_warden` | Dress rehearsal + grade signatures | Grave thrall (conditional) |
-| 6 | `bone_colossus` | Final exam | Bone Archers (full) |
+| 6 | `bone_colossus` | Final exam | Frost Archers (full; id `bone_archer`) |
 
 **Shipped today:** `moss_grub`, `ash_wraith`, `cinder_herald`, `rattle_captain` (kit), `barrow_warden` (frost v1), `bone_colossus`.  
 **Default in code today:** 4 rooms **Moss Grub → Ash → Cinder Herald → Colossus** (full 6 selectable via teacher).
@@ -106,7 +106,7 @@ Attentive magnet, mixed “typical” classroom pool unless noted.
 |------|--------|
 | Ash `max_hp` | **210** |
 | Colossus `max_hp` | **230** (glass summoner) |
-| Bone Archer | **12 HP / 4 dmg** |
+| Frost Archer | **12 HP / 4 dmg** |
 | Regenerate heal | **10** |
 | Boss stun | Skips **boss + minions** |
 
@@ -226,7 +226,7 @@ Separate status **`Frozen`** (not the token-downgrade Ice DoT). **Fire Mage only
 | | |
 |--|--|
 | HP | **230** |
-| Adds | Bone Archers **12/4** + **Ice** on hit (flat **3**/tick × **3**r, stack cap **1**, no ramp); free-volley when full; natural Ice expiry → **soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter) |
+| Adds | Frost Archers **12/4** + **Ice** on hit (flat **3**/tick × **3**r, stack cap **1**, no ramp); free-volley when full; natural Ice expiry → **soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter) |
 | Attacks | Full kit: Cascade, Crush, Slam, Line, Poison, Regen, Summon |
 | Enrage | &lt;40% HP, **1.3×** |
 | Stun | Boss **and** minions skip |
@@ -383,7 +383,7 @@ Defer full particles; prefer CSS/class tints + short cue FX driven by status + p
 | Barrow Warden | `barrow_warden` |
 | Grave Thrall | `grave_thrall` |
 | Bone Colossus | `bone_colossus` (exists) |
-| Bone Archer | `bone_archer` (exists) |
+| Frost Archer | `bone_archer` (exists; display name Frost Archer) |
 
 Poses: `standing`, `attack`, `hit`, `death` (death optional for adds).
 

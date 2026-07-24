@@ -1,12 +1,13 @@
 import type { Grade } from "@dungeon-grades/shared";
+import { artAssetUrl } from "./artCache";
 
 /** Public art paths for Viking-rune grade tokens. */
 export const GRADE_TOKEN_SRC: Record<Grade, string> = {
-  A: "/art/tokens/grade_A.png",
-  B: "/art/tokens/grade_B.png",
-  C: "/art/tokens/grade_C.png",
-  D: "/art/tokens/grade_D.png",
-  F: "/art/tokens/grade_F.png",
+  A: artAssetUrl("/art/tokens/grade_A.png"),
+  B: artAssetUrl("/art/tokens/grade_B.png"),
+  C: artAssetUrl("/art/tokens/grade_C.png"),
+  D: artAssetUrl("/art/tokens/grade_D.png"),
+  F: artAssetUrl("/art/tokens/grade_F.png"),
 };
 
 export const GRADE_RUNE_LABEL: Record<Grade, string> = {

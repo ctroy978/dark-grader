@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Archetype } from "@dungeon-grades/shared";
+import { artAssetUrl } from "./artCache";
 import type { CombatPose } from "./poses";
 
 /**
@@ -64,7 +65,13 @@ export function artKeyFor(kind: PortraitKind): string {
   }
   // Minions: named units map to art folders under public/art/
   const n = kind.name?.toLowerCase().replace(/\s+/g, "_") ?? "minion";
-  if (n.includes("bone") && n.includes("archer")) return "bone_archer";
+  // Display name is Frost Archer; art folder / id stays bone_archer
+  if (
+    (n.includes("frost") || n.includes("bone")) &&
+    n.includes("archer")
+  ) {
+    return "bone_archer";
+  }
   if (n.includes("ohm")) return "ohm";
   if (n.includes("moss") && n.includes("mite")) return "moss_mite";
   if (n.includes("cinder") && n.includes("imp")) return "cinder_imp";
@@ -76,7 +83,8 @@ export function artKeyFor(kind: PortraitKind): string {
  * Place files under client/public/art/{key}/{pose}.png
  */
 export function artUrlFor(key: string, pose: CombatPose): string {
-  return `/art/${key}/${pose}.png`;
+  // Import here keeps artCache as the single stamp source for tokens + portraits
+  return artAssetUrl(`/art/${key}/${pose}.png`);
 }
 
 function poseTransform(pose: CombatPose): {

@@ -61,7 +61,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 |--------|------|
 | `moss_mite` | Moss Mite (Grub adds) |
 | `cinder_imp` | Cinder Imp (Herald adds) |
-| `bone_archer` | Bone Archer |
+| `bone_archer` | Frost Archer (id stays `bone_archer`) |
 
 ## Example (test one character)
 

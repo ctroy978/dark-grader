@@ -27,7 +27,7 @@ describe("boss TOML loader", () => {
     expect(cascade?.weight).toBe(4);
     expect(cascade?.bubble_lines?.length).toBeGreaterThan(0);
     const summon = colossus!.attacks.find((a) => a.id === "SummonBoneArchers");
-    expect(summon?.summon?.minionName).toBe("Bone Archer");
+    expect(summon?.summon?.minionName).toBe("Frost Archer");
     expect(summon?.summon?.maxHp).toBe(12);
     expect(summon?.summon?.freeVolley).toBe(true);
   });
@@ -90,7 +90,7 @@ describe("boss TOML loader", () => {
     });
   });
 
-  it("loads Bone Archer shot SFX from Colossus summon row", () => {
+  it("loads Frost Archer shot SFX from Colossus summon row", () => {
     const colossus = getBossTemplate("bone_colossus");
     const summon = colossus!.attacks.find((a) => a.id === "SummonBoneArchers");
     expect(summon?.summon).toMatchObject({

@@ -36,14 +36,14 @@ function teamWithAdds(): TeamState {
   team.minions = [
     {
       id: "m1",
-      name: "Bone Archer",
+      name: "Frost Archer",
       maxHp: 12,
       currentHp: 12,
       damage: 4,
     },
     {
       id: "m2",
-      name: "Bone Archer",
+      name: "Frost Archer",
       maxHp: 12,
       currentHp: 12,
       damage: 4,

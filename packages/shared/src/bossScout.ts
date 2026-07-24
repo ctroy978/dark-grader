@@ -72,8 +72,8 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
     description: "Summons Cinder Imps to fight alongside the boss.",
   },
   SummonBoneArchers: {
-    name: "Summon Archers",
-    description: "Summons Bone Archers to fight alongside the boss.",
+    name: "Summon Frost Archers",
+    description: "Summons Frost Archers to fight alongside the boss.",
   },
   SummonOhms: {
     name: "Summon Ohms",

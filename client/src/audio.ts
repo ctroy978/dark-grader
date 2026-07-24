@@ -257,7 +257,11 @@ export function playForLogLine(text: string): void {
     play("fizzle");
     return;
   }
-  if (t.includes("fires at") || t.includes("bone archer")) {
+  if (
+    t.includes("fires at") ||
+    t.includes("bone archer") ||
+    t.includes("frost archer")
+  ) {
     play("minion_shot");
     return;
   }

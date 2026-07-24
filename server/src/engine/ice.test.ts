@@ -48,7 +48,7 @@ function makeColossusTeam(seed = 9): TeamState {
   return team;
 }
 
-describe("Ice DoT / soft freeze (Bone Archer)", () => {
+describe("Ice DoT / soft freeze (Frost Archer)", () => {
   it("bone archers have Ice on-hit kit", () => {
     const team = makeColossusTeam(1);
     expect(team.boss?.id).toBe("bone_colossus");

@@ -148,7 +148,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Fire **4** (party stacks max **2**) / Ice **3**/tick × **3**r flat (stack cap **1**, no ramp) / Poison party splash **8**/stack (intensity 1) / Slime **2** flat (stack cap **1**, **until cleansed**, no ramp, **no token slow**) — `DOT_STATS`  
 - **Ice:** claim downgrade while up; **natural expiry → soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter; clears after wasted action or Fire Mage thaw).  
 - **Boss party DoTs ramp:** PoisonCloud, FireCloud, and Fire minion on-hit set `escalationStep` (starts 1). **Ice / Slime** stay flat.  
-- **Moss Mite** on-hit: Slime (until cleanse). **Bone Archer** on-hit: Ice (frost arrows).  
+- **Moss Mite** on-hit: Slime (until cleanse). **Frost Archer** (`bone_archer`) on-hit: Ice.  
 - Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
 - Doomcaller strips DoTs+Marks; transfers **DoTs only** → boss (not Marks, not Frozen)  
 - Healer cleanses Fire/Ice/Poison (**not Slime**); Fire Mage A/B thaws Frozen + cleanses Ice/Slime (front/back)  
@@ -158,7 +158,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 ### Bosses
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
 - **Cascade** raw pos1→6 = 16,13,10,7,4,2  
-- **Bone Archer** minions: **12 HP / 4 dmg** (Colossus is a glass summoner: boss HP lower, adds tax DPS)  
+- **Frost Archer** minions (`bone_archer`): **12 HP / 4 dmg** (Colossus is a glass summoner: boss HP lower, adds tax DPS)  
 - Stun: `stunRoundsLeft` skips **boss + minions**; **telegraph must not wind up as attack** when already stunned  
 - Boss HP (balance A+): Ash **210**, Bone Colossus **230**; Regenerate heals **10**
 
@@ -267,7 +267,7 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `fizzle` | **Any** archetype plays an **F** token | spell fail / sad poof / comic fizzle (falls back to `explosion_f`) |
 | `minion_moss_mite` | Moss Mite volley | soft chitter / nibble / squelch |
 | `minion_cinder_imp` | Cinder Imp volley | small fire spit / ember |
-| `minion_bone_archer` | Bone Archer volley | bone arrow whoosh |
+| `minion_bone_archer` | Frost Archer volley | bone arrow whoosh |
 | `minion_shot` | Generic add fallback | any small enemy hit |
 | `music_ambient_lobby` | Lobby / between rooms loop | soft dark ambient, seamless 60–90s, **hand-authored only** |
 

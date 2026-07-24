@@ -429,7 +429,7 @@ function archer(
     Exclude<Grade, "F">,
     { dmg: number; targets: number; vsMinion: number }
   > = {
-    // 10+2=12 vs minion → one-shots Bone Archers; mites (7) die easily
+    // 10+2=12 vs minion → one-shots Frost Archers; mites (7) die easily
     A: { dmg: 10, targets: 3, vsMinion: 2 },
     B: { dmg: 8, targets: 3, vsMinion: 1 },
     C: { dmg: 6, targets: 2, vsMinion: 1 },
