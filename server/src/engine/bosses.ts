@@ -5,6 +5,7 @@ import {
   SPREADING_FROST_CHANCE,
   SPREADING_FROST_LINE_DAMAGE,
   THUNDERCALLER_BOSS_STUN_CHANCE,
+  type DotType,
   type Minion,
   type Soldier,
   type TeamState,
@@ -105,6 +106,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
+    onHitDot: { type: "Slime", stacks: 1 },
     shotSfx: "minion_moss_mite",
     shotBubble: "Nibble!",
   },
@@ -163,11 +165,23 @@ function resolveMinionShot(
   log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
   if (minion.onHitDot && minion.onHitDot.stacks > 0) {
     applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
-    log(
-      `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks}, ramps)`,
-    );
+    log(onHitDotApplyLog(target.name, minion.onHitDot.type, minion.onHitDot.stacks));
   }
   return hpLost;
+}
+
+function onHitDotApplyLog(
+  targetName: string,
+  type: DotType,
+  stacks: number,
+): string {
+  if (type === "Fire") {
+    return `  ${targetName} catches fire (Fire ×${stacks}, ramps)`;
+  }
+  if (type === "Slime") {
+    return `  ${targetName} is slimed (Slime ×${stacks}, until cleansed)`;
+  }
+  return `  ${targetName} afflicted with ${type} ×${stacks}`;
 }
 
 export function resolveSummonSpec(
@@ -801,7 +815,11 @@ function performSummon(
       if (minion.onHitDot && minion.onHitDot.stacks > 0) {
         applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
         log(
-          `  ${target.name} catches fire (${minion.onHitDot.type} ×${minion.onHitDot.stacks}, ramps)`,
+          onHitDotApplyLog(
+            target.name,
+            minion.onHitDot.type,
+            minion.onHitDot.stacks,
+          ),
         );
         victims.add(target.id);
       }

@@ -76,11 +76,18 @@ export const DOT_STATS = {
   Ice: { tick: 3, duration: 3 },
   /** Party splash total per stack at intensity 1 (split across living line) */
   Poison: { tick: 8, duration: 4 },
-  Slime: { tick: 2, duration: 5 },
+  /**
+   * Flat chip only (no token slow). Duration field is unused for expiry —
+   * party Slime never times out; Fire Mage A/B or Doomcaller strip removes it.
+   */
+  Slime: { tick: 2, duration: 99 },
 } as const;
 
 /** Max Fire stacks on a party soldier (Clouds / imp hits stop piling past this). */
 export const MAX_PARTY_FIRE_STACKS = 2;
+
+/** Moss Mite (etc.) slime: re-hits do not pile stacks. */
+export const MAX_PARTY_SLIME_STACKS = 1;
 
 /**
  * Barrow Warden SpreadingFrost:

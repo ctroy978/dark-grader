@@ -118,18 +118,18 @@ Cascade / FireMage FF left for a later pass if needed.
 
 ### 5.1 Room 1 — Moss Grub (`moss_grub`) — **shipped**
 
-**Teaching sentence:** “Learn the loop; deaths stick — keep the gap clear.”
+**Teaching sentence:** “Learn the loop; kill mites — their nibble leaves slime until Fire Mage burns it clean.”
 
 | | |
 |--|--|
 | HP | **120–140** (start **130**) |
 | Enrage | None (or &lt;20% @ 1.1× only if needed) |
 | Attacks | Light `LineAttack` (**6**), light `FrontSlam` (**10 / 8 / 4** seats 1–3); **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
-| Adds | **Moss Mite** ×0–2 — **7 HP**, **3 dmg**; max 2; open with 1 |
+| Adds | **Moss Mite** ×0–2 — **7 HP**, **3 dmg** + **Slime** on hit (flat **2**/tick, **until cleansed**, stack cap **1**, no ramp, **no token slow**); max 2; open with 1 |
 | Feel | Clear in **5–8** rounds when attentive; **1–2 deaths** expected if students sleep or ignore mites |
 | Art key | `moss_grub`, mites `moss_mite` |
 
-Attentive teams should still usually win; the lesson is that party members **can die** before Ash.
+Attentive teams should still usually win; the lesson is that party members **can die** before Ash, and sticky Slime needs Fire Mage A/B (or Doomcaller strip).
 
 ---
 

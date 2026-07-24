@@ -132,7 +132,6 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Class pool from teacher grades; reshuffle discard when empty  
 - Telegraph: `pendingTokens` at magnet phase start  
 - Count: `floor(living / 2)` min 1 → 6→3 … (`tokensForLivingCount`)  
-- Slime: one fewer token next drop (min 1)
 
 ### Party shield (Shield Maiden)
 - Opening **1d6** if living Maiden in party  
@@ -146,11 +145,12 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
 
 ### DoTs
-- Fire **4** (party stacks max **2**) / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime 2 — `DOT_STATS`  
-- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs stay flat.  
+- Fire **4** (party stacks max **2**) / Ice 3 / Poison party splash **8**/stack (intensity 1) / Slime **2** flat (stack cap **1**, **until cleansed**, no ramp, **no token slow**) — `DOT_STATS`  
+- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and Fire minion on-hit set `escalationStep` (starts 1). Each DoT phase: damage × intensity, then intensity +1. Player/ally DoTs and **Slime** stay flat.  
+- **Moss Mite** on-hit applies party Slime (permanent until Fire Mage A/B or Doomcaller strip).  
 - Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
 - Doomcaller strips DoTs+Marks; transfers **DoTs only** → boss (not Marks, not Frozen)  
-- Healer cleanses Fire/Ice/Poison; Fire Mage only thaws Frozen (A front / B back)  
+- Healer cleanses Fire/Ice/Poison (**not Slime**); Fire Mage A/B thaws Frozen + cleanses Ice/Slime (front/back)  
 
 - **UI today:** small status chips only (`statusUi` / `StatusChips`). Easy to miss on a Chromebook from across the table.  
 

@@ -4,6 +4,7 @@ import {
   FROST_SHATTER_FROZEN_DAMAGE,
   FROST_SHATTER_SPLASH_DAMAGE,
   MAX_PARTY_FIRE_STACKS,
+  MAX_PARTY_SLIME_STACKS,
   type BossState,
   type DotType,
   type FrozenStatus,
@@ -157,6 +158,7 @@ export function tickFrozenChain(
  * Apply / stack a DoT on a party soldier.
  * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / minion on-hit).
  * Fire stacks are capped at MAX_PARTY_FIRE_STACKS so multi-Cloud does not spike to ×3+.
+ * Slime never ramps, stacks cap at MAX_PARTY_SLIME_STACKS, and does not expire by duration.
  */
 export function applyDot(
   soldier: Soldier,
@@ -170,11 +172,20 @@ export function applyDot(
   const addStacks =
     type === "Fire"
       ? Math.min(stacks, MAX_PARTY_FIRE_STACKS)
-      : stacks;
+      : type === "Slime"
+        ? Math.min(stacks, MAX_PARTY_SLIME_STACKS)
+        : stacks;
+  // Slime is flat chip only — never boss-ramp intensity
+  const ramp = fromBoss && type !== "Slime";
   if (existing && existing.kind === "Dot") {
     if (type === "Fire") {
       existing.stacks = Math.min(
         MAX_PARTY_FIRE_STACKS,
+        existing.stacks + addStacks,
+      );
+    } else if (type === "Slime") {
+      existing.stacks = Math.min(
+        MAX_PARTY_SLIME_STACKS,
         existing.stacks + addStacks,
       );
     } else {
@@ -182,7 +193,7 @@ export function applyDot(
     }
     existing.duration = Math.max(existing.duration, duration);
     // Promote or keep ramping — intensity does not reset on re-apply
-    if (fromBoss && existing.escalationStep == null) {
+    if (ramp && existing.escalationStep == null) {
       existing.escalationStep = 1;
     }
   } else {
@@ -191,7 +202,7 @@ export function applyDot(
       type,
       stacks: addStacks,
       duration,
-      ...(fromBoss ? { escalationStep: 1 } : {}),
+      ...(ramp ? { escalationStep: 1 } : {}),
     });
   }
 }
@@ -316,16 +327,15 @@ export function cleanseDots(
  */
 export function tickDots(team: TeamState, log: (text: string) => void): void {
   const party = livingParty(team);
-  let slimeActive = false;
 
   // Snapshot active DoTs / Frozen for a readable header
   const summary: string[] = [];
   for (const soldier of party) {
     for (const st of soldier.statuses) {
       if (st.kind === "Dot") {
-        summary.push(
-          `${soldier.name}:${st.type}×${st.stacks}(${st.duration}r left)`,
-        );
+        const left =
+          st.type === "Slime" ? "until cleansed" : `${st.duration}r left`;
+        summary.push(`${soldier.name}:${st.type}×${st.stacks}(${left})`);
       } else if (st.kind === "Frozen") {
         summary.push(`${soldier.name}:Frozen(s${st.stage})`);
       }
@@ -405,6 +415,7 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   }
 
   // --- Other DoTs: per-soldier (Fire/Ice/Slime; boss Fire ramps via escalationStep) ---
+  // Slime never expires by duration and never ramps — cleanse only.
   for (const soldier of party) {
     const dots = soldier.statuses.filter(
       (s) => s.kind === "Dot" && s.type !== "Poison",
@@ -416,11 +427,16 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
       const result = applyPartyDamage(soldier, perTick, team.partyShield);
       const rampNote =
         dot.escalationStep != null ? ` · intensity ${intensity}` : "";
+      const leftNote =
+        dot.type === "Slime"
+          ? "until cleansed"
+          : `${dot.duration - 1}r left after tick`;
       log(
-        `  [${dot.type}] ${soldier.name}: ${perTick} raw${rampNote} → ${formatPartyHit(soldier, result)} · ${dot.duration - 1}r left after tick`,
+        `  [${dot.type}] ${soldier.name}: ${perTick} raw${rampNote} → ${formatPartyHit(soldier, result)} · ${leftNote}`,
       );
-      if (dot.type === "Slime") slimeActive = true;
-      dot.duration -= 1;
+      if (dot.type !== "Slime") {
+        dot.duration -= 1;
+      }
       if (dot.escalationStep != null) {
         dot.escalationStep += 1;
       }
@@ -436,11 +452,6 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     soldier.statuses = soldier.statuses.filter(
       (s) => !(s.kind === "Dot" && s.duration <= 0),
     );
-  }
-
-  if (slimeActive) {
-    team.slimeSlowNextRound = true;
-    log(`  [Slime] Party slowed — fewer tokens next drop`);
   }
 
   // --- Boss DoTs (Doomcaller transfers, death poison) ---

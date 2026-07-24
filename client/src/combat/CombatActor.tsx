@@ -37,6 +37,41 @@ function dotTintClasses(statuses?: StatusTag[]): string[] {
   return out;
 }
 
+function hasSlimeDot(statuses?: StatusTag[]): boolean {
+  return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Slime");
+}
+
+/**
+ * Persistent slime: soft goo sheen + a few wax-like drips over the portrait.
+ * Subtle at desk distance, still readable from a projector.
+ */
+function SlimeDripFx() {
+  const dripCount = 6;
+  return (
+    <div className="slime-drip-fx" aria-hidden>
+      <div className="slime-drip-sheen" />
+      <div className="slime-drip-streams">
+        {Array.from({ length: dripCount }, (_, i) => (
+          <span
+            key={i}
+            className="slime-drip-stream"
+            style={
+              {
+                "--drip-i": i,
+                "--drip-n": dripCount,
+                "--drip-x": `${12 + ((i * 41 + 7) % 72)}%`,
+                "--drip-w": `${3 + (i % 3)}px`,
+                "--drip-delay": `${(i % 6) * 0.45}s`,
+                "--drip-dur": `${2.4 + (i % 4) * 0.35}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Telegraph particle field over the boss.
  * Theme: ember / poison / summon / shock (yellow lightning).
@@ -548,6 +583,7 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("archer-blast") ?? false);
+  const showSlimeDrip = hasSlimeDot(statuses);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -610,6 +646,8 @@ export function CombatActor({
               : frameClass
           }
         />
+        {/* After portrait so wax drips sit on top of art (not under the PNG). */}
+        {showSlimeDrip && <SlimeDripFx />}
         <DamageFloatStack
           floats={hpFloats}
           size={isBoss ? "lg" : size}

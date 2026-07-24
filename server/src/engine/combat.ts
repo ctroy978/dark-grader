@@ -93,7 +93,6 @@ export function createTeam(
     lastClaims: [],
     roomIndex: 0,
     partyDamageBonus: 0,
-    slimeSlowNextRound: false,
     rngSeed,
     lastClearedBossName: null,
   };
@@ -209,7 +208,6 @@ export function startFight(
   team.round = 1;
   team.phase = "awaiting_magnet";
   team.partyDamageBonus = 0;
-  team.slimeSlowNextRound = false;
   team.magnetPosition = 1;
 
   for (const s of activeParty(team)) {
@@ -750,10 +748,9 @@ export function resolveBoss(team: TeamState): TeamState {
   team.lastClaims = [];
   ensureMagnetOnLiving(team);
   const prep = preparePendingForRound(team);
-  const slimeNote = prep.slimeReduced ? " (Slime reduced the drop!)" : "";
   pushLog(
     team,
-    `Round ${team.round}: ${prep.living} living → ${prep.tokens.length} token(s)${slimeNote}. Incoming: ${prep.tokens.join(", ") || "(none)"} — set magnet, then Drop Tokens.`,
+    `Round ${team.round}: ${prep.living} living → ${prep.tokens.length} token(s). Incoming: ${prep.tokens.join(", ") || "(none)"} — set magnet, then Drop Tokens.`,
     ["system", "tokens"],
   );
   // No long system speech — magnet playbook + tokens are enough
@@ -837,7 +834,6 @@ function clearFightState(team: TeamState): void {
   team.lastClaims = [];
   team.partyShield = { remaining: 0, active: false };
   team.partyDamageBonus = 0;
-  team.slimeSlowNextRound = false;
   team.tokens = { remaining: [], discard: [] };
   for (const s of team.roster) {
     s.block = 0;

@@ -126,6 +126,20 @@ describe("campaign progression", () => {
     );
   });
 
+  it("opens Moss Grub with mites that apply Slime on hit", () => {
+    const team = createTeam("c3g", "CAMP3G", "Camp", 88);
+    const living = team.roster.filter((s) => s.alive).slice(0, 6);
+    selectParty(
+      team,
+      living.map((s) => s.id),
+    );
+    startFight(team, "moss_grub", POOL);
+    expect(team.boss?.id).toBe("moss_grub");
+    expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
+    expect(team.minions[0]?.name).toBe("Moss Mite");
+    expect(team.minions[0]?.onHitDot).toEqual({ type: "Slime", stacks: 1 });
+  });
+
   it("returns from defeat to lobby without advancing room", () => {
     const team = createTeam("c4", "CAMP4", "Camp", 4);
     team.phase = "defeat";

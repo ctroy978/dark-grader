@@ -164,7 +164,15 @@ export function describeMinionScout(opts: {
     parts.push(`When at max count they keep firing instead of more spawning.`);
   }
   if (opts.onHitDot) {
-    parts.push(`Hits can apply ${opts.onHitDot} burn.`);
+    if (opts.onHitDot === "Slime") {
+      parts.push(
+        `Hits leave sticky Slime until cleansed (Fire Mage A/B or Doomcaller strip).`,
+      );
+    } else if (opts.onHitDot === "Fire") {
+      parts.push(`Hits can apply Fire burn (ramps if left up).`);
+    } else {
+      parts.push(`Hits can apply ${opts.onHitDot}.`);
+    }
   }
   return parts.join(" ");
 }

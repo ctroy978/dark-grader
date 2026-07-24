@@ -29,11 +29,15 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       intensity > 0
         ? ` · boss ramp intensity ${intensity} (damage ×${intensity} this tick; grows if left up)`
         : "";
+    const untilNote =
+      st.type === "Slime"
+        ? "until cleansed (Fire Mage A/B or Doomcaller strip)"
+        : `${st.duration} round(s) left`;
     return {
       key: `dot-${st.type}-${index}`,
       icon: m.icon,
       label: `${m.short}${stacks}${ramp}`,
-      title: `${st.type} DoT · ${st.stacks} stack(s) · ${st.duration} round(s) left${rampTitle}`,
+      title: `${st.type} DoT · ${st.stacks} stack(s) · ${untilNote}${rampTitle}`,
       colorClass: m.colorClass,
     };
   }

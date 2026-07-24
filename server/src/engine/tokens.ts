@@ -39,22 +39,14 @@ export function drawTokens(
 
 /**
  * How many tokens drop this round based on living party size.
- * Slime reduces by 1 more (min 1 while anyone lives).
  */
 export function tokenDropCount(team: TeamState): {
   count: number;
   living: number;
-  slimeReduced: boolean;
 } {
   const living = livingParty(team).length;
-  let count = tokensForLivingCount(living);
-  let slimeReduced = false;
-  if (team.slimeSlowNextRound && count > 0) {
-    const before = count;
-    count = Math.max(living > 0 ? 1 : 0, count - 1);
-    slimeReduced = count < before;
-  }
-  return { count, living, slimeReduced };
+  const count = tokensForLivingCount(living);
+  return { count, living };
 }
 
 /**
@@ -89,15 +81,11 @@ export function cloudPreview(team: TeamState): Grade[] {
 export function preparePendingForRound(team: TeamState): {
   tokens: Grade[];
   living: number;
-  slimeReduced: boolean;
 } {
   const random = createRng(
     team.rngSeed + team.round * 9001 + team.roomIndex * 17 + 3,
   );
-  const { count, living, slimeReduced } = tokenDropCount(team);
-  if (team.slimeSlowNextRound) {
-    team.slimeSlowNextRound = false;
-  }
+  const { count, living } = tokenDropCount(team);
   const tokens = preparePendingTokens(team, random, count);
-  return { tokens, living, slimeReduced };
+  return { tokens, living };
 }

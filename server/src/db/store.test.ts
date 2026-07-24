@@ -138,7 +138,7 @@ describe("GameStore multi-classroom", () => {
         lastClaims: [],
         roomIndex: 0,
         partyDamageBonus: 0,
-        slimeSlowNextRound: false,
+
         rngSeed: 1,
       }),
     );

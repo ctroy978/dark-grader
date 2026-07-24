@@ -235,8 +235,6 @@ export interface TeamState {
   roomIndex: number;
   /** Party-wide outgoing damage bonus this round (Runesinger) */
   partyDamageBonus: number;
-  /** Slime slow: next round drops 2 tokens */
-  slimeSlowNextRound: boolean;
   /** Seed for reproducible fights (optional) */
   rngSeed: number;
   /** Last cleared boss name (for summary UI) */

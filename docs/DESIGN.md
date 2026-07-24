@@ -458,7 +458,7 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 | **Fire** | **4** / tick | **3** rounds | High pressure; Fire Mage cannot cleanse |
 | **Ice** | **2** / tick | **2** rounds | On claim: **downgrade** effective grade by 1 before resolve |
 | **Poison** | **3** / tick | **4** rounds | Damage split: magnet **30%**, adjacent **20%** each, remaining **30%** split among the other three (equal shares). Tick total = 3 × stacks. |
-| **Slime** | **1** / tick | **5** rounds | Next round: only **2 tokens drop** instead of 3 (party slowed) |
+| **Slime** | **2** / tick | **Until cleansed** | Flat chip only (no token slow). Stack cap 1. Fire Mage A/B or Doomcaller strip. Moss Mite on-hit. |
 
 **Order each round after party actions:** apply all DoT ticks → shield absorbs first → then HP. Duration decrements at end of tick phase. Stacks refresh duration on re-apply (simple v1).
 
@@ -508,7 +508,7 @@ onMagnet(teamId, pos 1..6)
 
 onAdvanceRound(teamId)  // teacher force OR auto after short lock OR student "Commit"
   → phase=resolving
-  → draw 3 tokens (respect Slime slow → 2)
+  → draw 3 tokens (`floor(living/2)`)
   → resolve claims (per-token weighted RNG, max 1 per soldier)
   → apply Ice downgrades to effective grades
   → party actions front→back
