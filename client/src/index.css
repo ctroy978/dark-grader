@@ -288,6 +288,251 @@ body {
   box-shadow: 0 0 12px rgba(110, 198, 255, 0.7);
 }
 
+/*
+ * Shield Maiden — subtle anime energy beam.
+ * Charge: soft silver build-up (cousin to Rattle shock, not yellow lightning).
+ * Blast / impact: quiet radial shockwave, not a full DBZ screen wipe.
+ */
+.fx-maiden-charge {
+  filter: drop-shadow(0 0 8px rgba(200, 220, 255, 0.55))
+    drop-shadow(0 0 16px rgba(160, 190, 255, 0.3));
+}
+.fx-maiden-charge .portrait-frame {
+  animation: maiden-charge-breathe 0.7s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(210, 225, 255, 0.45),
+    0 0 16px rgba(170, 200, 255, 0.45),
+    0 0 28px rgba(140, 175, 240, 0.25);
+  border-color: rgba(200, 220, 255, 0.5);
+}
+.fx-maiden-blast {
+  filter: drop-shadow(0 0 10px rgba(230, 240, 255, 0.65))
+    drop-shadow(0 0 18px rgba(180, 205, 255, 0.35));
+}
+.fx-maiden-blast .portrait-frame {
+  animation: maiden-blast-flash 0.55s ease-out;
+  box-shadow:
+    0 0 0 1px rgba(240, 245, 255, 0.55),
+    0 0 20px rgba(200, 220, 255, 0.55),
+    0 0 36px rgba(160, 190, 255, 0.3);
+  border-color: rgba(230, 240, 255, 0.55);
+}
+
+.maiden-energy-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -18% -12%;
+  z-index: 6;
+  overflow: visible;
+}
+.maiden-energy-core {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 28%;
+  height: 28%;
+  margin-left: -14%;
+  margin-top: -14%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(190, 215, 255, 0.35) 40%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+}
+.maiden-energy-fx--charge .maiden-energy-core {
+  animation: maiden-core-pulse 0.65s ease-in-out infinite;
+}
+.maiden-energy-fx--blast .maiden-energy-core,
+.maiden-energy-fx--impact .maiden-energy-core {
+  animation: maiden-core-burst 0.7s ease-out forwards;
+}
+
+.maiden-energy-ring {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 40%;
+  height: 40%;
+  margin-left: -20%;
+  margin-top: -20%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(210, 230, 255, 0.45);
+  box-shadow:
+    0 0 8px rgba(180, 210, 255, 0.35),
+    inset 0 0 10px rgba(200, 220, 255, 0.15);
+  opacity: 0;
+}
+.maiden-energy-fx--charge .maiden-energy-ring--a {
+  animation: maiden-ring-charge 0.9s ease-out infinite;
+}
+.maiden-energy-fx--charge .maiden-energy-ring--b {
+  animation: maiden-ring-charge 0.9s ease-out infinite 0.28s;
+  border-color: rgba(230, 240, 255, 0.35);
+}
+.maiden-energy-fx--blast .maiden-energy-ring--a,
+.maiden-energy-fx--blast .maiden-energy-ring--b,
+.maiden-energy-fx--impact .maiden-energy-ring--a,
+.maiden-energy-fx--impact .maiden-energy-ring--b {
+  animation: maiden-ring-burst 0.75s ease-out forwards;
+}
+.maiden-energy-fx--blast .maiden-energy-ring--b,
+.maiden-energy-fx--impact .maiden-energy-ring--b {
+  animation-delay: 0.08s;
+}
+.maiden-energy-ring--shock {
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 0 12px rgba(220, 235, 255, 0.5),
+    0 0 24px rgba(160, 190, 255, 0.25);
+  animation: maiden-ring-shock 0.65s ease-out forwards !important;
+}
+
+.maiden-energy-sparks {
+  position: absolute;
+  inset: 0;
+}
+.maiden-energy-spark {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 3px;
+  height: 8px;
+  margin-left: -1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to top,
+    rgba(140, 175, 240, 0.15) 0%,
+    rgba(210, 230, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  box-shadow: 0 0 4px rgba(200, 220, 255, 0.8);
+  opacity: 0;
+  transform-origin: center bottom;
+  /* Fan around the portrait */
+  --spark-angle: calc(var(--spark-i) * (360deg / var(--spark-n)));
+}
+.maiden-energy-fx--charge .maiden-energy-spark {
+  animation: maiden-spark-in 0.75s ease-in-out infinite;
+  animation-delay: calc(var(--spark-i) * 0.06s);
+}
+.maiden-energy-fx--blast .maiden-energy-spark,
+.maiden-energy-fx--impact .maiden-energy-spark {
+  animation: maiden-spark-out 0.7s ease-out forwards;
+  animation-delay: calc(var(--spark-i) * 0.02s);
+}
+.maiden-energy-fx--impact {
+  inset: -12% -8%;
+}
+.maiden-energy-fx--impact .maiden-energy-core {
+  width: 22%;
+  height: 22%;
+  margin-left: -11%;
+  margin-top: -11%;
+}
+
+@keyframes maiden-charge-breathe {
+  0%,
+  100% {
+    filter: brightness(1.05);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+@keyframes maiden-blast-flash {
+  0% {
+    filter: brightness(1.35);
+  }
+  40% {
+    filter: brightness(1.15);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes maiden-core-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.15);
+  }
+}
+@keyframes maiden-core-burst {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.5);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@keyframes maiden-ring-charge {
+  0% {
+    opacity: 0.65;
+    transform: scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+@keyframes maiden-ring-burst {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+@keyframes maiden-ring-shock {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes maiden-spark-in {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--spark-angle)) translateY(-28px) scale(0.6);
+  }
+  40% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--spark-angle)) translateY(-8px) scale(1);
+  }
+}
+@keyframes maiden-spark-out {
+  0% {
+    opacity: 0.95;
+    transform: rotate(var(--spark-angle)) translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--spark-angle)) translateY(-36px) scale(0.7);
+  }
+}
+
 /* --- Boss telegraph / wind-up (Ash-first exploration) --- */
 .fx-boss-windup {
   /* Outer unit glow — readable from the back of the room */

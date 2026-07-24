@@ -94,6 +94,39 @@ function BossWindupFx({
   );
 }
 
+/**
+ * Shield Maiden energy beam — subtle anime charge / release.
+ * mode charge: inward sparks + expanding rings (build-up)
+ * mode blast: soft radial shockwave on caster or target impact
+ */
+function MaidenEnergyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const sparkCount = mode === "charge" ? 8 : mode === "blast" ? 10 : 6;
+  return (
+    <div className={`maiden-energy-fx maiden-energy-fx--${mode}`} aria-hidden>
+      <div className="maiden-energy-core" />
+      <div className="maiden-energy-ring maiden-energy-ring--a" />
+      <div className="maiden-energy-ring maiden-energy-ring--b" />
+      {mode !== "charge" && (
+        <div className="maiden-energy-ring maiden-energy-ring--shock" />
+      )}
+      <div className="maiden-energy-sparks">
+        {Array.from({ length: sparkCount }, (_, i) => (
+          <span
+            key={i}
+            className="maiden-energy-spark"
+            style={
+              {
+                "--spark-i": i,
+                "--spark-n": sparkCount,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -195,6 +228,7 @@ export function CombatActor({
     .filter(Boolean)
     .join(" ");
   const speaking = cue?.bubble?.speakerId === unitId;
+  const inFocus = cue?.focusIds?.includes(unitId) ?? false;
   const isBoss = portrait.role === "boss";
   const threat = threatTierFromCue(cue) ?? "light";
   const windupTheme = windupThemeFromCue(cue);
@@ -202,6 +236,14 @@ export function CombatActor({
     isBoss &&
     pose === "windup" &&
     (cue?.fx?.includes("boss-windup") ?? false);
+  const showMaidenCharge =
+    speaking && (cue?.fx?.includes("maiden-charge") ?? false);
+  const showMaidenBlast =
+    speaking && (cue?.fx?.includes("maiden-blast") ?? false);
+  const showMaidenImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("maiden-blast") ?? false);
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -225,11 +267,14 @@ export function CombatActor({
       )}
       {speaking && cue && <SpeechBubble cue={cue} anchor="top" />}
       <div
-        className={`relative ${isBoss ? "w-full max-w-[12rem] md:max-w-[14rem] mx-auto" : "w-full"}`}
+        className={`relative overflow-visible ${isBoss ? "w-full max-w-[12rem] md:max-w-[14rem] mx-auto" : "w-full"}`}
       >
         {showBossWindup && (
           <BossWindupFx threat={threat} theme={windupTheme} />
         )}
+        {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
+        {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
+        {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
         <PlaceholderPortrait
           kind={portrait}
           pose={pose}

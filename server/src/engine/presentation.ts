@@ -160,6 +160,25 @@ export function cueAction(
   // (not a second generic hit_heavy) so each kit keeps its identity.
   const sfxId = resolveSfxId(attackSfxCandidates(archetype, grade));
 
+  // Shield Maiden: short energy charge (windup pose) then strike blast.
+  // Telegraph has no board reveal so floats stay on the impact beat.
+  const maidenEnergy = archetype === "ShieldMaiden" && grade !== "F";
+  if (maidenEnergy) {
+    pushCue(team, {
+      kind: "telegraph",
+      focusIds: [soldierId],
+      grade,
+      bubble: {
+        speakerId: soldierId,
+        speakerName: soldierName,
+        side: "party",
+        text: grade === "A" ? "Gather…" : "Charge…",
+      },
+      fx: ["maiden-charge"],
+      durationMs: 720,
+    });
+  }
+
   pushCue(team, {
     kind: "action",
     focusIds,
@@ -173,12 +192,19 @@ export function cueAction(
     fx: [
       "attack-flash",
       ...fxExtra,
+      ...(maidenEnergy ? ["maiden-blast"] : []),
       ...(slain.length ? ["minion-kill"] : []),
     ],
     sfxId,
     voId: voActionId(grade),
     playVo,
-    durationMs: slain.length ? 1300 : 1100,
+    durationMs: maidenEnergy
+      ? slain.length
+        ? 1400
+        : 1250
+      : slain.length
+        ? 1300
+        : 1100,
   });
 }
 
