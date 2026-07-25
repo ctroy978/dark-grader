@@ -36,12 +36,15 @@ export const TOKENS_PER_ROUND = 3;
 export const CLOUD_DISPLAY_SIZE = 6;
 
 /**
- * Tokens dropped per round = floor(living / 2), at least 1 while anyone lives.
- * 6→3, 5→2, 4→2, 3→1, 2→1, 1→1
+ * Tokens dropped per round by living party size.
+ * Holds three tokens through 4 living so understrength parties stay active longer.
+ * 6→3, 5→3, 4→3, 3→2, 2→1, 1→1
  */
 export function tokensForLivingCount(livingCount: number): number {
   if (livingCount <= 0) return 0;
-  return Math.max(1, Math.floor(livingCount / 2));
+  if (livingCount >= 4) return 3;
+  if (livingCount === 3) return 2;
+  return 1;
 }
 
 /**

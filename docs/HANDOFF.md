@@ -131,7 +131,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 ### Tokens
 - Class pool from teacher grades; reshuffle discard when empty  
 - Telegraph: `pendingTokens` at magnet phase start  
-- Count: `floor(living / 2)` min 1 → 6→3 … (`tokensForLivingCount`)  
+- Count: `tokensForLivingCount` → 6/5/4→3, 3→2, 2/1→1  
 
 ### Party shield (Shield Maiden)
 - Opening **1d6** if living Maiden in party  

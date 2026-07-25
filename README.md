@@ -116,7 +116,7 @@ This section is for design review — update it when abilities change.
 | Rule | Current behavior |
 |------|------------------|
 | Party | 6 of **22** roster soldiers; campaign HP persists |
-| Tokens / round | `floor(living / 2)` min 1 → 6 living → 3 tokens, … |
+| Tokens / round | 6/5/4 living → 3 tokens; 3 → 2; 2/1 → 1 (`tokensForLivingCount`) |
 | Magnet | Only control: raise claim odds on one living position (1–6) |
 | Claim rules | **Magnet always claims one token** (which grade is random among the drop). Remaining tokens: living party **except magnet**, weighted by proximity (adjacent 2× far). Each soldier ≤1 token. |
 | Resolve order | Claims → **Runesinger first** (rewrites tokens) → other claimers **front → back** → DoTs → boss |

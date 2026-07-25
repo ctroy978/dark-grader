@@ -508,7 +508,7 @@ onMagnet(teamId, pos 1..6)
 
 onAdvanceRound(teamId)  // teacher force OR auto after short lock OR student "Commit"
   → phase=resolving
-  → draw 3 tokens (`floor(living/2)`)
+  → draw tokens by living count (6/5/4→3, 3→2, 2/1→1)
   → resolve claims (per-token weighted RNG, max 1 per soldier)
   → apply Ice downgrades to effective grades
   → party actions front→back

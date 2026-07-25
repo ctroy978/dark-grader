@@ -37,11 +37,11 @@ describe("token telegraph", () => {
 });
 
 describe("tokens scale with living count", () => {
-  it("matches floor(n/2) min 1", () => {
+  it("holds 3 tokens through 4 living, then steps down gently", () => {
     expect(tokensForLivingCount(6)).toBe(3);
-    expect(tokensForLivingCount(5)).toBe(2);
-    expect(tokensForLivingCount(4)).toBe(2);
-    expect(tokensForLivingCount(3)).toBe(1);
+    expect(tokensForLivingCount(5)).toBe(3);
+    expect(tokensForLivingCount(4)).toBe(3);
+    expect(tokensForLivingCount(3)).toBe(2);
     expect(tokensForLivingCount(2)).toBe(1);
     expect(tokensForLivingCount(1)).toBe(1);
     expect(tokensForLivingCount(0)).toBe(0);
@@ -66,9 +66,9 @@ describe("tokens scale with living count", () => {
         s.alive = false;
       }
     }
-    // 3 living → 1 token
+    // 3 living → 2 tokens
     const { count, living } = tokenDropCount(team);
     expect(living).toBe(3);
-    expect(count).toBe(1);
+    expect(count).toBe(2);
   });
 });
