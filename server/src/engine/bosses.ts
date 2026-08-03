@@ -287,11 +287,6 @@ export function magnetHardTarget(team: TeamState): Soldier | undefined {
     )[0];
 }
 
-/** @deprecated Prefer magnetHardTarget — kept name for call-site clarity during migrate. */
-function magnetBiasedTarget(team: TeamState, _random: () => number) {
-  return magnetHardTarget(team);
-}
-
 /**
  * Choose the next boss attack id (weighted / summon pressure / sequence).
  * Call at telegraph time so wind-up can name the threat; resolve reuses the id.
@@ -733,7 +728,7 @@ function performAttack(
       const heal = 10;
       boss.currentHp = Math.min(boss.maxHp, boss.currentHp + heal);
       log(`${boss.name} regenerates ${heal} HP (${boss.currentHp}/${boss.maxHp})`);
-      const victim = magnetBiasedTarget(team, random);
+      const victim = magnetHardTarget(team);
       if (victim) {
         const hpLost = hit(victim, dmg(5));
         log(`  Regenerative pulse hits ${victim.name} for ${hpLost}`);
