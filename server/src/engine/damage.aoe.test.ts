@@ -27,9 +27,9 @@ function teamWithAdds(): TeamState {
     pick("Vanguard"),
     pick("FireMage"),
     pick("Archer"),
-    pick("Healer"),
     pick("ShieldMaiden"),
     pick("Thundercaller"),
+    pick("Healer"),
   ].map((s) => s.id);
   selectParty(team, party);
   startFight(team, "bone_colossus", POOL);

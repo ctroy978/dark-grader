@@ -322,11 +322,11 @@ Numbers below are **frozen for v1 implementation**. Tune after classroom playtes
 | Vanguard | 2 |
 | Shield Maiden | 3 |
 | Fire Mage | 3 |
-| Healer | 3 |
+| Healer | 2 |
 | Archer | **6** |
 | Doomcaller | 1 |
 | Necromancer | **1** |
-| Thundercaller | **2** |
+| Thundercaller | **3** |
 | Runesinger | **1** |
 | **Total** | **22** |
 

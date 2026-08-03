@@ -16,6 +16,7 @@ export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
 /**
  * Roster counts for a new campaign.
  * Total 21: art-aligned gender pools (see server/src/seed/names.ts).
+ * Pattern: frontline/support/healer ×2, damage ×3.
  * Males: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
  * Females: ShieldMaiden, Healer, Archer, Runesinger
  */
@@ -24,10 +25,10 @@ export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
   { archetype: "Spearman", count: 2 },
   { archetype: "ShieldMaiden", count: 2 },
   { archetype: "FireMage", count: 3 },
-  { archetype: "Healer", count: 3 },
+  { archetype: "Healer", count: 2 },
   { archetype: "Archer", count: 3 },
   { archetype: "Necromancer", count: 2 },
-  { archetype: "Thundercaller", count: 2 },
+  { archetype: "Thundercaller", count: 3 },
   { archetype: "Runesinger", count: 2 },
 ];
 
@@ -162,6 +163,23 @@ export const MAIDEN_SHIELD: Record<Exclude<Grade, "F">, number> = {
 export function thundercallerRezHp(maxHp: number): number {
   return Math.max(1, Math.floor(maxHp * 0.1));
 }
+
+/** Runesinger HoT duration (DoT-phase ticks). */
+export const RUNESINGER_HOT_TICKS = 3;
+
+/** Max independent hymn streams per soldier. */
+export const MAX_HOT_STREAMS_PER_SOLDIER = 2;
+
+/**
+ * Heal per DoT-phase tick by grade (× RUNESINGER_HOT_TICKS ≈ Healer band + a bit).
+ * A/B: 4×3 = 12; C/D: 3×3 = 9. F: none.
+ */
+export const RUNESINGER_HOT_PER_TICK: Record<Exclude<Grade, "F">, number> = {
+  A: 4,
+  B: 4,
+  C: 3,
+  D: 3,
+};
 
 /**
  * 2nd+ minion shot in the same boss-phase volley multiplies damage

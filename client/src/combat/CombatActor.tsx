@@ -299,8 +299,8 @@ function ThunderBoltFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
 }
 
 /**
- * Healer — soft green/gold rain falling onto the caster.
- * Runesinger — golden rune motes rising from the ground (same shell, direction differs).
+ * Healer — soft green rain falling onto the caster / targets.
+ * Runesinger tick impact — gold-white rain on HoT recipients (not the cast).
  */
 function SpiritRainFx({
   mode,
@@ -333,6 +333,21 @@ function SpiritRainFx({
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Runesinger cast — gold-white orb grows from portrait center (not rain).
+ * Charge: pulse/grow; blast: expand and soften (hymn is set; ticks rain later).
+ */
+function HymnOrbFx({ mode }: { mode: "charge" | "blast" }) {
+  return (
+    <div className={`hymn-orb-fx hymn-orb-fx--${mode}`} aria-hidden>
+      <div className="hymn-orb-core" />
+      <div className="hymn-orb-ring hymn-orb-ring--a" />
+      <div className="hymn-orb-ring hymn-orb-ring--b" />
+      <div className="hymn-orb-sheen" />
     </div>
   );
 }
@@ -506,8 +521,28 @@ export function StatusLabels({
       className: "text-sky-300 border-sky-400/40 bg-sky-950/40",
     });
   }
+  const hots = (statuses ?? []).filter((st) => st.kind === "Hot");
+  if (hots.length > 0) {
+    const perTick = hots.reduce(
+      (s, st) => s + (st.kind === "Hot" ? st.healPerTick : 0),
+      0,
+    );
+    const maxDur = Math.max(
+      ...hots.map((st) => (st.kind === "Hot" ? st.duration : 0)),
+    );
+    chips.push({
+      key: "hymn-hot",
+      text:
+        hots.length > 1
+          ? `Hymn +${perTick}/t ×${hots.length}`
+          : `Hymn +${perTick}×${maxDur}`,
+      title: `Hymn HoT — +${perTick} HP per DoT phase · ${hots.length} stream(s)`,
+      className: "text-amber-100 border-amber-200/50 bg-amber-950/40",
+    });
+  }
   for (let i = 0; i < (statuses?.length ?? 0); i++) {
     const st = statuses![i]!;
+    if (st.kind === "Hot") continue;
     const c = statusToChip(st, i);
     // Prefer "Poison ×2" style under the image
     let text = c.label;
@@ -663,14 +698,16 @@ export function CombatActor({
     inFocus &&
     ((cue?.fx?.includes("heal-blast") ?? false) ||
       (cue?.fx?.includes("heal-glow") ?? false));
+  // Cast: growing orb on the Runesinger only (not rain)
   const showRuneCharge =
     speaking && (cue?.fx?.includes("rune-charge") ?? false);
   const showRuneBlast =
     speaking && (cue?.fx?.includes("rune-blast") ?? false);
-  const showRuneImpact =
-    !speaking &&
+  // HoT tick: gold rain + glow on anyone receiving hymn this beat
+  const showHymnTick =
     inFocus &&
-    (cue?.fx?.includes("rune-blast") ?? false);
+    ((cue?.fx?.includes("hymn-tick") ?? false) ||
+      (cue?.fx?.includes("hymn-glow") ?? false));
   const showVanguardCharge =
     speaking && (cue?.fx?.includes("vanguard-charge") ?? false);
   const showVanguardBlast =
@@ -757,9 +794,9 @@ export function CombatActor({
           {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
           {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
           {showHealImpact && <SpiritRainFx mode="blast" variant="heal" />}
-          {showRuneCharge && <SpiritRainFx mode="charge" variant="rune" />}
-          {showRuneBlast && <SpiritRainFx mode="blast" variant="rune" />}
-          {showRuneImpact && <SpiritRainFx mode="blast" variant="rune" />}
+          {showRuneCharge && <HymnOrbFx mode="charge" />}
+          {showRuneBlast && <HymnOrbFx mode="blast" />}
+          {showHymnTick && <SpiritRainFx mode="blast" variant="rune" />}
           {showVanguardCharge && <VanguardBastionFx mode="charge" />}
           {showVanguardBlast && <VanguardBastionFx mode="blast" />}
           {showVanguardImpact && <VanguardBastionFx mode="impact" />}

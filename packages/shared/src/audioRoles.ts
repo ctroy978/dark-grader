@@ -32,7 +32,8 @@ export const ARCHETYPE_ATTACK_SFX: Record<Archetype, string> = {
   Spearman: "act_spearman",
   Necromancer: "act_necromancer",
   Thundercaller: "act_thundercaller",
-  Runesinger: "act_runesinger",
+  /** Prefer hymn_cast.mp3 when present; falls back to act_runesinger / heal */
+  Runesinger: "hymn_cast",
 };
 
 /** Candidates in preference order (first existing file wins on server). */
@@ -44,9 +45,12 @@ export function attackSfxCandidates(
   // the backfire; comic fizzle made party hits look like the caster "failed."
   const preferred =
     ARCHETYPE_ATTACK_SFX[archetype as Archetype] ?? "hit_light";
-  // Healer / Runesinger: prefer act_*; legacy `heal.mp3` still accepted.
-  if (preferred === "act_healer" || preferred === "act_runesinger") {
+  // Healer: act_healer → heal. Runesinger cast: hymn_cast → act_runesinger → heal.
+  if (preferred === "act_healer") {
     return [preferred, "heal", "hit_light"];
+  }
+  if (preferred === "hymn_cast" || preferred === "act_runesinger") {
+    return ["hymn_cast", "act_runesinger", "heal", "hit_light"];
   }
   return [preferred, "hit_light"];
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { Grade } from "@dungeon-grades/shared";
+import {
+  isBacklineSupportArchetype,
+  withBacklineSupportLast,
+  type Grade,
+} from "@dungeon-grades/shared";
 import {
   canFormNextParty,
   commitFullRound,
@@ -14,12 +18,28 @@ import {
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
 
+/**
+ * Build a legal line of up to N living soldiers.
+ * Healer/Runesinger only in the back seat (at most one).
+ */
+function livingPartyIds(
+  team: ReturnType<typeof createTeam>,
+  n = 6,
+): string[] {
+  const living = team.roster.filter((s) => s.alive);
+  const rest = living.filter((s) => !isBacklineSupportArchetype(s.archetype));
+  const supports = living.filter((s) => isBacklineSupportArchetype(s.archetype));
+  if (supports.length === 0) {
+    return living.slice(0, n).map((s) => s.id);
+  }
+  const line = rest.slice(0, n - 1);
+  line.push(supports[0]!);
+  return line.slice(0, n).map((s) => s.id);
+}
+
 function fightOneRoom(team: ReturnType<typeof createTeam>, bossId: string) {
   const living = team.roster.filter((s) => s.alive).slice(0, 6);
-  selectParty(
-    team,
-    living.map((s) => s.id),
-  );
+  selectParty(team, livingPartyIds(team, 6));
   startFight(team, bossId, POOL);
   for (let i = 0; i < 60; i++) {
     if (team.phase === "victory" || team.phase === "defeat") break;
@@ -101,10 +121,7 @@ describe("campaign progression", () => {
   it("opens Cinder Herald with one real imp and can resolve a fight", () => {
     const team = createTeam("c3h", "CAMP3H", "Camp", 99);
     const living = team.roster.filter((s) => s.alive).slice(0, 6);
-    selectParty(
-      team,
-      living.map((s) => s.id),
-    );
+    selectParty(team, livingPartyIds(team, 6));
     startFight(team, "cinder_herald", POOL);
     expect(team.boss?.id).toBe("cinder_herald");
     expect(team.boss?.maxHp).toBe(170);
@@ -128,11 +145,7 @@ describe("campaign progression", () => {
 
   it("opens Moss Grub with mites that apply Slime on hit", () => {
     const team = createTeam("c3g", "CAMP3G", "Camp", 88);
-    const living = team.roster.filter((s) => s.alive).slice(0, 6);
-    selectParty(
-      team,
-      living.map((s) => s.id),
-    );
+    selectParty(team, livingPartyIds(team, 6));
     startFight(team, "moss_grub", POOL);
     expect(team.boss?.id).toBe("moss_grub");
     expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
@@ -223,11 +236,7 @@ describe("campaign progression", () => {
       s.currentHp = 0;
     }
     returnFromDefeat(team);
-    const living = team.roster.filter((s) => s.alive).slice(0, 6);
-    selectParty(
-      team,
-      living.map((s) => s.id),
-    );
+    selectParty(team, livingPartyIds(team, 6));
     startFight(team, "ash_wraith", POOL);
     expect(team.phase).toBe("awaiting_magnet");
     expect(team.roomIndex).toBe(0);
@@ -258,10 +267,7 @@ describe("campaign progression", () => {
       ),
     ).toThrow(/all of them|Understrength/i);
 
-    selectParty(
-      team,
-      survivors.map((s) => s.id),
-    );
+    selectParty(team, withBacklineSupportLast(survivors).map((s) => s.id));
     expect(team.activePartyIds).toHaveLength(4);
     expect(
       team.activePartyIds.map(

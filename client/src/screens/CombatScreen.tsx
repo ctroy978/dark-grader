@@ -176,8 +176,29 @@ function PartySeatEffects({
       className: "text-sky-300 border-sky-400/40 bg-sky-950/40",
     });
   }
+  // Collapse multiple hymn HoTs into one chip
+  const hots = (statuses ?? []).filter((st) => st.kind === "Hot");
+  if (hots.length > 0) {
+    const perTick = hots.reduce(
+      (s, st) => s + (st.kind === "Hot" ? st.healPerTick : 0),
+      0,
+    );
+    const maxDur = Math.max(
+      ...hots.map((st) => (st.kind === "Hot" ? st.duration : 0)),
+    );
+    chips.push({
+      key: "hymn-hot",
+      text:
+        hots.length > 1
+          ? `Hymn +${perTick}/t ×${hots.length}`
+          : `Hymn +${perTick}×${maxDur}`,
+      title: `Hymn HoT — +${perTick} HP per DoT phase across ${hots.length} stream(s); longest ${maxDur} tick(s) left`,
+      className: "text-amber-100 border-amber-200/50 bg-amber-950/40",
+    });
+  }
   for (let i = 0; i < (statuses?.length ?? 0); i++) {
     const st = statuses![i]!;
+    if (st.kind === "Hot") continue;
     const c = statusToChip(st, i);
     let text = c.label;
     if (st.kind === "Dot") {

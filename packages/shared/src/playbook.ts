@@ -57,18 +57,18 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — hits highest-HP ally for 10",
   },
   Thundercaller: {
-    A: "If someone is dead: revive at low HP (dazed, once/fight). Else hit 14; 30% stun; front Charge+3",
+    A: "Hit 14 + 30% boss stun + front Charge+3 — or if someone is down: shock-restart their heart (~10% HP). They skip their next claim (dazed). Once per soldier per fight; no damage that claim if you rez",
     B: "Hit 11; 30% stun boss; back +3 Charge next attack",
     C: "Hit 9; 30% stun boss",
     D: "Hit 6",
     F: "No hit; 30% stun a remaining (not-yet-acted) token-holder",
   },
   Runesinger: {
-    A: "All tokens → A; holders heal +5 (acts first)",
-    B: "Tokens below B → B; holders heal +4 (acts first)",
-    C: "Lowest token below C → C; holders heal +3 (acts first)",
-    D: "Token holders heal +3 (acts first)",
-    F: "All tokens shift down one grade (acts first)",
+    A: "All claims +2 grades; HoT all (~12 over 3 ticks) — acts first; back seat only",
+    B: "F/D→C, C→B (B stays B); HoT front (~12 / 3 ticks) — acts first",
+    C: "Worst claim → C (front wins ties); HoT back (~9 / 3 ticks) — acts first",
+    D: "No rewrite; self HoT only (~9 / 3 ticks) — acts first",
+    F: "All claims shift down one grade; no HoT — acts first",
   },
 };
 
@@ -81,7 +81,7 @@ export function gradeRiskNote(archetype: Archetype, grade: Grade): string | null
     Archer: { F: "May hit ally" },
     Necromancer: { D: "Self damage", F: "Hits highest-HP ally (10)" },
     Thundercaller: { F: "May stun a not-yet-acted claimer" },
-    Runesinger: { F: "Downgrades all tokens" },
+    Runesinger: { F: "Downgrades all tokens; no HoT" },
     ShieldMaiden: { F: "Drops cover to 0" },
   };
   return risky[archetype]?.[grade] ?? null;

@@ -40,6 +40,40 @@ function readyTeam() {
 }
 
 describe("combat loop", () => {
+  it("rejects Healer / Runesinger outside the back seat", () => {
+    const team = createTeam("t-back", "BACK1", "Back seat", 1);
+    expect(() =>
+      selectParty(team, [
+        "vanguard_1",
+        "healer_1",
+        "firemage_1",
+        "archer_1",
+        "spearman_1",
+        "thundercaller_1",
+      ]),
+    ).toThrow(/back seat/i);
+    expect(() =>
+      selectParty(team, [
+        "vanguard_1",
+        "shieldmaiden_1",
+        "firemage_1",
+        "archer_1",
+        "healer_1",
+        "runesinger_1",
+      ]),
+    ).toThrow(/back seat/i);
+    expect(() =>
+      selectParty(team, [
+        "vanguard_1",
+        "shieldmaiden_1",
+        "firemage_1",
+        "archer_1",
+        "spearman_1",
+        "healer_1",
+      ]),
+    ).not.toThrow();
+  });
+
   it("starts fight with no free shield (cover only on Maiden claim)", () => {
     const withMaiden = readyTeam();
     expect(withMaiden.phase).toBe("awaiting_magnet");
@@ -51,9 +85,9 @@ describe("combat loop", () => {
       "vanguard_1",
       "vanguard_2",
       "firemage_1",
-      "healer_1",
       "archer_1",
       "archer_2",
+      "healer_1",
     ]);
     startFight(noMaiden, "bone_colossus", SAMPLE_POOL);
     expect(noMaiden.partyShield.active).toBe(false);

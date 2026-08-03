@@ -32,12 +32,19 @@ describe("audioRoles", () => {
     expect(archetypeArtGender("Runesinger")).toBe("female");
   });
 
-  it("gives every archetype a unique act_* attack id", () => {
+  it("gives every archetype a unique attack SFX preference", () => {
     const ids = ALL.map((a) => ARCHETYPE_ATTACK_SFX[a]);
     expect(new Set(ids).size).toBe(ALL.length);
     expect(ARCHETYPE_ATTACK_SFX.Healer).toBe("act_healer");
+    expect(ARCHETYPE_ATTACK_SFX.Runesinger).toBe("hymn_cast");
     expect(attackSfxCandidates("Healer", "A")).toEqual([
       "act_healer",
+      "heal",
+      "hit_light",
+    ]);
+    expect(attackSfxCandidates("Runesinger", "A")).toEqual([
+      "hymn_cast",
+      "act_runesinger",
       "heal",
       "hit_light",
     ]);
@@ -51,6 +58,7 @@ describe("audioRoles", () => {
       "act_thundercaller",
     );
     expect(attackSfxCandidates("Healer", "F")[0]).toBe("act_healer");
+    expect(attackSfxCandidates("Runesinger", "F")[0]).toBe("hymn_cast");
   });
 
   it("hurt candidates are gendered", () => {

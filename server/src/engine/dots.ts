@@ -3,6 +3,7 @@ import {
   FROST_LOCKED_TICK_DAMAGE,
   FROST_SHATTER_FROZEN_DAMAGE,
   FROST_SHATTER_SPLASH_DAMAGE,
+  MAX_HOT_STREAMS_PER_SOLDIER,
   MAX_PARTY_FIRE_STACKS,
   MAX_PARTY_ICE_STACKS,
   MAX_PARTY_SLIME_STACKS,
@@ -17,6 +18,7 @@ import { adjacentPositions } from "@dungeon-grades/shared";
 import {
   applyPartyDamage,
   formatPartyHit,
+  healSoldier,
   livingParty,
   noteMinionSlain,
   soldierAt,
@@ -372,8 +374,9 @@ export function cleanseDots(
 export function tickDots(team: TeamState, log: (text: string) => void): void {
   const party = livingParty(team);
 
-  // Snapshot active DoTs / Frozen for a readable header
+  // Snapshot active DoTs / Frozen / HoTs for a readable header
   const summary: string[] = [];
+  let partyHasHot = false;
   for (const soldier of party) {
     for (const st of soldier.statuses) {
       if (st.kind === "Dot") {
@@ -382,6 +385,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
         summary.push(`${soldier.name}:${st.type}×${st.stacks}(${left})`);
       } else if (st.kind === "Frozen") {
         summary.push(`${soldier.name}:Frozen(s${st.stage})`);
+      } else if (st.kind === "Hot") {
+        partyHasHot = true;
       }
     }
   }
@@ -403,7 +408,7 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   }
   const minionsHaveDots = minionDotSummary.length > 0;
 
-  if (!summary.length && !bossHasDots && !minionsHaveDots) {
+  if (!summary.length && !bossHasDots && !minionsHaveDots && !partyHasHot) {
     log(`— DoT phase: none active —`);
     return;
   }
@@ -411,6 +416,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
   if (summary.length || minionDotSummary.length) {
     const bits = [...summary, ...minionDotSummary.map((s) => `add ${s}`)];
     log(`— DoT phase — ${bits.join(" · ")}`);
+  } else if (partyHasHot) {
+    log(`— DoT phase — hymn HoT —`);
   } else {
     log(`— DoT phase — boss marks only —`);
   }
@@ -526,7 +533,81 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     tickFrozenChain(team, log);
   }
 
+  // Hymn HoTs tick after this function returns (combat pushes a separate FX beat
+  // so +HP floats are not netted against Fire/Poison on the same reveal).
+
   log(`— End DoT phase —`);
+}
+
+/**
+ * Apply a Runesinger hymn stream. Independent instances; cap MAX_HOT_STREAMS_PER_SOLDIER
+ * (drop oldest when over cap).
+ */
+export function applyHot(
+  soldier: Soldier,
+  healPerTick: number,
+  duration: number,
+  source: "Runesinger" = "Runesinger",
+): void {
+  if (!soldier.alive || healPerTick <= 0 || duration <= 0) return;
+  soldier.statuses.push({
+    kind: "Hot",
+    healPerTick,
+    duration,
+    source,
+  });
+  const hots = soldier.statuses.filter((st) => st.kind === "Hot");
+  if (hots.length > MAX_HOT_STREAMS_PER_SOLDIER) {
+    const drop = hots.length - MAX_HOT_STREAMS_PER_SOLDIER;
+    let removed = 0;
+    soldier.statuses = soldier.statuses.filter((st) => {
+      if (st.kind !== "Hot") return true;
+      if (removed < drop) {
+        removed += 1;
+        return false;
+      }
+      return true;
+    });
+  }
+}
+
+/**
+ * Tick all party HoTs; uses healSoldier (hard Frozen blocks).
+ * @returns soldier ids that received any HP (for presentation focus).
+ */
+export function tickHots(
+  team: TeamState,
+  log: (text: string) => void,
+): string[] {
+  const party = livingParty(team);
+  const lines: string[] = [];
+  const healedIds: string[] = [];
+  for (const soldier of party) {
+    const hots = soldier.statuses.filter((st) => st.kind === "Hot");
+    if (!hots.length) continue;
+    let gained = 0;
+    let streams = 0;
+    for (const hot of hots) {
+      if (hot.kind !== "Hot") continue;
+      gained += healSoldier(soldier, hot.healPerTick);
+      hot.duration -= 1;
+      streams += 1;
+    }
+    soldier.statuses = soldier.statuses.filter(
+      (st) => !(st.kind === "Hot" && st.duration <= 0),
+    );
+    if (streams > 0) {
+      lines.push(
+        `${soldier.name}: Hymn +${gained}${streams > 1 ? ` (${streams} streams)` : ""}`,
+      );
+      // Still focus seats that tried to tick (Frozen = 0 gain) so FX reads
+      if (gained > 0 || streams > 0) healedIds.push(soldier.id);
+    }
+  }
+  if (lines.length) {
+    log(`  [Hymn] ${lines.join(" · ")}`);
+  }
+  return healedIds;
 }
 
 /** Tick Fire/etc. on living adds; remove dead after burn kills. */

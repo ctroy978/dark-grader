@@ -64,7 +64,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `dazed-${index}`,
       icon: "😵",
       label: `Dazed ${st.duration}`,
-      title: `Dazed — just revived; loses their next attack`,
+      title: `Dazed — heart just shocked back; skips their next claim (one wasted token), then fights again`,
       colorClass: "text-violet-200 border-violet-400/40 bg-violet-950/40",
     };
   }
@@ -108,6 +108,15 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       label: `Parry ${pct}%`,
       title: `Parry — take ${pct}% less damage from the boss this round (expires after boss phase)`,
       colorClass: "text-amber-200 border-amber-400/40 bg-amber-950/40",
+    };
+  }
+  if (st.kind === "Hot") {
+    return {
+      key: `hot-${index}`,
+      icon: "✨",
+      label: `Hymn +${st.healPerTick}×${st.duration}`,
+      title: `Hymn HoT — +${st.healPerTick} HP each DoT phase · ${st.duration} tick(s) left (Runesinger; max 2 streams)`,
+      colorClass: "text-amber-100 border-amber-200/50 bg-amber-950/40",
     };
   }
   // Weaken — legacy / internal duration tag

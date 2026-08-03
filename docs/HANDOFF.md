@@ -181,7 +181,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 
 **Doomcaller removed.**
 
-**Roster (21):** Vanguard×2, Spearman×2, ShieldMaiden×2, FireMage×3, Healer×3, Archer×3, Necromancer×2, Thundercaller×2, Runesinger×2.  
+**Roster (21):** Vanguard×2, Spearman×2, ShieldMaiden×2, FireMage×3, Healer×2, Archer×3, Necromancer×2, Thundercaller×3, Runesinger×2.  
 **Names / art gender:** Male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; Female = ShieldMaiden, Healer, Archer, Runesinger — `server/src/seed/names.ts`.
 
 ---

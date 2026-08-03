@@ -14,11 +14,11 @@ export const NAME_POOLS: Record<Archetype, string[]> = {
   Spearman: ["Pike", "Halberd"],
   FireMage: ["Emberwick", "Cindrel", "Ashford"],
   Necromancer: ["Ashbone", "Vesperil"],
-  Thundercaller: ["Volta", "Stormfen"],
+  Thundercaller: ["Volta", "Stormfen", "Skyrend"],
 
   // Female
   ShieldMaiden: ["Sigrid", "Thyra"],
-  Healer: ["Lumen", "Mercy Vale", "Solace"],
+  Healer: ["Lumen", "Mercy Vale"],
   Archer: ["Quill", "Hawke", "Sparrow"],
   Runesinger: ["Glyph", "Lyra Rune"],
 };

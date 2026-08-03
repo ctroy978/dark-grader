@@ -39,7 +39,17 @@ function partyWith(
     used.add(s.id);
     ids.push(s.id);
   }
-  selectParty(team, ids);
+  // Formation rule: Healer/Runesinger only in back seat for selectParty
+  const supportIds = ids.filter((id) => {
+    const a = team.roster.find((r) => r.id === id)!.archetype;
+    return a === "Healer" || a === "Runesinger";
+  });
+  const restIds = ids.filter((id) => !supportIds.includes(id));
+  const orderedIds =
+    supportIds.length > 0
+      ? [...restIds, supportIds[supportIds.length - 1]!].slice(0, 6)
+      : ids;
+  selectParty(team, orderedIds);
   // Force positions to match request order for first N
   for (let i = 0; i < archetypes.length; i++) {
     const s = team.roster.find((r) => r.id === ids[i])!;

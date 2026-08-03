@@ -75,7 +75,11 @@ export function poseForUnit(
         );
         const softHeal = fx.some(
           (f) =>
-            f === "heal-glow" || f === "heal-blast" || f === "rune-blast",
+            f === "heal-glow" ||
+            f === "heal-blast" ||
+            f === "rune-blast" ||
+            f === "hymn-tick" ||
+            f === "hymn-glow",
         );
         // Pure heal / hymn (Healer F boss backlash, party mend) — no flinch
         if (softHeal && !offensive) return "standing";
@@ -204,6 +208,9 @@ export function fxClassesForUnit(
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";
+      if (f === "hymn-glow" || f === "hymn-tick") {
+        return !isBoss ? "fx-hymn-glow" : "";
+      }
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
       if (f === "magnet-lock") return ""; // magnet strip handles this
       // Cast charge stays on the party caster; blast/impact may paint boss or allies

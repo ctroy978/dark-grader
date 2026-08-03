@@ -18,7 +18,7 @@ const ROUNDS = [
   },
   {
     title: "Drop Tokens",
-    body: "Press Drop (or Space). Specialists resolve their grade effects — Runesingers first (they can rewrite grades), then the rest front to back. Then DoTs tick, then the boss and minions strike.",
+    body: "Press Drop (or Space). Specialists resolve their grade effects — Runesinger first (rewrites grades + hymn HoT), then the rest front to back. Then DoTs tick (poison, then gold hymn heals), then the boss and minions strike.",
   },
   {
     title: "Win, camp, wait",
@@ -162,7 +162,9 @@ export default function HowToPlayPage() {
             <li>
               <strong className="text-parchment">Healer</strong> — heals and
               clears <strong className="text-parchment">Fire and Poison</strong>{" "}
-              only (A = whole team). Not Ice, Slime, Frozen, or Marks.
+              only (A = whole team). Not Ice, Slime, Frozen, or Marks.{" "}
+              <strong className="text-parchment">Back seat only</strong> — same
+              slot as Runesinger (pick one support, not both).
             </li>
             <li>
               <strong className="text-parchment">Fire Mage</strong> — only class
@@ -175,8 +177,10 @@ export default function HowToPlayPage() {
               striker with Parry on A–D; vulnerable in seat 1 without a claim.
             </li>
             <li>
-              <strong className="text-parchment">Thundercaller A</strong> — can revive a fallen
-              ally once per fight at low HP (they are dazed for one action).
+              <strong className="text-parchment">Thundercaller A</strong> — hits
+              for 14 (plus stun/charge), or if someone is down: shocks their
+              heart back at low HP. They skip their next claim (dazed). Once per
+              soldier per fight.
             </li>
             <li>
               <strong className="text-parchment">Shield Maiden</strong> — claim for one-round
@@ -190,7 +194,12 @@ export default function HowToPlayPage() {
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
             <li>Deaths are permanent until the teacher resets the team (Thunder A can buy one emergency return).</li>
             <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
-            <li>Poison and Fire clouds get worse every round if left up — cleanse them (Healer).</li>
+            <li>Poison and Fire clouds get worse every round if left up — cleanse them (Healer in the back seat).</li>
+            <li>
+              Healer and Runesinger share the back seat — only one of them on the
+              line. Healer = burst heal + Fire/Poison cleanse; Runesinger =
+              grade rewrite + slow gold hymn HoT (no cleanse).
+            </li>
             <li>Ice, Slime, and Frozen → Fire Mage. Match the color on the portrait.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>
             <li>Wrong invite code? You’re on the wrong team (or period).</li>

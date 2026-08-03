@@ -19,7 +19,7 @@
 | Maiden | No free open; claim = one-round cover self + endangered |
 | Cleanse | Healer Fire/Poison; Fire Mage Ice/Slime/Frozen |
 | Thunder A | Rez once/soldier/fight @ ~10% HP + Dazed |
-| Doomcaller | Removed; roster **21** |
+| Doomcaller | Removed; roster **21** (damage×3, support/frontline/healer×2) |
 
 Boss **base** slam/cascade/HP tables were **not** retuned in the redesign pass.
 

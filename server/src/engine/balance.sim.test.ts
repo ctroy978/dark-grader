@@ -27,17 +27,17 @@ function runFight(seed: number, mode: "afk" | "smart") {
           "vanguard_1",
           "archer_1",
           "spearman_1",
-          "healer_2",
           "archer_2",
           "firemage_1",
+          "healer_2",
         ]
       : [
           "vanguard_1",
           "vanguard_2",
           "shieldmaiden_1",
-          "healer_1",
           "firemage_1",
           "archer_1",
+          "healer_1",
         ];
   selectParty(team, roster);
   // AFK pressure test uses hard boss; smart clear test uses training boss

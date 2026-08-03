@@ -67,6 +67,19 @@ export interface ParryStatus {
 }
 
 /**
+ * Runesinger hymn heal-over-time (independent streams; max 2 per soldier).
+ * Ticks in DoT phase after damage DoTs; uses healSoldier (blocked by hard Frozen).
+ */
+export interface HotStatus {
+  kind: "Hot";
+  /** HP restored each DoT-phase tick */
+  healPerTick: number;
+  /** Remaining ticks (including upcoming) */
+  duration: number;
+  source?: "Runesinger";
+}
+
+/**
  * Freeze lock.
  *
  * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed
@@ -106,6 +119,7 @@ export type StatusTag =
   | WeakenStatus
   | ChargeStatus
   | ParryStatus
+  | HotStatus
   | FrozenStatus;
 
 export interface Soldier {

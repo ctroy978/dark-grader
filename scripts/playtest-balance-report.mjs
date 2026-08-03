@@ -92,7 +92,25 @@ function partyIds(team, arches) {
     ids.push(s.id);
     used.add(s.id);
   }
-  return ids;
+  const soldiers = ids
+    .map((id) => team.roster.find((x) => x.id === id))
+    .filter(Boolean);
+  const supports = soldiers.filter(
+    (s) => s.archetype === "Healer" || s.archetype === "Runesinger",
+  );
+  const rest = soldiers.filter(
+    (s) => s.archetype !== "Healer" && s.archetype !== "Runesinger",
+  );
+  if (supports.length === 0) return ids;
+  const ordered = [...rest, supports[supports.length - 1]];
+  while (ordered.length < 6) {
+    const s = team.roster.find(
+      (x) => x.alive && !ordered.some((o) => o.id === x.id),
+    );
+    if (!s) break;
+    ordered.splice(ordered.length - 1, 0, s);
+  }
+  return ordered.slice(0, 6).map((s) => s.id);
 }
 
 function smartPos(team) {

@@ -26,7 +26,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   FireMage:
     "Hits several enemies with fire and can burn the boss. The only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime on that half of the line. Weak grades can hurt allies.",
   Healer:
-    "Heals allies and cleanses Fire and Poison DoTs (A all, B front, C back). Ice, Slime, and Frozen are Fire Mage only. F heals the boss instead.",
+    "Heals allies and cleanses Fire and Poison DoTs (A all, B front, C back). Ice, Slime, and Frozen are Fire Mage only. F heals the boss instead. Must stand in the back seat only (not with a Runesinger).",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:
@@ -34,9 +34,9 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Necromancer:
     "Drains the boss and heals allies. Weak grades can backfire.",
   Thundercaller:
-    "Hits hard with a chance to stun the boss; A can revive a fallen ally once per fight at low HP (they are dazed). Strong grades grant Charge.",
+    "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
   Runesinger:
-    "Acts first — rewrites claimed tokens and heals holders. F downgrades every token.",
+    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Heals with a slow gold hymn HoT (no cleanse, no instant holder snacks). Back seat only — not with a Healer.",
 };
 
 export interface ArchetypeGradeScout {

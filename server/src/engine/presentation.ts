@@ -211,7 +211,7 @@ export function cueAction(
         grade === "F"
           ? "Overload…"
           : grade === "A"
-            ? "Storm…"
+            ? "Bolt! (or clear!)"
             : grade === "B"
               ? "Spark…"
               : "Arc…",
@@ -237,10 +237,12 @@ export function cueAction(
         grade === "F"
           ? "Slip…"
           : grade === "A"
-            ? "Rewrite…"
+            ? "Hymn +2…"
             : grade === "B"
-              ? "Hymn…"
-              : "Sing…",
+              ? "Lift…"
+              : grade === "C"
+                ? "Worst…"
+                : "Soft hymn…",
       durationMs: 850,
     },
     // Vanguard: seismic bastion plates + ground-slam shockwave (not a soft beam)

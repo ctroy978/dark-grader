@@ -2,11 +2,15 @@ import {
   GRADE_RANK,
   MAIDEN_DAMAGE,
   MAIDEN_SHIELD,
+  RUNESINGER_HOT_PER_TICK,
+  RUNESINGER_HOT_TICKS,
   SPEARMAN_DAMAGE,
   SPEARMAN_PARRY_REDUCTION,
   downgradeGrade,
   randomInt,
+  runesingerBGrade,
   thundercallerRezHp,
+  upgradeGrade,
   type ClaimResult,
   type DotType,
   type Grade,
@@ -26,6 +30,7 @@ import {
 } from "./damage.js";
 import {
   applyBossDot,
+  applyHot,
   applyMinionDot,
   cleanseDots,
   thawFrozen,
@@ -105,7 +110,7 @@ export function resolveSpecialistAction(
   const dazed = soldier.statuses.find((s) => s.kind === "Dazed");
   if (dazed && dazed.kind === "Dazed" && dazed.duration > 0) {
     soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Dazed");
-    log(`${label}: DAZED — just revived, loses their attack!`);
+    log(`${label}: DAZED — heart still reeling from the shock, loses their claim!`);
     return { acted: false, skipReason: "dazed" };
   }
 
@@ -658,35 +663,24 @@ function tryThundercallerRez(
   team.revivedSoldierIdsThisFight.push(target.id);
 
   log(
-    `${label}: REVIVE — ${target.name} returns at ${hp} HP (dazed next action; once per fight)`,
+    `${label}: shock restarts ${target.name}'s heart — ${hp} HP; skips next claim (dazed; once per soldier per fight)`,
   );
   return [target.id];
 }
 
 /**
  * Runesinger — always resolves first (see combat action order).
- * Rewrites this drop’s claim grades for the whole group, then heals holders.
+ * Rewrites this drop’s claim grades, then applies slow gold HoT (no cleanse).
  * Mutates `team.lastClaims` / shared ClaimResult objects in place.
  */
 function runesinger(
-  _soldier: Soldier,
+  soldier: Soldier,
   g: Grade,
   team: TeamState,
   log: LogFn,
   label: string,
 ): void {
   const claims = team.lastClaims ?? [];
-  const holders = claims
-    .map((c) => team.roster.find((s) => s.id === c.soldierId))
-    .filter((s): s is Soldier => !!s && s.alive);
-
-  const healHolders = (amount: number): number => {
-    let total = 0;
-    for (const s of holders) {
-      total += healSoldier(s, amount);
-    }
-    return total;
-  };
 
   const describeClaims = (): string =>
     claims
@@ -696,72 +690,96 @@ function runesinger(
       })
       .join(", ");
 
-  if (g === "A") {
-    // All tokens worse than A → A
-    for (const c of claims) {
-      if (GRADE_RANK[c.effectiveGrade] > GRADE_RANK.A) {
-        c.effectiveGrade = "A";
-      }
+  const applyHymnHot = (targets: Soldier[], perTick: number): number => {
+    let n = 0;
+    for (const t of targets) {
+      if (!t.alive) continue;
+      applyHot(t, perTick, RUNESINGER_HOT_TICKS, "Runesinger");
+      n += 1;
     }
-    const healed = healHolders(5);
+    return n;
+  };
+
+  if (g === "A") {
+    for (const c of claims) {
+      c.effectiveGrade = upgradeGrade(c.effectiveGrade, 2);
+    }
+    const targets = livingParty(team);
+    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.A);
     log(
-      `${label}: all tokens become A — [${describeClaims()}]; token holders heal +5 (total ${healed})`,
+      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${n})`,
     );
     return;
   }
 
   if (g === "B") {
-    // All tokens worse than B → B
     for (const c of claims) {
-      if (GRADE_RANK[c.effectiveGrade] > GRADE_RANK.B) {
-        c.effectiveGrade = "B";
-      }
+      c.effectiveGrade = runesingerBGrade(c.effectiveGrade);
     }
-    const healed = healHolders(4);
+    const targets = livingParty(team).filter(
+      (x) => x.position != null && x.position <= 3,
+    );
+    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.B);
     log(
-      `${label}: tokens below B promoted to B — [${describeClaims()}]; holders heal +4 (total ${healed})`,
+      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${n})`,
     );
     return;
   }
 
   if (g === "C") {
-    // Promote only the single lowest token that is worse than C
-    const below = claims.filter(
-      (c) => GRADE_RANK[c.effectiveGrade] > GRADE_RANK.C,
-    );
-    if (below.length) {
-      let worst = below[0]!;
-      for (const c of below) {
-        if (GRADE_RANK[c.effectiveGrade] > GRADE_RANK[worst.effectiveGrade]) {
+    // Worst claim → C; ties → front-most (lowest position)
+    if (claims.length) {
+      let worst = claims[0]!;
+      for (const c of claims) {
+        const wr = GRADE_RANK[worst.effectiveGrade];
+        const cr = GRADE_RANK[c.effectiveGrade];
+        if (cr > wr) {
           worst = c;
+          continue;
         }
+        if (cr < wr) continue;
+        const wPos =
+          team.roster.find((s) => s.id === worst.soldierId)?.position ?? 99;
+        const cPos =
+          team.roster.find((s) => s.id === c.soldierId)?.position ?? 99;
+        if (cPos < wPos) worst = c;
       }
       const before = worst.effectiveGrade;
-      worst.effectiveGrade = "C";
-      const who =
-        team.roster.find((s) => s.id === worst.soldierId)?.name ?? "?";
-      const healed = healHolders(3);
-      log(
-        `${label}: promotes lowest token (${who} ${before}→C); holders heal +3 (total ${healed}) — [${describeClaims()}]`,
-      );
-    } else {
-      const healed = healHolders(3);
-      log(
-        `${label}: no token below C to promote; holders heal +3 (total ${healed})`,
-      );
+      if (GRADE_RANK[before] > GRADE_RANK.C) {
+        worst.effectiveGrade = "C";
+        const who =
+          team.roster.find((s) => s.id === worst.soldierId)?.name ?? "?";
+        const targets = livingParty(team).filter(
+          (x) => x.position != null && x.position >= 4,
+        );
+        const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
+        log(
+          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${n})`,
+        );
+        return;
+      }
     }
+    const targets = livingParty(team).filter(
+      (x) => x.position != null && x.position >= 4,
+    );
+    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
+    log(
+      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${n})`,
+    );
     return;
   }
 
   if (g === "D") {
-    const healed = healHolders(3);
-    log(`${label}: soft hymn — token holders heal +3 (total ${healed})`);
+    applyHot(soldier, RUNESINGER_HOT_PER_TICK.D, RUNESINGER_HOT_TICKS, "Runesinger");
+    log(
+      `${label}: soft hymn — self HoT +${RUNESINGER_HOT_PER_TICK.D}×${RUNESINGER_HOT_TICKS} (no rewrite)`,
+    );
     return;
   }
 
-  // F — every token shifts down one grade (F stays F)
+  // F — every token shifts down one grade (F stays F); no HoT
   for (const c of claims) {
     c.effectiveGrade = downgradeGrade(c.effectiveGrade);
   }
-  log(`${label}: corrupted hymn — all tokens shift down — [${describeClaims()}]`);
+  log(`${label}: corrupted hymn — all claims shift down — [${describeClaims()}]`);
 }

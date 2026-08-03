@@ -19,10 +19,10 @@ function makeParty(seed: number): TeamState {
   selectParty(team, [
     "vanguard_1",
     "thundercaller_1",
-    "healer_1",
     "firemage_1",
     "archer_1",
     "necromancer_1",
+    "healer_1",
   ]);
   startFight(team, "bone_colossus", POOL);
   team.playback = [];

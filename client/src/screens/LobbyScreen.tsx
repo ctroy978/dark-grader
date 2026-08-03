@@ -12,6 +12,8 @@ import {
   ARCHETYPE_ICONS,
   ARCHETYPE_MAX_HP,
   getArchetypeScout,
+  isBacklineSupportArchetype,
+  partyFormationError,
   type Archetype,
   type BossScout,
   type Grade,
@@ -472,11 +474,42 @@ export default function LobbyScreen({
     setActiveSlot(index);
   }
 
+  /** Back seat index for the current required line size (Healer/Runesinger only). */
+  const backSlotIndex = Math.max(0, requiredSize - 1);
+
+  function formationErrorForSlots(next: (string | null)[]): string | null {
+    // Any Healer/Runesinger not in the back seat is illegal (even mid-build).
+    for (let i = 0; i < next.length; i++) {
+      const sid = next[i];
+      if (!sid) continue;
+      const s = soldierById.get(sid);
+      if (
+        s &&
+        isBacklineSupportArchetype(s.archetype) &&
+        i !== backSlotIndex
+      ) {
+        return `Healer and Runesinger can only stand in the back seat (position ${requiredSize}).`;
+      }
+    }
+    // Full line: shared validator (also covers edge cases)
+    const ordered = next
+      .slice(0, requiredSize)
+      .map((sid) => (sid ? soldierById.get(sid) : null));
+    if (ordered.every(Boolean)) {
+      return partyFormationError(
+        ordered as { archetype: Archetype }[],
+      );
+    }
+    return null;
+  }
+
   /** Place soldier into active slot, or first empty slot. Click again to remove. */
   function placeSoldier(id: string) {
     const soldier = soldierById.get(id);
     if (!soldier?.alive) return;
     if (requiredSize <= 0) return;
+
+    const isSupport = isBacklineSupportArchetype(soldier.archetype);
 
     setSlots((prev) => {
       const next = [...prev];
@@ -489,19 +522,80 @@ export default function LobbyScreen({
           return next;
         }
         // Move / swap into focused slot
-        const displaced = next[activeSlot];
-        next[activeSlot] = id;
-        next[existing] = displaced ?? null;
+        let target = activeSlot;
+        // Supports can only move into the back seat
+        if (isSupport) target = backSlotIndex;
+        // Displacing: if something is going into a non-back seat, it can't be support
+        const displaced = next[target];
+        if (displaced && displaced !== id) {
+          const d = soldierById.get(displaced);
+          if (
+            d &&
+            isBacklineSupportArchetype(d.archetype) &&
+            existing !== backSlotIndex
+          ) {
+            // Support would leave back seat — not allowed; remove them instead
+            next[existing] = null;
+          } else {
+            next[existing] = displaced;
+          }
+        } else {
+          next[existing] = null;
+        }
+        next[target] = id;
+        const err = formationErrorForSlots(next);
+        if (err) {
+          setError(err);
+          return prev;
+        }
+        setError(null);
         return next;
       }
 
       const filled = next.filter(Boolean).length;
-      const target =
+      // Supports always place into the back seat
+      let target =
         activeSlot !== null ? activeSlot : next.findIndex((x) => x === null);
+      if (isSupport) target = backSlotIndex;
       if (target < 0) return prev;
+      // Non-support cannot steal back seat if a support is already there
+      // (unless replacing that support)
       // Don't grow past required size unless replacing an occupied slot
       if (!next[target] && filled >= requiredSize) return prev;
+
+      // If placing non-support into a seat held by support and target isn't back, block
+      const occupant = next[target];
+      if (occupant) {
+        const occ = soldierById.get(occupant);
+        if (
+          occ &&
+          isBacklineSupportArchetype(occ.archetype) &&
+          target !== backSlotIndex
+        ) {
+          setError(
+            `Healer and Runesinger can only stand in the back seat (position ${requiredSize}).`,
+          );
+          return prev;
+        }
+      }
+
       next[target] = id;
+      // Drop any other support if we just placed a support in back
+      if (isSupport) {
+        for (let i = 0; i < next.length; i++) {
+          if (i === target) continue;
+          const sid = next[i];
+          if (!sid) continue;
+          const s = soldierById.get(sid);
+          if (s && isBacklineSupportArchetype(s.archetype)) next[i] = null;
+        }
+      }
+      const err = formationErrorForSlots(next);
+      if (err) {
+        setError(err);
+        return prev;
+      }
+      setError(null);
       return next;
     });
     setSavedOk(false);
@@ -533,6 +627,11 @@ export default function LobbyScreen({
       );
       return;
     }
+    const formErr = formationErrorForSlots(slots);
+    if (formErr) {
+      setError(formErr);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -555,6 +654,11 @@ export default function LobbyScreen({
           ? `Field all ${requiredSize} living soldiers before starting.`
           : "Fill all 6 positions before starting.",
       );
+      return;
+    }
+    const formErr = formationErrorForSlots(slots);
+    if (formErr) {
+      setError(formErr);
       return;
     }
     setBusy(true);
@@ -767,8 +871,13 @@ export default function LobbyScreen({
               below — or click soldiers in order.{" "}
               <strong className="text-rune">Position 1 (front)</strong> stands nearest
               the boss and takes more hits.{" "}
-              <strong className="text-parchment">Position 6 (back)</strong> is safer.
-              You must set this line before every room, including the first.
+              <strong className="text-parchment">
+                Position {requiredSize || 6} (back)
+              </strong>{" "}
+              is the only seat for{" "}
+              <strong className="text-parchment">Healer or Runesinger</strong>{" "}
+              (one support max — pick either, not both). You must set this line before
+              every room, including the first.
               {understrength && (
                 <>
                   {" "}
@@ -787,7 +896,7 @@ export default function LobbyScreen({
         </div>
 
         <div className="flex items-end justify-between text-[10px] uppercase tracking-wider text-parchment-dim px-1">
-          <span>Back · safer</span>
+          <span>Back · Healer / Runesinger seat</span>
           <span className="text-rune">Front · nearest boss →</span>
         </div>
 
@@ -823,7 +932,11 @@ export default function LobbyScreen({
                   }`}
                 >
                   #{pos}
-                  {pos === 1 ? " FRONT" : pos === 6 ? " BACK" : ""}
+                  {pos === 1
+                    ? " FRONT"
+                    : pos === requiredSize
+                      ? " BACK · support"
+                      : ""}
                 </span>
                 {s ? (
                   <>

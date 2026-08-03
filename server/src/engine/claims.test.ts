@@ -14,9 +14,9 @@ function prepTeam(magnet: Position) {
   selectParty(team, [
     "vanguard_1",
     "shieldmaiden_1",
-    "healer_1",
     "firemage_1",
     "archer_1",
+    "thundercaller_1",
     "runesinger_1",
   ]);
   startFight(team, "ash_wraith", "AAAABBBBCCCCDDFF".split("") as Grade[]);

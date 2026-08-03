@@ -12,6 +12,7 @@ import {
   MAX_LOG_ENTRIES,
   PARTY_HURT_LAYER_DELAY_MS,
   PARTY_SIZE,
+  partyFormationError,
   type Grade,
   type Position,
   type Soldier,
@@ -33,7 +34,7 @@ import {
   livingParty,
   purgeDeadMinions,
 } from "./damage.js";
-import { tickDots } from "./dots.js";
+import { tickDots, tickHots } from "./dots.js";
 import {
   cueAction,
   cueClaim,
@@ -129,10 +130,17 @@ export function selectParty(team: TeamState, soldierIds: string[]): void {
   const unique = new Set(soldierIds);
   if (unique.size !== need) throw new Error("Duplicate soldiers in party");
 
+  const ordered: { id: string; archetype: TeamState["roster"][0]["archetype"] }[] =
+    [];
   for (const id of soldierIds) {
     const s = team.roster.find((x) => x.id === id);
     if (!s || !s.alive) throw new Error(`Invalid soldier: ${id}`);
+    ordered.push({ id: s.id, archetype: s.archetype });
   }
+
+  // Healer / Runesinger: back seat only (also caps at one support)
+  const formationErr = partyFormationError(ordered);
+  if (formationErr) throw new Error(formationErr);
 
   // Understrength: every living soldier must be in the line (no bench while short)
   if (need < PARTY_SIZE) {
@@ -481,9 +489,8 @@ export function commitRound(team: TeamState): TeamState {
     endPartyActionPhase();
   }
 
-  // One compact DoT beat (visuals on chips, not a speech parade).
-  // FX tint follows actual DoT types — never force poison-green on Fire ticks.
-  // Also covers SpreadingFrost spread / shatter log lines.
+  // Damage DoT beat first (Fire/Poison/etc.), then a separate hymn beat so
+  // +HP floats are not cancelled by damage on the same board reveal.
   let sawDot = false;
   tickDots(team, (text) => {
     pushLog(team, text, ["dot"]);
@@ -508,17 +515,32 @@ export function commitRound(team: TeamState): TeamState {
       if (types.has("Ice") || hasFrozen || isFrostSpread) fx.push("ice-tint");
       if (types.has("Slime")) fx.push("slime-tint");
       if (isShatter) fx.push("frost-shatter", "hurt-flash");
-      // Fallback if type set empty somehow
       if (fx.length === 1) fx.push("hurt-flash");
-      pushCue(team, {
-        kind: "dot",
-        focusIds: dotted.map((s) => s.id),
-        fx,
-        sfxId: isShatter ? "boss_attack" : "dot_tick",
-        durationMs: isShatter ? 1100 : 700,
-      });
+      if (dotted.length || isShatter || isFrostSpread) {
+        pushCue(team, {
+          kind: "dot",
+          focusIds: dotted.map((s) => s.id),
+          fx,
+          sfxId: isShatter ? "boss_attack" : "dot_tick",
+          durationMs: isShatter ? 1100 : 700,
+        });
+      }
     }
   });
+
+  // Runesinger hymn HoT — own beat (gold rain on recipients + heal SFX)
+  const hymnTargets = tickHots(team, (text) => pushLog(team, text, ["dot", "hymn"]));
+  if (hymnTargets.length) {
+    pushCue(team, {
+      kind: "dot",
+      focusIds: hymnTargets,
+      fx: ["hymn-tick", "hymn-glow", "heal-glow"],
+      // Prefer hymn_tick.mp3; resolveSfx falls back if missing
+      sfxId: resolveSfxId(["hymn_tick", "heal", "act_healer"]) ?? "heal",
+      durationMs: 950,
+    });
+  }
+
   processDeaths(team);
   // Keep slain minions at 0 HP on the board through party playback so the
   // client can show who killed them. Corpses are removed when the boss acts.

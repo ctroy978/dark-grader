@@ -54,9 +54,9 @@ describe("tokens scale with living count", () => {
       "vanguard_1",
       "vanguard_2",
       "firemage_1",
-      "healer_1",
       "archer_1",
       "archer_2",
+      "healer_1",
     ]);
     startFight(team, "ash_wraith", pool);
     // Kill half the party

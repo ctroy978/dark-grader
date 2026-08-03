@@ -348,8 +348,8 @@ function pickTankHeal(roster) {
     "ShieldMaiden",
     "ShieldMaiden",
     "Healer",
-    "Healer",
     "Runesinger",
+    "Necromancer",
   ];
   return pickByOrder(roster, order);
 }

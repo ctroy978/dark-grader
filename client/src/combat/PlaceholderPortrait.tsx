@@ -145,10 +145,18 @@ export function PlaceholderPortrait({
   kind,
   pose,
   className = "",
+  /**
+   * How the PNG fills the frame.
+   * - cover (default for party combat): crop to fill short cards
+   * - contain: whole figure visible (codex / tall full-body art like Spearman)
+   * Bosses always use contain.
+   */
+  fit,
 }: {
   kind: PortraitKind;
   pose: CombatPose;
   className?: string;
+  fit?: "cover" | "contain";
 }) {
   const t = poseTransform(pose);
   const isBoss = kind.role === "boss";
@@ -157,12 +165,12 @@ export function PlaceholderPortrait({
     ? "#6a2030"
     : isMinion
       ? "#4a4a40"
-      : ARCHETYPE_TINT[kind.archetype];
+      : ARCHETYPE_TINT[kind.archetype] ?? "#4a5060";
   const mark = isBoss
     ? "B"
     : isMinion
       ? "m"
-      : ARCHETYPE_MARK[kind.archetype];
+      : ARCHETYPE_MARK[kind.archetype] ?? "?";
 
   const artKey = artKeyFor(kind);
   const imgSrc = artUrlFor(artKey, pose);
@@ -172,11 +180,14 @@ export function PlaceholderPortrait({
     setUseImg(true);
   }, [imgSrc]);
 
-  // Boss art is often a tall bust; party uses short cards with object-top.
-  // object-cover + object-top on a short wide boss frame only showed the scalp.
-  const imgFit = isBoss
-    ? "w-full h-full object-contain object-center block"
-    : "w-full h-full object-cover object-top block";
+  // Boss art is often a tall bust; party combat uses short cards with object-top.
+  // Codex / full-body art (e.g. Spearman) should use contain so the figure isn't cropped to black.
+  const resolvedFit =
+    fit ?? (isBoss ? "contain" : "cover");
+  const imgFit =
+    resolvedFit === "contain"
+      ? "w-full h-full object-contain object-center block"
+      : "w-full h-full object-cover object-top block";
 
   const cleanseDots =
     kind.role === "party"

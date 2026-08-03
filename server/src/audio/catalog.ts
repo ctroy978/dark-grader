@@ -148,8 +148,22 @@ const CORE_CATALOG: AudioClipDef[] = [
   {
     id: "act_runesinger",
     kind: "sfx",
-    text: "rune hymn magical chime chord, short positive fantasy, classroom safe, no voice",
+    text: "rune hymn magical chime chord, short positive fantasy, classroom safe, no voice (legacy; prefer hymn_cast)",
     durationSeconds: 0.8,
+    volume: 0.5,
+  },
+  {
+    id: "hymn_cast",
+    kind: "sfx",
+    text: "magical hymn being cast: golden orb swell, soft rising choir-chime, sets a blessing, short fantasy, classroom safe, no voice",
+    durationSeconds: 0.85,
+    volume: 0.55,
+  },
+  {
+    id: "hymn_tick",
+    kind: "sfx",
+    text: "hymn heal tick: soft gold rain chime pulse on allies, warm positive, short, classroom safe, no voice",
+    durationSeconds: 0.65,
     volume: 0.5,
   },
   // Gendered party hit reactions (boss/minion damage → hurt bubble)

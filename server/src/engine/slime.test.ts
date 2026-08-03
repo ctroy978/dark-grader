@@ -23,10 +23,10 @@ function makeGrubTeam(seed = 7): TeamState {
   selectParty(team, [
     "vanguard_1",
     "shieldmaiden_1",
-    "healer_1",
     "firemage_1",
     "archer_1",
     "spearman_1",
+    "healer_1",
   ]);
   startFight(team, "moss_grub", POOL);
   team.log = [];

@@ -30,11 +30,11 @@ A soldier only performs a meaningful action if they **claim at least one token**
 | **Vanguard**       | 2     | Solid block + good attack              | Good block + good attack               | Block + attack                         | Poor block, no attack                  | No block, no attack                    |
 | **Shield Maiden**  | 3     | Solid attack                           | Good attack                            | Reroll shield                          | Bad attack                             | No attack + shield short-circuits (lose 1 HP if active) |
 | **Fire Mage**      | 3     | Wildfire + boss Fire; front: burn Frozen + Ice/Slime | Wildfire + boss Fire; back: burn Frozen + Ice/Slime | Wildfire + friendly fire front | Ember + worse friendly fire | Explosion: party damage, no attack |
-| **Healer**         | 3     | Heal all + clear Fire/Ice/Poison       | Heal front + clear Fire/Ice/Poison     | Heal back + clear Fire/Ice/Poison      | Heal self only                         | Backlash: heals boss                   |
+| **Healer**         | 2     | Heal all + clear Fire/Ice/Poison       | Heal front + clear Fire/Ice/Poison     | Heal back + clear Fire/Ice/Poison      | Heal self only                         | Backlash: heals boss                   |
 | **Archer**         | 8     | Powerful volley                        | Good volley                            | Normal volley                          | Weak volley                            | Misfire: low dmg + 1–2 dmg to random ally |
 | **Doomcaller**     | 2     | Strip DoTs+Marks; transfer all DoT stacks → boss | Strip; transfer one of each DoT → boss | Strip front DoTs/Marks (no transfer) | Strip back DoTs/Marks (no transfer) | Copy boss DoT types onto self |
 | **Necromancer**    | 2–3   | Strong drain (boss dmg + heal ally)    | Good drain (dmg + small heal)          | Mild drain                             | Weak drain + self dmg                  | Backlash (boss heals or self dmg)      |
-| **Thundercaller**  | 2–3   | Massive chain lightning + stun chance  | Good chain + minor chain               | Normal lightning strike                | Unstable strike + random party dmg     | Overload: party dmg, no boss dmg       |
+| **Thundercaller**  | 3     | Massive chain lightning + stun chance  | Good chain + minor chain               | Normal lightning strike                | Unstable strike + random party dmg     | Overload: party dmg, no boss dmg       |
 | **Runesinger**     | 2–3   | Powerful rune (big buff or debuff)     | Good rune (solid buff/debuff)          | Basic rune (small team buff)           | Weak rune (self buff only)             | Corrupted rune (boss buff or party penalty) |
 
 **Notes**:

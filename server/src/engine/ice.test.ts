@@ -30,10 +30,10 @@ function makeColossusTeam(seed = 9): TeamState {
   selectParty(team, [
     "vanguard_1",
     "shieldmaiden_1",
-    "healer_1",
     "firemage_1",
     "archer_1",
     "spearman_1",
+    "healer_1",
   ]);
   startFight(team, "bone_colossus", POOL);
   team.log = [];

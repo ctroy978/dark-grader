@@ -139,10 +139,10 @@ Full campaign roster = **21**. Names match art gender (see `server/src/seed/name
 | Spearman | 52 | **2** | Male |
 | ShieldMaiden | 48 | **2** | Female |
 | FireMage | 38 | 3 | Male |
-| Healer | 40 | 3 | Female |
+| Healer | 40 | **2** | Female |
 | Archer | 36 | **3** | Female |
 | Necromancer | 40 | **2** | Male |
-| Thundercaller | 38 | 2 | Male |
+| Thundercaller | 38 | **3** | Male |
 | Runesinger | 40 | **2** | Female |
 
 ---
@@ -209,6 +209,8 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 | **D** | Heal **self** **+8** only (no cleanse) |
 | **F** | Heal **boss** **+8** |
 
+**2** Healers in the roster (back seat only — exclusive with Runesinger).
+
 ---
 
 ### Archer — Arrow Storm AOE (minion bonus)
@@ -265,7 +267,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 | Grade | Effect |
 |-------|--------|
-| **A** | If a dead party soldier has **not** been rezzed this fight: return them at **~10% HP** (min 1) with **Dazed** (skip next action). Else: hit **14**; **30%** stun boss; **front** **Charge +3** |
+| **A** | **Hit 14**; **30%** stun boss; **front Charge +3**. **Or** if someone is down (and not already rezzed this fight): **shock-restart their heart** at **~10% HP** — they are **Dazed** and **skip their next claim**; no lightning that resolve. Once per soldier per fight |
 | **B** | Hit **11**; **30%** stun boss; **back (4–6)** get **Charge +3** |
 | **C** | Hit **9**; **30%** stun boss |
 | **D** | Hit **6** |
@@ -273,21 +275,23 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 Once per soldier per boss fight. Charge stacks; consumed on next `hitEnemies`.
 
+**3** Thundercallers in the roster.
+
 ---
 
-### Runesinger — rewrite tokens + heal holders (always acts first)
+### Runesinger — rewrite tokens + hymn HoT (always acts first)
 
-**Job (as coded):** change this drop’s claim grades for the whole group, then heal everyone who holds a token. **Always resolves before every other specialist** (including Thundercaller).
+**Job (as coded):** change this drop’s claim grades, then apply a **slow gold hymn HoT** (no cleanse, no instant holder snacks). **Always resolves before every other specialist**. **Back seat only** — exclusive with Healer.
 
-| Grade | Effect |
-|-------|--------|
-| **A** | Every claim worse than **A** becomes **A**; all token holders heal **+5** |
-| **B** | Every claim worse than **B** becomes **B**; holders heal **+4** |
-| **C** | The **single lowest** claim worse than **C** becomes **C**; holders heal **+3** |
-| **D** | No grade rewrite; holders heal **+3** |
-| **F** | Every claim shifts **down one** (A→B→C→D→F; F stays F); no heal |
+| Grade | Token rewrite | HoT (3 ticks after damage DoTs) |
+|-------|---------------|--------------------------------|
+| **A** | All claims **+2** (F→C, D→B, … cap A) | All living **+4**/tick (~12 total) |
+| **B** | F/D→**C**, C→**B**, B/A stay | Front **+4**/tick |
+| **C** | Worst claim → **C** (front wins ties) | Back **+3**/tick |
+| **D** | None | Self **+3**/tick |
+| **F** | All claims **−1** (F stays F) | None |
 
-Mutates `effectiveGrade` on shared claim objects so later actors use the new grades. **2** Runesingers in the roster (both resolve before other claimers).
+HoT streams are independent (max **2** per soldier). Mutates `effectiveGrade` so later actors use the new grades.
 
 ---
 
@@ -304,7 +308,7 @@ Useful when weighing “who is just DPS?”
 | Necromancer | 12 + heal 10 | |
 | Vanguard | 11 + block 6 self only | |
 | Spearman | **12** ST | Stub thrust (parry later) |
-| Runesinger | 0 direct | Token rewrite + heal |
+| Runesinger | 0 direct | Token rewrite + hymn HoT |
 | Healer | 0 direct | Heal 10 all + Fire/Poison |
 
 ---

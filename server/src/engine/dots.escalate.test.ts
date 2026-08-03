@@ -8,10 +8,10 @@ function makeAshTeam(seed = 1): TeamState {
   selectParty(team, [
     "vanguard_1",
     "shieldmaiden_1",
-    "healer_1",
     "firemage_1",
     "archer_1",
     "necromancer_1",
+    "healer_1",
   ]);
   startFight(team, "ash_wraith", "AAAABBBBCCCCDDDFFF".split("") as never);
   // Clear any fight noise; we only care about DoT ticks
