@@ -307,7 +307,8 @@ function SpiritRainFx({
   variant,
 }: {
   mode: "charge" | "blast";
-  variant: "heal" | "rune";
+  /** heal = Healer green; rune = Runesinger gold; life = Necro Life Power purple */
+  variant: "heal" | "rune" | "life";
 }) {
   const dropCount = mode === "charge" ? 14 : 18;
   return (
@@ -697,7 +698,11 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     ((cue?.fx?.includes("heal-blast") ?? false) ||
-      (cue?.fx?.includes("heal-glow") ?? false));
+      (cue?.fx?.includes("heal-glow") ?? false)) &&
+    !(cue?.fx?.includes("life-power-blast") ?? false);
+  // Necromancer Life Power — purple rain after base heal/hymn
+  const showLifePower =
+    inFocus && (cue?.fx?.includes("life-power-blast") ?? false);
   // Cast: growing orb on the Runesinger only (not rain)
   const showRuneCharge =
     speaking && (cue?.fx?.includes("rune-charge") ?? false);
@@ -794,6 +799,7 @@ export function CombatActor({
           {showHealCharge && <SpiritRainFx mode="charge" variant="heal" />}
           {showHealBlast && <SpiritRainFx mode="blast" variant="heal" />}
           {showHealImpact && <SpiritRainFx mode="blast" variant="heal" />}
+          {showLifePower && <SpiritRainFx mode="blast" variant="life" />}
           {showRuneCharge && <HymnOrbFx mode="charge" />}
           {showRuneBlast && <HymnOrbFx mode="blast" />}
           {showHymnTick && <SpiritRainFx mode="blast" variant="rune" />}

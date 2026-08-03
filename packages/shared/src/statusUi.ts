@@ -110,6 +110,25 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       colorClass: "text-amber-200 border-amber-400/40 bg-amber-950/40",
     };
   }
+  if (st.kind === "LastStand") {
+    return {
+      key: `last-stand-${index}`,
+      icon: "🛡️",
+      label: "Last Stand",
+      title:
+        "Last Stand — the next hit that would kill this soldier leaves them at 1 HP once (Vanguard/Spearman). Expires after the boss phase if unused.",
+      colorClass: "text-stone-100 border-stone-300/50 bg-stone-900/50",
+    };
+  }
+  if (st.kind === "LifePower") {
+    return {
+      key: `life-power-${index}`,
+      icon: "💜",
+      label: `Life +${st.bonus}`,
+      title: `Life Power — next Healer/Runesinger heal adds +${st.bonus} HP per ally (purple rain after the base heal). No stack; stays until used (Necromancer).`,
+      colorClass: "text-fuchsia-200 border-fuchsia-400/50 bg-fuchsia-950/40",
+    };
+  }
   if (st.kind === "Hot") {
     return {
       key: `hot-${index}`,

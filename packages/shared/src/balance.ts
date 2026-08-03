@@ -159,6 +159,56 @@ export const MAIDEN_SHIELD: Record<Exclude<Grade, "F">, number> = {
   D: 3,
 };
 
+/**
+ * Healer instant heals (no cleanse — Fire/Poison are Shield Maiden).
+ * A = all living; B = two lowest; C = one lowest; D = tiny all-party; F = boss.
+ */
+export const HEALER_HEAL: Record<Exclude<Grade, "F">, number> = {
+  A: 14,
+  B: 14,
+  C: 18,
+  D: 3,
+};
+
+/** Healer F backlash: heal boss this amount. */
+export const HEALER_BOSS_HEAL = 8;
+
+/**
+ * Necromancer Life Power flat bonus per healed ally (A–C).
+ * Applied as a second purple heal rain after the support’s base heal/hymn.
+ */
+export const NECRO_LIFE_POWER: Record<Exclude<Grade, "D" | "F">, number> = {
+  A: 6,
+  B: 4,
+  C: 2,
+};
+
+/** Necromancer single-target drain damage (ally heal removed — Life Power only). */
+export const NECRO_DRAIN: Record<Exclude<Grade, "F">, number> = {
+  A: 12,
+  B: 9,
+  C: 6,
+  D: 4,
+};
+
+/** Vanguard personal block by grade (C–D identity; A–B still get a little self pad). */
+export const VANGUARD_PERSONAL_BLOCK: Record<Grade, number> = {
+  A: 4,
+  B: 3,
+  C: 3,
+  D: 1,
+  F: 0,
+};
+
+/** Vanguard hit damage by grade. */
+export const VANGUARD_DAMAGE: Record<Grade, number> = {
+  A: 11,
+  B: 9,
+  C: 6,
+  D: 4,
+  F: 2,
+};
+
 /** Thundercaller A rez: HP floor (at least 1). */
 export function thundercallerRezHp(maxHp: number): number {
   return Math.max(1, Math.floor(maxHp * 0.1));
@@ -194,7 +244,8 @@ export const MULTI_MINION_FOCUS_MULT = 1.5;
 export const ARCHETYPE_CLEANSE_DOTS: Partial<
   Record<Archetype, { type: "Fire" | "Poison" | "Ice" | "Slime"; color: string }[]>
 > = {
-  Healer: [
+  /** Fire/Poison cleanse moved from Healer (A all / B front / C back). */
+  ShieldMaiden: [
     { type: "Fire", color: "#fb923c" },
     { type: "Poison", color: "#a3e635" },
   ],

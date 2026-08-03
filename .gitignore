@@ -15,3 +15,4 @@ build/
 coverage/
 .vite/
 *.tsbuildinfo
+scripts/playtest-report.json

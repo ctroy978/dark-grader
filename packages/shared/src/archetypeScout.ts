@@ -20,23 +20,23 @@ export const ARCHETYPE_DISPLAY_NAMES: Record<Archetype, string> = {
 /** One-line role summary for lobby intel — what they do, not who else to bring. */
 const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
-    "Personal block and hits the boss. Block protects only himself (not the whole party).",
+    "Front leader. A/B grant Last Stand (next lethal hit leaves allies at 1 HP once). Also personal block on weaker grades and steady hits.",
   ShieldMaiden:
-    "Strikes hard and raises a one-round cover over herself and the ally most likely to die. Better grades = bigger cover. F dumps cover.",
+    "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back). F dumps cover.",
   FireMage:
     "Hits several enemies with fire and can burn the boss. The only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime on that half of the line. Weak grades can hurt allies.",
   Healer:
-    "Heals allies and cleanses Fire and Poison DoTs (A all, B front, C back). Ice, Slime, and Frozen are Fire Mage only. F heals the boss instead. Must stand in the back seat only (not with a Runesinger).",
+    "Instant triage heals only (no cleanse). A = whole party, B = two lowest, C = one lowest, D = tiny all-party. F heals the boss. Back seat only — not with a Runesinger. Necromancer Life Power can empower her next heal.",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:
-    "Front-line striker. Claims grant a boss Parry (better grades = stronger). In seat 1 without a parry, boss hits hurt more. Can clear the gap from the front; Archers clear from any seat.",
+    "Front-line striker with Parry. A/B also grant Last Stand (A all living, B front). Seat 1 without parry takes extra boss heat.",
   Necromancer:
-    "Drains the boss and heals allies. Weak grades can backfire.",
+    "Drains the boss and grants Life Power to the living Healer or Runesinger — their next heal gets a purple bonus rain. Does not heal allies directly.",
   Thundercaller:
     "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
   Runesinger:
-    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Heals with a slow gold hymn HoT (no cleanse, no instant holder snacks). Back seat only — not with a Healer.",
+    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Slow gold hymn HoT (no cleanse). Back seat only — not with a Healer. Necromancer Life Power can empower her next hymn.",
 };
 
 export interface ArchetypeGradeScout {

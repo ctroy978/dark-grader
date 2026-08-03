@@ -67,6 +67,25 @@ export interface ParryStatus {
 }
 
 /**
+ * Vanguard / Spearman Last Stand — next lethal hit leaves the soldier at 1 HP
+ * once, then the ward is consumed. Cleared after the boss phase if unused.
+ */
+export interface LastStandStatus {
+  kind: "LastStand";
+}
+
+/**
+ * Necromancer Life Power on the back-seat support (Healer or Runesinger).
+ * No stacking; stays until that support’s next healing action spends it.
+ * Flat bonus HP per ally they heal (instant purple follow-up rain).
+ */
+export interface LifePowerStatus {
+  kind: "LifePower";
+  /** Flat HP added per healed ally when the support acts */
+  bonus: number;
+}
+
+/**
  * Runesinger hymn heal-over-time (independent streams; max 2 per soldier).
  * Ticks in DoT phase after damage DoTs; uses healSoldier (blocked by hard Frozen).
  */
@@ -119,6 +138,8 @@ export type StatusTag =
   | WeakenStatus
   | ChargeStatus
   | ParryStatus
+  | LastStandStatus
+  | LifePowerStatus
   | HotStatus
   | FrozenStatus;
 

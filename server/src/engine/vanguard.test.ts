@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Grade, TeamState } from "@dungeon-grades/shared";
 import { createTeam, selectParty, startFight } from "./combat.js";
-import { livingParty } from "./damage.js";
+import { applyPartyDamage, livingParty } from "./damage.js";
 import { resolveSpecialistAction } from "./specialists.js";
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
@@ -17,16 +17,15 @@ function vanguardTeam(): TeamState {
   startFight(team, "ash_wraith", POOL);
   for (const s of livingParty(team)) {
     s.block = 0;
+    s.statuses = [];
   }
   return team;
 }
 
-describe("Vanguard personal block only", () => {
-  it("A grants personal block to self only, not allies", () => {
+describe("Vanguard Last Stand + personal block", () => {
+  it("A grants Last Stand to all living and some personal block", () => {
     const team = vanguardTeam();
     const vg = livingParty(team).find((s) => s.archetype === "Vanguard")!;
-    const ally = livingParty(team).find((s) => s.id !== vg.id)!;
-    const allyBlockBefore = ally.block;
 
     resolveSpecialistAction(
       team,
@@ -36,27 +35,71 @@ describe("Vanguard personal block only", () => {
       () => {},
     );
 
-    expect(vg.block).toBe(6);
-    expect(ally.block).toBe(allyBlockBefore);
+    expect(vg.block).toBe(4);
+    for (const s of livingParty(team)) {
+      expect(s.statuses.some((st) => st.kind === "LastStand")).toBe(true);
+    }
   });
 
-  it("B and C also stay self-only", () => {
+  it("B grants Last Stand only to front half", () => {
     const team = vanguardTeam();
     const vg = livingParty(team).find((s) => s.archetype === "Vanguard")!;
-    for (const grade of ["B", "C"] as const) {
-      for (const s of livingParty(team)) s.block = 0;
-      resolveSpecialistAction(
-        team,
-        vg,
-        { token: grade, soldierId: vg.id, effectiveGrade: grade },
-        () => 0.5,
-        () => {},
-      );
-      const expected = grade === "B" ? 4 : 3;
-      expect(vg.block).toBe(expected);
-      for (const s of livingParty(team)) {
-        if (s.id !== vg.id) expect(s.block).toBe(0);
+
+    resolveSpecialistAction(
+      team,
+      vg,
+      { token: "B", soldierId: vg.id, effectiveGrade: "B" },
+      () => 0.5,
+      () => {},
+    );
+
+    for (const s of livingParty(team)) {
+      const has = s.statuses.some((st) => st.kind === "LastStand");
+      if (s.position != null && s.position <= 3) {
+        expect(has).toBe(true);
+      } else {
+        expect(has).toBe(false);
       }
+    }
+  });
+
+  it("Last Stand saves a lethal hit once then is consumed", () => {
+    const team = vanguardTeam();
+    const ally = livingParty(team).find((s) => s.archetype !== "Vanguard")!;
+    ally.statuses.push({ kind: "LastStand" });
+    ally.currentHp = 5;
+    ally.block = 0;
+    team.partyShield = { active: false, remaining: 0, coveredIds: [] };
+
+    const r = applyPartyDamage(ally, 50, team.partyShield);
+    expect(ally.alive).toBe(true);
+    expect(ally.currentHp).toBe(1);
+    expect(ally.statuses.some((st) => st.kind === "LastStand")).toBe(false);
+    expect(r.hpLost).toBe(4);
+
+    const r2 = applyPartyDamage(ally, 50, team.partyShield);
+    expect(ally.alive).toBe(false);
+    expect(ally.currentHp).toBe(0);
+    expect(r2.hpLost).toBe(1);
+  });
+
+  it("C stays self-only personal block (no Last Stand)", () => {
+    const team = vanguardTeam();
+    const vg = livingParty(team).find((s) => s.archetype === "Vanguard")!;
+    for (const s of livingParty(team)) s.block = 0;
+
+    resolveSpecialistAction(
+      team,
+      vg,
+      { token: "C", soldierId: vg.id, effectiveGrade: "C" },
+      () => 0.5,
+      () => {},
+    );
+
+    expect(vg.block).toBe(3);
+    for (const s of livingParty(team)) {
+      expect(s.statuses.some((st) => st.kind === "LastStand")).toBe(false);
+      if (s.id !== vg.id) expect(s.block).toBe(0);
     }
   });
 });

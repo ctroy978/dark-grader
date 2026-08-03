@@ -160,11 +160,10 @@ export default function HowToPlayPage() {
           </p>
           <ul className="space-y-2 text-sm text-parchment-dim">
             <li>
-              <strong className="text-parchment">Healer</strong> — heals and
-              clears <strong className="text-parchment">Fire and Poison</strong>{" "}
-              only (A = whole team). Not Ice, Slime, Frozen, or Marks.{" "}
-              <strong className="text-parchment">Back seat only</strong> — same
-              slot as Runesinger (pick one support, not both).
+              <strong className="text-parchment">Shield Maiden</strong> — clears{" "}
+              <strong className="text-parchment">Fire and Poison</strong> (A =
+              all, B = front, C = back) plus one-round cover on herself and the
+              ally closest to dying.
             </li>
             <li>
               <strong className="text-parchment">Fire Mage</strong> — only class
@@ -173,18 +172,29 @@ export default function HowToPlayPage() {
               (A = front, B = back). Match the DoT color to the right specialist.
             </li>
             <li>
-              <strong className="text-parchment">Spearman</strong> — front-line
-              striker with Parry on A–D; vulnerable in seat 1 without a claim.
+              <strong className="text-parchment">Healer</strong> — instant triage
+              only (no cleanse): A = whole party, B = two lowest, C = one lowest,
+              D = tiny all-party.{" "}
+              <strong className="text-parchment">Back seat only</strong> — same
+              slot as Runesinger (pick one support, not both).
+            </li>
+            <li>
+              <strong className="text-parchment">Necromancer</strong> — drains
+              the boss and grants <strong className="text-parchment">Life Power</strong>{" "}
+              to the Healer or Runesinger (purple bonus rain after their next
+              heal). Does not heal allies directly.
+            </li>
+            <li>
+              <strong className="text-parchment">Vanguard / Spearman A–B</strong>{" "}
+              — <strong className="text-parchment">Last Stand</strong>: the next
+              lethal hit leaves allies at 1 HP once (A = all, B = front). Survives
+              the boss window, then expires.
             </li>
             <li>
               <strong className="text-parchment">Thundercaller A</strong> — hits
               for 14 (plus stun/charge), or if someone is down: shocks their
               heart back at low HP. They skip their next claim (dazed). Once per
               soldier per fight.
-            </li>
-            <li>
-              <strong className="text-parchment">Shield Maiden</strong> — claim for one-round
-              cover on herself and the ally closest to dying (no free shield at fight start).
             </li>
           </ul>
         </section>
@@ -194,11 +204,14 @@ export default function HowToPlayPage() {
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
             <li>Deaths are permanent until the teacher resets the team (Thunder A can buy one emergency return).</li>
             <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
-            <li>Poison and Fire clouds get worse every round if left up — cleanse them (Healer in the back seat).</li>
+            <li>
+              Poison and Fire clouds get worse every round if left up — cleanse
+              them with the <strong className="text-parchment">Shield Maiden</strong>.
+            </li>
             <li>
               Healer and Runesinger share the back seat — only one of them on the
-              line. Healer = burst heal + Fire/Poison cleanse; Runesinger =
-              grade rewrite + slow gold hymn HoT (no cleanse).
+              line. Healer = instant triage heals; Runesinger = grade rewrite +
+              slow gold hymn HoT. Necromancer Life Power can empower either.
             </li>
             <li>Ice, Slime, and Frozen → Fire Mage. Match the color on the portrait.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>

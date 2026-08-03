@@ -1,11 +1,17 @@
 import {
   GRADE_RANK,
+  HEALER_BOSS_HEAL,
+  HEALER_HEAL,
   MAIDEN_DAMAGE,
   MAIDEN_SHIELD,
+  NECRO_DRAIN,
+  NECRO_LIFE_POWER,
   RUNESINGER_HOT_PER_TICK,
   RUNESINGER_HOT_TICKS,
   SPEARMAN_DAMAGE,
   SPEARMAN_PARRY_REDUCTION,
+  VANGUARD_DAMAGE,
+  VANGUARD_PERSONAL_BLOCK,
   downgradeGrade,
   randomInt,
   runesingerBGrade,
@@ -58,6 +64,15 @@ export function endPartyActionPhase(): void {
   unresolvedClaimers = null;
 }
 
+/** After base heal/hymn cue: apply Life Power flat bonus as a second purple rain. */
+export type LifePowerFollowUp = {
+  bonus: number;
+  /** Ally ids that received the base heal / hymn and should get the purple bonus */
+  targetIds: string[];
+  /** Support soldier id (Healer/Runesinger) — Life Power is stripped after pulse */
+  supportId: string;
+};
+
 export type SpecialistResolveResult = {
   /** False when stun / frozen / death skipped the attack — do not play attack cue. */
   acted: boolean;
@@ -68,6 +83,11 @@ export type SpecialistResolveResult = {
    * (e.g. Thundercaller F aims at an ally who shakes the stun off).
    */
   effectFocusIds?: string[];
+  /**
+   * Healer/Runesinger spent a heal while holding Life Power — combat applies
+   * bonus heals and a second purple-rain cue after the base action beat.
+   */
+  lifePowerFollowUp?: LifePowerFollowUp;
 };
 
 export function resolveSpecialistAction(
@@ -115,6 +135,7 @@ export function resolveSpecialistAction(
   }
 
   let effectFocusIds: string[] = [];
+  let lifePowerFollowUp: LifePowerFollowUp | undefined;
   switch (soldier.archetype) {
     case "Vanguard":
       vanguard(soldier, g, team, log, label);
@@ -126,7 +147,7 @@ export function resolveSpecialistAction(
       fireMage(soldier, g, team, log, label);
       break;
     case "Healer":
-      healer(soldier, g, team, log, label);
+      lifePowerFollowUp = healer(soldier, g, team, log, label);
       break;
     case "Archer":
       archer(soldier, g, team, random, log, label);
@@ -135,13 +156,13 @@ export function resolveSpecialistAction(
       spearman(soldier, g, team, log, label);
       break;
     case "Necromancer":
-      necromancer(soldier, g, team, random, log, label);
+      effectFocusIds = necromancer(soldier, g, team, random, log, label);
       break;
     case "Thundercaller":
       effectFocusIds = thundercaller(soldier, g, team, random, log, label);
       break;
     case "Runesinger":
-      runesinger(soldier, g, team, log, label);
+      lifePowerFollowUp = runesinger(soldier, g, team, log, label);
       break;
     default:
       log(`${label}: unknown archetype`);
@@ -149,7 +170,49 @@ export function resolveSpecialistAction(
   return {
     acted: true,
     ...(effectFocusIds.length ? { effectFocusIds } : {}),
+    ...(lifePowerFollowUp ? { lifePowerFollowUp } : {}),
   };
+}
+
+/** Living Healer or Runesinger on the line (back-seat support for Life Power). */
+function livingBackSupport(team: TeamState): Soldier | undefined {
+  return livingParty(team).find(
+    (s) => s.archetype === "Healer" || s.archetype === "Runesinger",
+  );
+}
+
+/** Grant Last Stand (replace any existing). */
+function grantLastStand(targets: Soldier[]): number {
+  let n = 0;
+  for (const t of targets) {
+    if (!t.alive) continue;
+    t.statuses = t.statuses.filter((st) => st.kind !== "LastStand");
+    t.statuses.push({ kind: "LastStand" });
+    n += 1;
+  }
+  return n;
+}
+
+/**
+ * If this support holds Life Power and healed at least one ally, schedule purple
+ * follow-up (bonus not applied yet — combat applies after the base heal cue).
+ */
+function lifePowerFollowUpIfReady(
+  support: Soldier,
+  healedTargetIds: string[],
+): LifePowerFollowUp | undefined {
+  if (!healedTargetIds.length) return undefined;
+  const lp = support.statuses.find((st) => st.kind === "LifePower");
+  if (!lp || lp.kind !== "LifePower" || lp.bonus <= 0) return undefined;
+  // Unique ids only
+  const targetIds = [...new Set(healedTargetIds)];
+  return { bonus: lp.bonus, targetIds, supportId: support.id };
+}
+
+/** Sort living party by lowest current HP, then front-most. */
+function byLowestHp(a: Soldier, b: Soldier): number {
+  if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+  return (a.position ?? 99) - (b.position ?? 99);
 }
 
 function vanguard(
@@ -159,22 +222,30 @@ function vanguard(
   log: LogFn,
   label: string,
 ): void {
-  // Personal block + hit only — no party-wide pad (frontline redesign Phase 3).
-  const table: Record<Grade, { personalBlock: number; dmg: number }> = {
-    A: { personalBlock: 6, dmg: 11 },
-    B: { personalBlock: 4, dmg: 9 },
-    C: { personalBlock: 3, dmg: 6 },
-    D: { personalBlock: 1, dmg: 4 },
-    F: { personalBlock: 0, dmg: 2 },
-  };
-  const { personalBlock, dmg } = table[g];
+  const personalBlock = VANGUARD_PERSONAL_BLOCK[g];
+  const dmg = VANGUARD_DAMAGE[g];
+  const parts: string[] = [];
 
-  soldier.block += personalBlock;
+  // A/B — Last Stand (party emergency ward for the next boss window)
+  if (g === "A") {
+    const n = grantLastStand(livingParty(team));
+    parts.push(`Last Stand on all (${n})`);
+  } else if (g === "B") {
+    const front = livingParty(team).filter(
+      (s) => s.position != null && s.position <= 3,
+    );
+    const n = grantLastStand(front);
+    parts.push(`Last Stand on front (${n})`);
+  }
+
+  if (personalBlock > 0) {
+    soldier.block += personalBlock;
+    parts.push(`+${personalBlock} personal block`);
+  } else {
+    parts.push("no block");
+  }
 
   const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
-  const parts: string[] = [];
-  if (personalBlock > 0) parts.push(`+${personalBlock} personal block`);
-  else parts.push("no block");
   parts.push(`hits for ${r}`);
   log(`${label}: ${parts.join(", ")}`);
 }
@@ -209,17 +280,31 @@ function shieldMaiden(
     coveredIds,
   };
 
+  // Fire/Poison cleanse (moved from Healer): A all / B front / C back
+  const maidenCleanse: DotType[] = ["Fire", "Poison"];
+  let cleanseNote = "";
+  if (g === "A" || g === "B" || g === "C") {
+    const seats =
+      g === "A"
+        ? livingParty(team)
+        : g === "B"
+          ? livingParty(team).filter((s) => s.position != null && s.position <= 3)
+          : livingParty(team).filter((s) => s.position != null && s.position >= 4);
+    const n = cleanseDots(seats, maidenCleanse);
+    if (n) cleanseNote = `; cleanses Fire/Poison (${n})`;
+  }
+
   const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
   const allyName = ally ? ally.name : "nobody";
   log(
-    `${label}: attacks for ${r}; cover ${coverHp} on self + ${allyName} (this round)`,
+    `${label}: attacks for ${r}; cover ${coverHp} on self + ${allyName} (this round)${cleanseNote}`,
   );
 }
 
 /**
  * FireMage — Wildfire AOE + boss Fire burn.
  * A/B: burn off Frozen and cleanse Ice/Slime on half the line (A front, B back).
- * Does not clear Fire/Poison (Healer).
+ * Does not clear Fire/Poison (Shield Maiden).
  * Targets: A/B ≤3, C ≤2, D 1. F unchanged.
  */
 function fireMage(
@@ -229,7 +314,7 @@ function fireMage(
   log: LogFn,
   label: string,
 ): void {
-  /** Ice + Slime only — Fire/Poison are Healer; Frozen is thawFrozen. */
+  /** Ice + Slime only — Fire/Poison are Shield Maiden; Frozen is thawFrozen. */
   const mageCleanse: DotType[] = ["Ice", "Slime"];
 
   if (g === "F") {
@@ -342,65 +427,57 @@ function fireMage(
   );
 }
 
-/** Healer — HP restore + cleanse Fire / Poison (not Ice, Slime, Marks, or Frozen). */
+/**
+ * Healer — instant triage only (no cleanse; Maiden strips Fire/Poison).
+ * A all / B two lowest / C one lowest / D tiny all / F boss.
+ * May schedule Life Power purple follow-up if empowered by Necromancer.
+ */
 function healer(
   soldier: Soldier,
   g: Grade,
   team: TeamState,
   log: LogFn,
   label: string,
-): void {
-  // Fire + Poison only — Ice/Slime/Frozen are Fire Mage (color split).
-  const healCleanse: DotType[] = ["Fire", "Poison"];
-
+): LifePowerFollowUp | undefined {
   if (g === "F") {
-    const healed = healBoss(team, 8);
+    const healed = healBoss(team, HEALER_BOSS_HEAL);
     log(`${label}: BACKLASH — boss heals ${healed}`);
-    return;
+    return undefined;
   }
-  if (g === "A") {
-    const targets = livingParty(team);
-    const cleansed = cleanseDots(targets, healCleanse);
-    let total = 0;
-    for (const s of targets) {
-      total += healSoldier(s, 10);
+
+  const amount = HEALER_HEAL[g];
+  let targets: Soldier[] = [];
+  if (g === "A" || g === "D") {
+    targets = livingParty(team);
+  } else if (g === "B") {
+    targets = livingParty(team).slice().sort(byLowestHp).slice(0, 2);
+  } else {
+    // C — single lowest
+    const one = livingParty(team).slice().sort(byLowestHp)[0];
+    targets = one ? [one] : [];
+  }
+
+  let total = 0;
+  const healedIds: string[] = [];
+  for (const t of targets) {
+    const got = healSoldier(t, amount);
+    if (got > 0) {
+      total += got;
+      healedIds.push(t.id);
+    } else if (t.alive) {
+      // Still count for Life Power intent (full HP / Frozen may gain 0)
+      healedIds.push(t.id);
     }
-    log(
-      `${label}: heals party ${total} total${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
-    );
-    return;
   }
-  if (g === "B") {
-    const targets = livingParty(team).filter(
-      (x) => x.position && x.position <= 3,
-    );
-    const cleansed = cleanseDots(targets, healCleanse);
-    let total = 0;
-    for (const s of targets) {
-      total += healSoldier(s, 10);
-    }
-    log(
-      `${label}: heals front ${total}${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
-    );
-    return;
-  }
-  if (g === "C") {
-    const targets = livingParty(team).filter(
-      (x) => x.position && x.position >= 4,
-    );
-    const cleansed = cleanseDots(targets, healCleanse);
-    let total = 0;
-    for (const s of targets) {
-      total += healSoldier(s, 6);
-    }
-    log(
-      `${label}: heals back ${total}${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
-    );
-    return;
-  }
-  // D — self heal only (no cleanse)
-  const h = healSoldier(soldier, 8);
-  log(`${label}: self-heal ${h}`);
+
+  const who =
+    g === "A" || g === "D"
+      ? "party"
+      : g === "B"
+        ? targets.map((t) => t.name).join(" + ") || "nobody"
+        : targets[0]?.name ?? "nobody";
+  log(`${label}: heals ${who} +${amount} each (${total} total HP)`);
+  return lifePowerFollowUpIfReady(soldier, healedIds);
 }
 
 /**
@@ -465,6 +542,18 @@ function spearman(
   soldier.statuses = soldier.statuses.filter((st) => st.kind !== "Parry");
   const parts: string[] = [];
 
+  // A/B — Last Stand (same ladder as Vanguard)
+  if (g === "A") {
+    const n = grantLastStand(livingParty(team));
+    parts.push(`Last Stand on all (${n})`);
+  } else if (g === "B") {
+    const front = livingParty(team).filter(
+      (s) => s.position != null && s.position <= 3,
+    );
+    const n = grantLastStand(front);
+    parts.push(`Last Stand on front (${n})`);
+  }
+
   if (g !== "F") {
     const reduction = SPEARMAN_PARRY_REDUCTION[g];
     soldier.statuses.push({ kind: "Parry", reduction });
@@ -479,6 +568,11 @@ function spearman(
   log(`${label}: ${parts.join("; ")}`);
 }
 
+/**
+ * Necromancer — drain + Life Power on Healer or Runesinger (A–C).
+ * No direct ally heal. D self-risk; F hits highest ally.
+ * @returns focus ids (support empowered) for presentation.
+ */
 function necromancer(
   soldier: Soldier,
   g: Grade,
@@ -486,16 +580,15 @@ function necromancer(
   _random: () => number,
   log: LogFn,
   label: string,
-): void {
+): string[] {
   if (g === "F") {
-    // Hit highest-HP living ally for 10 (ignores shield/block)
     const allies = livingParty(team)
       .slice()
       .sort((a, b) => b.currentHp - a.currentHp || a.position! - b.position!);
     const target = allies[0];
     if (!target) {
       log(`${label}: BACKLASH — no allies to hit`);
-      return;
+      return [];
     }
     const hit = applyPartyDamage(target, 10, team.partyShield, {
       bypassAbsorb: true,
@@ -503,25 +596,34 @@ function necromancer(
     log(
       `${label}: BACKLASH — drains ${formatPartyHit(target, hit)} (highest HP, ignores shield/block)`,
     );
-    return;
+    return [target.id];
   }
-  const table: Record<Exclude<Grade, "F">, { dmg: number; heal: number; self?: number }> = {
-    A: { dmg: 12, heal: 10 },
-    B: { dmg: 9, heal: 6 },
-    C: { dmg: 6, heal: 3 },
-    D: { dmg: 4, heal: 0, self: 3 },
-  };
-  const t = table[g as Exclude<Grade, "F">];
-  const r = hitEnemies(team, t.dmg, "single", 0, 0, soldier);
-  const allies = livingParty(team).slice().sort((a, b) => a.currentHp - b.currentHp);
-  let healed = 0;
-  if (t.heal > 0 && allies.length) {
-    healed = healSoldier(allies[0], t.heal);
+
+  const dmg = NECRO_DRAIN[g];
+  const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
+  const focus: string[] = [];
+
+  if (g === "D") {
+    applyPartyDamage(soldier, 3, team.partyShield, { bypassAbsorb: true });
+    log(`${label}: drain ${r}; self-damage 3`);
+    return focus;
   }
-  if (t.self) {
-    applyPartyDamage(soldier, t.self, team.partyShield, { bypassAbsorb: true });
+
+  // A–C: Life Power on living back-seat support (Healer or Runesinger)
+  const bonus = NECRO_LIFE_POWER[g];
+  const support = livingBackSupport(team);
+  if (support) {
+    // No stacking — replace existing Life Power
+    support.statuses = support.statuses.filter((st) => st.kind !== "LifePower");
+    support.statuses.push({ kind: "LifePower", bonus });
+    focus.push(support.id);
+    log(
+      `${label}: drain ${r}; Life Power +${bonus} on ${support.name} (${support.archetype}) until their next heal`,
+    );
+  } else {
+    log(`${label}: drain ${r}; no Healer/Runesinger to empower`);
   }
-  log(`${label}: drain ${r}${healed ? `, heal ${allies[0].name} ${healed}` : ""}`);
+  return focus;
 }
 
 /**
@@ -672,6 +774,7 @@ function tryThundercallerRez(
  * Runesinger — always resolves first (see combat action order).
  * Rewrites this drop’s claim grades, then applies slow gold HoT (no cleanse).
  * Mutates `team.lastClaims` / shared ClaimResult objects in place.
+ * Life Power (Necro) adds a purple instant bonus on hymn targets after the cast beat.
  */
 function runesinger(
   soldier: Soldier,
@@ -679,7 +782,7 @@ function runesinger(
   team: TeamState,
   log: LogFn,
   label: string,
-): void {
+): LifePowerFollowUp | undefined {
   const claims = team.lastClaims ?? [];
 
   const describeClaims = (): string =>
@@ -690,14 +793,14 @@ function runesinger(
       })
       .join(", ");
 
-  const applyHymnHot = (targets: Soldier[], perTick: number): number => {
-    let n = 0;
+  const applyHymnHot = (targets: Soldier[], perTick: number): string[] => {
+    const ids: string[] = [];
     for (const t of targets) {
       if (!t.alive) continue;
       applyHot(t, perTick, RUNESINGER_HOT_TICKS, "Runesinger");
-      n += 1;
+      ids.push(t.id);
     }
-    return n;
+    return ids;
   };
 
   if (g === "A") {
@@ -705,11 +808,11 @@ function runesinger(
       c.effectiveGrade = upgradeGrade(c.effectiveGrade, 2);
     }
     const targets = livingParty(team);
-    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.A);
+    const ids = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.A);
     log(
-      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${n})`,
+      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${ids.length})`,
     );
-    return;
+    return lifePowerFollowUpIfReady(soldier, ids);
   }
 
   if (g === "B") {
@@ -719,11 +822,11 @@ function runesinger(
     const targets = livingParty(team).filter(
       (x) => x.position != null && x.position <= 3,
     );
-    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.B);
+    const ids = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.B);
     log(
-      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${n})`,
+      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${ids.length})`,
     );
-    return;
+    return lifePowerFollowUpIfReady(soldier, ids);
   }
 
   if (g === "C") {
@@ -752,21 +855,21 @@ function runesinger(
         const targets = livingParty(team).filter(
           (x) => x.position != null && x.position >= 4,
         );
-        const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
+        const ids = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
         log(
-          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${n})`,
+          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${ids.length})`,
         );
-        return;
+        return lifePowerFollowUpIfReady(soldier, ids);
       }
     }
     const targets = livingParty(team).filter(
       (x) => x.position != null && x.position >= 4,
     );
-    const n = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
+    const ids = applyHymnHot(targets, RUNESINGER_HOT_PER_TICK.C);
     log(
-      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${n})`,
+      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${ids.length})`,
     );
-    return;
+    return lifePowerFollowUpIfReady(soldier, ids);
   }
 
   if (g === "D") {
@@ -774,12 +877,13 @@ function runesinger(
     log(
       `${label}: soft hymn — self HoT +${RUNESINGER_HOT_PER_TICK.D}×${RUNESINGER_HOT_TICKS} (no rewrite)`,
     );
-    return;
+    return lifePowerFollowUpIfReady(soldier, [soldier.id]);
   }
 
-  // F — every token shifts down one grade (F stays F); no HoT
+  // F — every token shifts down one grade (F stays F); no HoT — Life Power not spent
   for (const c of claims) {
     c.effectiveGrade = downgradeGrade(c.effectiveGrade);
   }
   log(`${label}: corrupted hymn — all claims shift down — [${describeClaims()}]`);
+  return undefined;
 }

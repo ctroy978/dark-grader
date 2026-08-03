@@ -1905,6 +1905,18 @@ body {
     transparent 80%
   );
 }
+/* Necromancer Life Power: purple second rain after Healer/Runesinger base */
+.spirit-rain-fx--life .spirit-rain-glow {
+  top: 8%;
+  bottom: auto;
+  background: radial-gradient(
+    ellipse at 50% 20%,
+    rgba(240, 180, 255, 0.55) 0%,
+    rgba(190, 90, 240, 0.28) 45%,
+    rgba(120, 40, 180, 0.1) 70%,
+    transparent 80%
+  );
+}
 .spirit-rain-fx--charge .spirit-rain-glow {
   animation: spirit-glow-pulse 0.85s ease-in-out infinite;
 }
@@ -1944,15 +1956,29 @@ body {
   );
   box-shadow: 0 0 5px rgba(255, 240, 180, 0.85);
 }
-/* Falling rain (Healer green + Runesinger gold-white) */
+.spirit-rain-fx--life .spirit-rain-drop {
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 230, 255, 0.98) 0%,
+    rgba(210, 120, 255, 0.9) 45%,
+    rgba(140, 50, 210, 0.4) 100%
+  );
+  box-shadow: 0 0 6px rgba(210, 130, 255, 0.9);
+}
+/* Falling rain (Healer green + Runesinger gold + Life Power purple) */
 .spirit-rain-fx--heal.spirit-rain-fx--charge .spirit-rain-drop,
-.spirit-rain-fx--rune.spirit-rain-fx--charge .spirit-rain-drop {
+.spirit-rain-fx--rune.spirit-rain-fx--charge .spirit-rain-drop,
+.spirit-rain-fx--life.spirit-rain-fx--charge .spirit-rain-drop {
   top: -8%;
   animation: spirit-rain-fall var(--drop-dur) linear infinite;
   animation-delay: var(--drop-delay);
 }
 .spirit-rain-fx--heal.spirit-rain-fx--blast .spirit-rain-drop,
-.spirit-rain-fx--rune.spirit-rain-fx--blast .spirit-rain-drop {
+.spirit-rain-fx--rune.spirit-rain-fx--blast .spirit-rain-drop,
+.spirit-rain-fx--life.spirit-rain-fx--blast .spirit-rain-drop {
   top: -8%;
   animation: spirit-rain-fall-burst var(--drop-dur) ease-out forwards;
   animation-delay: var(--drop-delay);

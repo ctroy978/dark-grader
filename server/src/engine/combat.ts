@@ -376,13 +376,14 @@ export function commitRound(team: TeamState): TeamState {
         stunned: s.statuses.some((st) => st.kind === "Stun"),
       }));
 
-      const { acted, skipReason, effectFocusIds } = resolveSpecialistAction(
-        team,
-        soldier,
-        claim,
-        random,
-        (text, tags) => pushLog(team, text, tags ?? ["party"]),
-      );
+      const { acted, skipReason, effectFocusIds, lifePowerFollowUp } =
+        resolveSpecialistAction(
+          team,
+          soldier,
+          claim,
+          random,
+          (text, tags) => pushLog(team, text, tags ?? ["party"]),
+        );
       markClaimerResolved(soldier.id);
 
       // Stunned / Frozen claimers keep their token claim but must not play an attack beat
@@ -484,6 +485,50 @@ export function commitRound(team: TeamState): TeamState {
         fx,
         { hitFocusIds, slainNames },
       );
+
+      // Life Power: second purple rain after Healer/Runesinger base heal/hymn.
+      // Base heal already on the board; this beat only applies the flat bonus.
+      if (lifePowerFollowUp) {
+        const { bonus, targetIds, supportId } = lifePowerFollowUp;
+        const support = team.roster.find((s) => s.id === supportId);
+        if (support) {
+          support.statuses = support.statuses.filter(
+            (st) => st.kind !== "LifePower",
+          );
+        }
+        const purpleFocus: string[] = [];
+        let purpleTotal = 0;
+        for (const id of targetIds) {
+          const t = team.roster.find((s) => s.id === id);
+          if (!t?.alive) continue;
+          const got = healSoldier(t, bonus);
+          if (got > 0 || t.alive) {
+            purpleFocus.push(t.id);
+            purpleTotal += got;
+          }
+        }
+        if (purpleFocus.length) {
+          pushLog(
+            team,
+            `  [Life Power] purple rain +${bonus} each on ${purpleFocus.length} (${purpleTotal} total HP)`,
+            ["party"],
+          );
+          pushCue(team, {
+            kind: "action",
+            focusIds: [soldier.id, ...purpleFocus],
+            grade: claim.effectiveGrade,
+            bubble: {
+              speakerId: soldier.id,
+              speakerName: soldier.name,
+              side: "party",
+              text: "Life Power!",
+            },
+            fx: ["life-power-blast", "heal-glow"],
+            sfxId: resolveSfxId(["heal", "act_healer"]),
+            durationMs: 900,
+          });
+        }
+      }
     }
   } finally {
     endPartyActionPhase();
@@ -783,11 +828,13 @@ export function resolveBoss(team: TeamState): TeamState {
     });
   }
 
-  // Defensive window closed: leftover personal block, Spearman parry, and
-  // Maiden cover expire after the boss/add volley (not at the next token drop).
+  // Defensive window closed: leftover personal block, Spearman parry,
+  // Last Stand wards, and Maiden cover expire after the boss/add volley.
   for (const s of activeParty(team)) {
     s.block = 0;
-    s.statuses = s.statuses.filter((st) => st.kind !== "Parry");
+    s.statuses = s.statuses.filter(
+      (st) => st.kind !== "Parry" && st.kind !== "LastStand",
+    );
   }
   team.partyShield = { remaining: 0, active: false, coveredIds: [] };
 

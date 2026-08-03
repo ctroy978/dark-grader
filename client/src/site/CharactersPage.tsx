@@ -47,14 +47,14 @@ const ROLE_SECTIONS: {
     id: "support",
     title: "Support",
     blurb:
-      "Protect and enable the line — one-round cover for the endangered, or drain the boss and triage an ally.",
+      "Protect and enable the line — Maiden cleanses Fire/Poison and covers the endangered; Necromancer drains and empowers the back-seat support.",
     archetypes: ["ShieldMaiden", "Necromancer"],
   },
   {
     id: "healers",
     title: "Healers",
     blurb:
-      "Keep the party alive. Healer = burst HP + Fire/Poison cleanse. Runesinger = grade rewrite + slow gold hymn HoT. Back seat only — bring one or the other, not both.",
+      "Keep the party alive. Healer = instant triage heals (no cleanse). Runesinger = grade rewrite + slow gold hymn HoT. Back seat only — bring one or the other, not both.",
     archetypes: ["Healer", "Runesinger"],
   },
 ];

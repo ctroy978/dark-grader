@@ -247,6 +247,7 @@ describe("SpreadingFrost / Frozen", () => {
       () => {},
     );
     expect(isFrozen(s)).toBe(true);
+    // Hard Frozen blocks heals; Healer no longer cleanses Fire either
     expect(s.currentHp).toBe(10);
   });
 

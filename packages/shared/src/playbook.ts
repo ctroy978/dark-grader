@@ -8,17 +8,17 @@ export function describeGradeEffect(archetype: Archetype, grade: Grade): string 
 
 const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
   Vanguard: {
-    A: "Big personal block (6) + strong hit (11) — self only",
-    B: "Solid personal block (4) + hit (9) — self only",
-    C: "Some personal block (3) + light hit (6) — self only",
+    A: "Last Stand on all living (next lethal → 1 HP once) + hit 11 + small self block",
+    B: "Last Stand on front (1–3) + hit 9 + small self block",
+    C: "Personal block (3) + light hit (6) — self only",
     D: "+1 personal block + light hit (4)",
     F: "No block; weak hit (2)",
   },
   ShieldMaiden: {
-    A: "Strike 14 + cover 8 (self + most endangered) this round",
-    B: "Strike 11 + cover 6 (self + most endangered) this round",
-    C: "Strike 9 + cover 4 (self + most endangered) this round",
-    D: "Strike 7 + cover 3 (self + most endangered) this round",
+    A: "Strike 14 + cover 8; cleanse Fire/Poison on all",
+    B: "Strike 11 + cover 6; cleanse Fire/Poison on front (1–3)",
+    C: "Strike 9 + cover 4; cleanse Fire/Poison on back (4–6)",
+    D: "Strike 7 + cover 3 (no cleanse)",
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {
@@ -29,10 +29,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Explodes on the whole party (ignores shield)",
   },
   Healer: {
-    A: "Heal all +10; clear Fire/Poison on all (not Ice/Slime/Frozen)",
-    B: "Heal front +10; clear Fire/Poison on front",
-    C: "Heal back +6; clear Fire/Poison on back",
-    D: "Heal self only (no cleanse)",
+    A: "Heal all living +14 each (no cleanse — Maiden strips Fire/Poison)",
+    B: "Heal the two lowest-HP allies +14 each",
+    C: "Heal the single lowest-HP ally +18",
+    D: "Tiny full-party heal +3 each",
     F: "Backlash — heals the boss (+8)",
   },
   Archer: {
@@ -43,17 +43,17 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Misfire — tiny hit + may hurt an ally",
   },
   Spearman: {
-    A: "Thrust 12 + parry 70% boss dmg this round (front w/o parry is vulnerable)",
-    B: "Thrust 10 + parry 50% boss dmg this round",
+    A: "Last Stand on all living + thrust 12 + parry 70% (front w/o parry is vulnerable)",
+    B: "Last Stand on front (1–3) + thrust 10 + parry 50%",
     C: "Thrust 7 + parry 30% boss dmg this round",
     D: "Thrust 5 + parry 15% boss dmg this round",
     F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {
-    A: "Drain boss + heal lowest ally",
-    B: "Drain + smaller heal",
-    C: "Light drain + tiny heal",
-    D: "Weak drain, self-damage",
+    A: "Drain 12; Life Power +6 on Healer or Runesinger (purple rain after their next heal)",
+    B: "Drain 9; Life Power +4 on Healer or Runesinger",
+    C: "Drain 6; Life Power +2 on Healer or Runesinger",
+    D: "Weak drain, self-damage (no Life Power)",
     F: "Backlash — hits highest-HP ally for 10",
   },
   Thundercaller: {

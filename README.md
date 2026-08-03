@@ -147,33 +147,33 @@ Full campaign roster = **21**. Names match art gender (see `server/src/seed/name
 
 ---
 
-### Vanguard — personal block + hit (self only)
+### Vanguard — Last Stand + personal block + hit
 
-**Job (as coded):** tank spike damage on himself. **Does not** pad the rest of the line.
+**Job (as coded):** front leader. **A/B** grant **Last Stand** (next lethal hit → **1 HP** once). Small personal block still applies; leftover block/wards expire after the boss phase.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | +**6** personal block, hit for **11** |
-| **B** | +**4** personal block, hit for **9** |
-| **C** | +**3** personal block, hit for **6** |
-| **D** | +**1** personal block, hit for **4** |
-| **F** | No block, hit for **2** |
+| **A** | **Last Stand** on **all** living; +**4** personal block; hit **11** |
+| **B** | **Last Stand** on **front** (1–3); +**3** personal block; hit **9** |
+| **C** | +**3** personal block; hit **6** |
+| **D** | +**1** personal block; hit **4** |
+| **F** | No block; hit **2** |
 
-Personal block absorbs boss/minion/DoT damage after it is granted; leftover expires after the boss phase (so chips stay until the hit that spends them, not at the next token drop). Not the same as party shield. Gap rule: can hit minions only from pos 1.
+Gap rule: can hit minions only from pos 1.
 
 ---
 
-### ShieldMaiden — striker + one-round cover
+### ShieldMaiden — striker + cover + Fire/Poison cleanse
 
-**Job (as coded):** hit + raise **one-round cover** on **herself and the ally most likely to die** (lowest HP%). Cover expires after the boss phase. **No free opening shield.**
+**Job (as coded):** hit + one-round cover (self + most endangered) + **cleanse Fire/Poison** (moved from Healer). **No free opening shield.**
 
-| Grade | Hit | Cover pool |
-|-------|-----|------------|
-| **A** | **14** | **8** |
-| **B** | **11** | **6** |
-| **C** | **9** | **4** |
-| **D** | **7** | **3** |
-| **F** | — | Dump cover to **0** (or nothing if already down) |
+| Grade | Hit | Cover | Cleanse Fire/Poison |
+|-------|-----|-------|---------------------|
+| **A** | **14** | **8** | **All** living |
+| **B** | **11** | **6** | **Front** (1–3) |
+| **C** | **9** | **4** | **Back** (4–6) |
+| **D** | **7** | **3** | — |
+| **F** | — | Dump cover to **0** | — |
 
 Uncovered seats take full damage even while cover is active.
 
@@ -181,7 +181,7 @@ Uncovered seats take full damage even while cover is active.
 
 ### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw (risky mid grades)
 
-**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (Healer) or Marks. C/D/F still punish the party.
+**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. C/D/F still punish the party.
 
 **AOE rules:** minions first, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots are unused (no minions → single boss hit).
 
@@ -197,16 +197,16 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Healer — restore HP + cleanse Fire / Poison
+### Healer — instant triage (no cleanse)
 
-**Job (as coded):** stabilize line and strip Fire/Poison. Does **not** clear Ice, Slime, Frozen (Fire Mage), or Marks. F is catastrophic for the boss clock.
+**Job (as coded):** emergency HP only. **Does not** cleanse (Maiden = Fire/Poison; Fire Mage = Ice/Slime/Frozen). F is catastrophic for the boss clock. Necromancer **Life Power** can add a purple bonus rain after her heal.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | Heal **all** living **+10** each; cleanse **Fire / Poison** on all |
-| **B** | Heal **front** (pos 1–3) **+10** each; cleanse Fire/Poison on front |
-| **C** | Heal **back** (pos 4–6) **+6** each; cleanse Fire/Poison on back |
-| **D** | Heal **self** **+8** only (no cleanse) |
+| **A** | Heal **all** living **+14** each |
+| **B** | Heal the **two lowest-HP** allies **+14** each |
+| **C** | Heal the **single lowest-HP** ally **+18** |
+| **D** | Tiny **full-party** heal **+3** each |
 | **F** | Heal **boss** **+8** |
 
 **2** Healers in the roster (back seat only — exclusive with Runesinger).
@@ -229,33 +229,33 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Spearman — single-target thrust + Parry
+### Spearman — Last Stand + thrust + Parry
 
-**Job (as coded):** front-line striker. **A–D** grant **Parry** (reduce boss damage to self this round). **Pos 1 without Parry** takes **×1.35** boss damage. Gap rule: hits minions only from seat 1 (or as Archer). Parry expires after the boss phase.
+**Job (as coded):** front-line striker. **A/B** also grant **Last Stand** (A all / B front). **A–D** grant **Parry** (reduce boss damage to self this round). **Pos 1 without Parry** takes **×1.35** boss damage. Parry + unused Last Stand expire after the boss phase.
 
-| Grade | Thrust | Parry (boss → self) |
-|-------|--------|---------------------|
-| **A** | **12** | **70%** reduced |
-| **B** | **10** | **50%** |
-| **C** | **7** | **30%** |
-| **D** | **5** | **15%** |
-| **F** | **2** | **None** (front still vulnerable) |
+| Grade | Thrust | Parry | Last Stand |
+|-------|--------|-------|------------|
+| **A** | **12** | **70%** | **All** living |
+| **B** | **10** | **50%** | **Front** (1–3) |
+| **C** | **7** | **30%** | — |
+| **D** | **5** | **15%** | — |
+| **F** | **2** | **None** | — |
 
 **2** Spearmen in the roster.
 
 ---
 
-### Necromancer — drain + heal lowest
+### Necromancer — drain + Life Power
 
-**Job (as coded):** modest damage + triage heal; D/F self-risk.
+**Job (as coded):** modest boss drain; **A–C** grant **Life Power** to the living **Healer or Runesinger** (flat bonus on their **next** heal/hymn — purple rain after the base effect). No stacking; stays until used. **No direct ally heal.**
 
 | Grade | Effect |
 |-------|--------|
-| **A** | Drain hit **12**; heal **lowest-HP** ally **+10** |
-| **B** | Drain **9**; heal lowest **+6** |
-| **C** | Drain **6**; heal lowest **+3** |
-| **D** | Drain **4**; **no** ally heal; **3** self-damage (bypass) |
-| **F** | Hit **highest-HP** living ally for **10** (bypasses shield/block); no boss heal |
+| **A** | Drain **12**; Life Power **+6** per ally on support’s next heal |
+| **B** | Drain **9**; Life Power **+4** |
+| **C** | Drain **6**; Life Power **+2** |
+| **D** | Drain **4**; **3** self-damage (bypass); no Life Power |
+| **F** | Hit **highest-HP** living ally for **10** (bypasses shield/block) |
 
 **2** Necromancers in the roster.
 
@@ -304,12 +304,12 @@ Useful when weighing “who is just DPS?”
 | Archer | **10** each ≤3 foes (12 vs minion) | Arrow Storm AOE |
 | FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + Frozen thaw (A front) |
 | Thundercaller | 14 + stun/charge | Single target |
-| ShieldMaiden | 14 + shield 1d6 | |
-| Necromancer | 12 + heal 10 | |
-| Vanguard | 11 + block 6 self only | |
-| Spearman | **12** ST | Stub thrust (parry later) |
+| ShieldMaiden | 14 + cover + Fire/Poison cleanse | |
+| Necromancer | 12 + Life Power on support | |
+| Vanguard | 11 + Last Stand A/B | |
+| Spearman | **12** ST + Last Stand A/B + parry | |
 | Runesinger | 0 direct | Token rewrite + hymn HoT |
-| Healer | 0 direct | Heal 10 all + Fire/Poison |
+| Healer | 0 direct | Instant triage (no cleanse) |
 
 ---
 

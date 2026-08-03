@@ -105,9 +105,21 @@ export function applyPartyDamage(
     }
   }
 
-  const hpLost = Math.min(soldier.currentHp, remaining);
-  soldier.currentHp -= hpLost;
+  const beforeHp = soldier.currentHp;
+  const hpLost = Math.min(beforeHp, remaining);
+  soldier.currentHp = beforeHp - hpLost;
   if (soldier.currentHp <= 0) {
+    // Last Stand: first lethal hit leaves them at 1 HP and consumes the ward
+    if (soldier.statuses.some((st) => st.kind === "LastStand")) {
+      soldier.currentHp = 1;
+      soldier.alive = true;
+      soldier.statuses = soldier.statuses.filter((st) => st.kind !== "LastStand");
+      return {
+        hpLost: Math.max(0, beforeHp - 1),
+        shieldAbsorbed,
+        blockAbsorbed,
+      };
+    }
     soldier.alive = false;
     soldier.currentHp = 0;
   }
