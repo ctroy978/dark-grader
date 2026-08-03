@@ -50,4 +50,16 @@ describe("bossPresentation", () => {
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every((l) => l.length < 24)).toBe(true);
   });
+
+  it("keeps summon telegraph lines distinct (no shared Ohms for mites)", () => {
+    const mites = defaultTelegraphLines("SummonMossMites");
+    const ohms = defaultTelegraphLines("SummonOhms");
+    const imps = defaultTelegraphLines("SummonCinderImps");
+    const archers = defaultTelegraphLines("SummonBoneArchers");
+    expect(mites.some((l) => /mite/i.test(l))).toBe(true);
+    expect(mites.every((l) => !/ohm/i.test(l))).toBe(true);
+    expect(ohms.some((l) => /ohm/i.test(l))).toBe(true);
+    expect(imps.some((l) => /imp/i.test(l))).toBe(true);
+    expect(archers.some((l) => /archer|bone/i.test(l))).toBe(true);
+  });
 });

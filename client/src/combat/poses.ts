@@ -70,6 +70,7 @@ export function poseForUnit(
             f === "vanguard-blast" ||
             f === "doom-blast" ||
             f === "archer-blast" ||
+            f === "spear-blast" ||
             f === "party-stunned",
         );
         const softHeal = fx.some(
@@ -106,7 +107,8 @@ export function poseForUnit(
           fx.includes("rune-charge") ||
           fx.includes("vanguard-charge") ||
           fx.includes("doom-charge") ||
-          fx.includes("archer-charge"))
+          fx.includes("archer-charge") ||
+          fx.includes("spear-charge"))
       ) {
         return "standing";
       }
@@ -224,6 +226,8 @@ export function fxClassesForUnit(
       if (f === "doom-blast") return "fx-doom-blast";
       if (f === "archer-charge") return !isBoss ? "fx-archer-charge" : "";
       if (f === "archer-blast") return "fx-archer-blast";
+      if (f === "spear-charge") return !isBoss ? "fx-spear-charge" : "";
+      if (f === "spear-blast") return "fx-spear-blast";
       // Boss-only telegraph / impact (do not paint party red on AOE focus)
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";

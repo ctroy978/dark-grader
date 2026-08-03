@@ -257,7 +257,7 @@ export function cueAction(
               : "Stand!",
       durationMs: 700,
     },
-    // Spearman: thrust charge then pierce (reuse spear-themed tags; client may map later)
+    // Spearman: kinetic tip-pressure charge then diamond detonation (client SpearPierceFx)
     Spearman: {
       chargeFx: "spear-charge",
       blastFx: "spear-blast",

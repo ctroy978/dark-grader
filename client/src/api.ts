@@ -52,7 +52,12 @@ export type BoardReveal = {
     damage?: number;
     statuses?: import("@dungeon-grades/shared").StatusTag[];
   }>;
-  partyShield: { remaining: number; active: boolean };
+  partyShield: {
+    remaining: number;
+    active: boolean;
+    /** Maiden + most-endangered ally — only these seats show/spend cover */
+    coveredIds?: string[];
+  };
   magnetStunRoundsLeft?: number;
 };
 
@@ -101,7 +106,12 @@ export type EnrichedTeam = {
   magnetPosition: 1 | 2 | 3 | 4 | 5 | 6;
   /** Rattle Captain: magnet cannot move while &gt; 0 */
   magnetStunRoundsLeft?: number;
-  partyShield: { remaining: number; active: boolean };
+  partyShield: {
+    remaining: number;
+    active: boolean;
+    /** Maiden + most-endangered ally — only these seats show/spend cover */
+    coveredIds?: string[];
+  };
   phase: string;
   round: number;
   log: { round: number; text: string; tags?: string[] }[];

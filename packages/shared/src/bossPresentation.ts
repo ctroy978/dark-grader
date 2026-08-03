@@ -145,8 +145,11 @@ export function defaultTelegraphLines(attackId: string): string[] {
     case "Regenerate":
       return ["Embers…", "Mending…"];
     case "SummonBoneArchers":
+      return ["Calling…", "Bones rise…", "Archers…"];
     case "SummonCinderImps":
+      return ["Calling…", "The gap…", "Imps…"];
     case "SummonMossMites":
+      return ["Calling…", "Skitter…", "Mites…"];
     case "SummonOhms":
       return ["Calling…", "The gap…", "Ohms…"];
     default:

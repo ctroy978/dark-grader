@@ -148,14 +148,26 @@ const GRADE_CLASS: Record<Grade, string> = {
 function PartySeatEffects({
   name,
   block,
+  cover,
   statuses,
 }: {
   name: string;
   block?: number;
+  /** Shared Maiden cover pool on this seat only */
+  cover?: number;
   statuses?: StatusTag[];
 }) {
   const chips: { key: string; text: string; title: string; className: string }[] =
     [];
+  if (cover && cover > 0) {
+    chips.push({
+      key: "cover",
+      text: `Cover ${cover}`,
+      title:
+        "Shield Maiden cover this round — only Maiden + most-endangered ally share this pool",
+      className: "text-slate-200 border-slate-300/45 bg-slate-900/50",
+    });
+  }
   if (block && block > 0) {
     chips.push({
       key: "block",
@@ -214,7 +226,12 @@ function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
       ...m,
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
     })),
-    partyShield: { ...t.partyShield },
+    partyShield: {
+      ...t.partyShield,
+      coveredIds: t.partyShield.coveredIds
+        ? [...t.partyShield.coveredIds]
+        : [],
+    },
     lastClaims: [],
   };
 }
@@ -254,7 +271,12 @@ function applyBoardReveal(
         ...m,
         statuses: (m.statuses ?? []).map((st) => ({ ...st })),
       })),
-      partyShield: { ...base.partyShield },
+      partyShield: {
+        ...base.partyShield,
+        coveredIds: base.partyShield.coveredIds
+          ? [...base.partyShield.coveredIds]
+          : [],
+      },
       magnetStunRoundsLeft: base.magnetStunRoundsLeft ?? 0,
     };
   }
@@ -291,7 +313,12 @@ function applyBoardReveal(
       ...m,
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
     })),
-    partyShield: { ...reveal.partyShield },
+    partyShield: {
+      ...reveal.partyShield,
+      coveredIds: reveal.partyShield.coveredIds
+        ? [...reveal.partyShield.coveredIds]
+        : [],
+    },
     magnetStunRoundsLeft:
       reveal.magnetStunRoundsLeft ?? base.magnetStunRoundsLeft ?? 0,
   };
@@ -956,8 +983,12 @@ export default function CombatScreen({
     }
   }
 
-  const magnetSlotIndex = 6 - team.magnetPosition;
-  const magnetPct = (magnetSlotIndex / 5) * 100;
+  /** 0 = leftmost (back/pos 6), matching partyVisual order for magnet bar. */
+  const magnetVisualIndex = Math.max(
+    0,
+    partyVisual.findIndex((s) => s.position === team.magnetPosition),
+  );
+  const magnetSeatCount = Math.max(1, partyVisual.length);
   const phaseLabel = team.phase.replaceAll("_", " ");
   const showBossTelegraphBanner =
     team.phase === "boss_telegraph" && (!playing || activeBeat?.kind === "telegraph");
@@ -1153,32 +1184,26 @@ export default function CombatScreen({
             <span className="normal-case tracking-normal">
               🛡{" "}
               {view.partyShield.active && view.partyShield.remaining > 0
-                ? `Shield ${view.partyShield.remaining}`
-                : "Shield down"}
+                ? `Cover ${view.partyShield.remaining}`
+                : "Cover down"}
             </span>
             <span className="text-rune">Front (1) →</span>
           </div>
 
           {/* Fixed-height cards — do not stretch to fill the column.
-              When party shield is up: soft silver envelope around the whole strip
-              (dead seats included — still inside the ward). On/off only. */}
-          <div
-            className={`relative shrink-0 flex items-end gap-1 md:gap-1.5 p-1 overflow-visible ${
-              view.partyShield.active && view.partyShield.remaining > 0
-                ? "party-shield-ward"
-                : ""
-            }`}
-            aria-label={
-              view.partyShield.active && view.partyShield.remaining > 0
-                ? `Party shield active, ${view.partyShield.remaining} remaining`
-                : undefined
-            }
-          >
+              Maiden cover: silver ward on covered seats only (self + endangered).
+              --party-gap matches gap-* so the magnet bar can center under each seat. */}
+          <div className="relative shrink-0 flex items-end gap-1 md:gap-1.5 p-1 overflow-visible [--party-gap:0.25rem] md:[--party-gap:0.375rem]">
             {partyVisual.map((s) => {
               const pos = (s.position ?? 1) as number;
               const claim = claimBySoldier.get(s.id);
               const focused = focusSet.has(s.id);
               const isSpeaker = activeBeat?.bubble?.speakerId === s.id;
+              const shieldUp =
+                view.partyShield.active && view.partyShield.remaining > 0;
+              const covered =
+                shieldUp &&
+                (view.partyShield.coveredIds?.includes(s.id) ?? false);
               return (
                 <button
                   key={s.id}
@@ -1192,12 +1217,21 @@ export default function CombatScreen({
                   title={
                     !s.alive
                       ? "Fallen — magnet cannot be placed here"
-                      : magnetLocked
-                        ? "Magnet shocked — locked this round"
-                        : `Place magnet on #${pos}`
+                      : covered
+                        ? `Under cover (${view.partyShield.remaining}) — place magnet on #${pos}`
+                        : magnetLocked
+                          ? "Magnet shocked — locked this round"
+                          : `Place magnet on #${pos}`
+                  }
+                  aria-label={
+                    covered
+                      ? `${s.name} under cover, ${view.partyShield.remaining} remaining`
+                      : undefined
                   }
                   onClick={() => void setMagnet(pos)}
                   className={`relative flex-1 min-w-0 overflow-visible rounded-lg border bg-navy-light/70 p-0.5 md:p-1 text-center transition ${
+                    covered ? "unit-shield-ward" : ""
+                  } ${
                     !s.alive
                       ? "opacity-40 border-parchment/10 cursor-not-allowed"
                       : focused || isSpeaker
@@ -1206,7 +1240,9 @@ export default function CombatScreen({
                           ? magnetLocked
                             ? "border-yellow-300 ring-2 ring-yellow-300/50"
                             : "border-rune ring-2 ring-rune/40"
-                          : "border-parchment/15 hover:border-parchment/40"
+                          : covered
+                            ? "border-sky-200/40"
+                            : "border-parchment/15 hover:border-parchment/40"
                   }`}
                 >
                   <div className="text-[8px] text-parchment-dim leading-none py-0.5">
@@ -1229,28 +1265,47 @@ export default function CombatScreen({
                 </button>
               );
             })}
+            {/*
+              Magnet slides under seats. Track uses same inset as p-1 and the same
+              gap as the seat row (--party-gap), so left centers under each card
+              instead of the old %*0.86+1% fudge that drifted right.
+            */}
             <div
-              className={`pointer-events-none absolute bottom-0 h-1.5 w-[14%] rounded-full transition-all duration-200 ${
-                magnetLocked
-                  ? "magnet-shock-lock bg-yellow-300/90"
-                  : "magnet-glow bg-rune/80"
-              }`}
-              style={{
-                left: `calc(${magnetPct}% * 0.86 + 1%)`,
-              }}
-            />
+              className="pointer-events-none absolute inset-x-1 bottom-0 h-1.5"
+              aria-hidden
+            >
+              <div
+                className={`absolute top-0 h-full rounded-full transition-[left] duration-200 ease-out ${
+                  magnetLocked
+                    ? "magnet-shock-lock bg-yellow-300/90"
+                    : "magnet-glow bg-rune/80"
+                }`}
+                style={{
+                  // Seat width = (track − gaps) / n; bar is 72% of a seat, centered in that seat.
+                  width: `calc((100% - (${magnetSeatCount} - 1) * var(--party-gap)) / ${magnetSeatCount} * 0.72)`,
+                  left: `calc(${magnetVisualIndex} * (((100% - (${magnetSeatCount} - 1) * var(--party-gap)) / ${magnetSeatCount}) + var(--party-gap)) + ((100% - (${magnetSeatCount} - 1) * var(--party-gap)) / ${magnetSeatCount}) * 0.14)`,
+                }}
+              />
+            </div>
           </div>
           {/* Effects rail — clearly below cards; grows down so card boxes stay equal height */}
           <div className="shrink-0 flex items-start gap-1 md:gap-1.5 min-h-[1rem] mt-0.5 pt-1 border-t border-parchment/10">
-            {partyVisual.map((s) => (
-              <div key={`fx-${s.id}`} className="flex-1 min-w-0">
-                <PartySeatEffects
-                  name={s.name}
-                  block={s.block}
-                  statuses={s.statuses}
-                />
-              </div>
-            ))}
+            {partyVisual.map((s) => {
+              const seatCovered =
+                view.partyShield.active &&
+                view.partyShield.remaining > 0 &&
+                (view.partyShield.coveredIds?.includes(s.id) ?? false);
+              return (
+                <div key={`fx-${s.id}`} className="flex-1 min-w-0">
+                  <PartySeatEffects
+                    name={s.name}
+                    block={s.block}
+                    cover={seatCovered ? view.partyShield.remaining : 0}
+                    statuses={s.statuses}
+                  />
+                </div>
+              );
+            })}
           </div>
           {magnetLocked && team.phase === "awaiting_magnet" && !playing && (
             <div className="shrink-0 text-center text-[11px] font-semibold text-yellow-200">

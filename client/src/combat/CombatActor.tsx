@@ -446,6 +446,49 @@ function ArcherVolleyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
   );
 }
 
+/**
+ * Spearman — kinetic spear detonation (no windup.png).
+ * Charge: tip pressure builds, shaft compresses, sparks suck into the point.
+ * Blast: tip detonates into a diamond shock + piercing lance + shrapnel spray.
+ * Impact: thin spear line arrives from the left and ruptures at center.
+ * Palette: olive / chartreuse kinetic steel — not fire, lightning, or archer gold.
+ */
+function SpearPierceFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
+  const shardCount = mode === "charge" ? 8 : 12;
+  return (
+    <div className={`spear-pierce-fx spear-pierce-fx--${mode}`} aria-hidden>
+      <div className="spear-pierce-shaft" />
+      <div className="spear-pierce-tip" />
+      <div className="spear-pierce-compress spear-pierce-compress--a" />
+      <div className="spear-pierce-compress spear-pierce-compress--b" />
+      {mode !== "charge" && (
+        <>
+          <div className="spear-pierce-diamond" />
+          <div className="spear-pierce-lance spear-pierce-lance--a" />
+          <div className="spear-pierce-lance spear-pierce-lance--b" />
+          <div className="spear-pierce-lance spear-pierce-lance--c" />
+          <div className="spear-pierce-shock" />
+        </>
+      )}
+      <div className="spear-pierce-shards">
+        {Array.from({ length: shardCount }, (_, i) => (
+          <span
+            key={i}
+            className="spear-pierce-shard"
+            style={
+              {
+                "--shard-i": i,
+                "--shard-n": shardCount,
+                "--shard-angle": `${-70 + (i * 140) / Math.max(shardCount - 1, 1)}deg`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatusLabels({
   statuses,
   block,
@@ -652,6 +695,14 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("archer-blast") ?? false);
+  const showSpearCharge =
+    speaking && (cue?.fx?.includes("spear-charge") ?? false);
+  const showSpearBlast =
+    speaking && (cue?.fx?.includes("spear-blast") ?? false);
+  const showSpearImpact =
+    !speaking &&
+    inFocus &&
+    (cue?.fx?.includes("spear-blast") ?? false);
   const showSlimeDrip = hasSlimeDot(statuses);
   // Ice window frost while iced; full frozen tint/pose handles Frozen (incl. soft lock)
   const showIceFrost =
@@ -718,6 +769,9 @@ export function CombatActor({
           {showArcherCharge && <ArcherVolleyFx mode="charge" />}
           {showArcherBlast && <ArcherVolleyFx mode="blast" />}
           {showArcherImpact && <ArcherVolleyFx mode="impact" />}
+          {showSpearCharge && <SpearPierceFx mode="charge" />}
+          {showSpearBlast && <SpearPierceFx mode="blast" />}
+          {showSpearImpact && <SpearPierceFx mode="impact" />}
           <PlaceholderPortrait
             kind={portrait}
             pose={pose}

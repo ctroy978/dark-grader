@@ -595,7 +595,13 @@ export function commitRound(team: TeamState): TeamState {
         });
       }
 
-      const lines = defaultTelegraphLines(attackId);
+      // Prefer per-attack TOML bubble_lines so Moss Grub mites ≠ Rattle Ohms
+      // (defaultTelegraphLines is only a fallback for missing content).
+      const attackDef = tpl?.attacks.find((a) => a.id === attackId);
+      const lines =
+        attackDef?.bubble_lines?.length
+          ? attackDef.bubble_lines
+          : defaultTelegraphLines(attackId);
       const line =
         lines[Math.floor(telegraphRng() * lines.length)] ?? "…";
 
@@ -862,7 +868,7 @@ function clearFightState(team: TeamState): void {
   team.noSummonBeforeRound = 0;
   team.playback = [];
   team.lastClaims = [];
-  team.partyShield = { remaining: 0, active: false };
+  team.partyShield = { remaining: 0, active: false, coveredIds: [] };
   team.partyDamageBonus = 0;
   team.tokens = { remaining: [], discard: [] };
   for (const s of team.roster) {

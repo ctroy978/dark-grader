@@ -134,35 +134,43 @@ body {
 }
 
 /*
- * Party shield ward (Shield Maiden) — Option A envelope.
- * Soft silver aura around the whole party strip when shield is up.
- * Binary on/off (no remaining-based intensity). Idle only for v1.
+ * Shield Maiden cover ward — soft silver bubble on covered seats only
+ * (Maiden + most-endangered ally). Not a whole-party envelope.
+ * Binary on/off (no remaining-based intensity).
  */
-@keyframes party-shield-breathe {
+@keyframes unit-shield-breathe {
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(210, 220, 235, 0.35),
-      0 0 14px 2px rgba(190, 205, 225, 0.28),
-      0 0 28px 6px rgba(170, 190, 220, 0.14),
-      inset 0 0 18px rgba(220, 230, 245, 0.06);
+      0 0 0 1px rgba(210, 220, 235, 0.45),
+      0 0 12px 2px rgba(190, 205, 225, 0.35),
+      0 0 22px 4px rgba(170, 190, 220, 0.18),
+      inset 0 0 14px rgba(220, 230, 245, 0.1);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(230, 238, 250, 0.55),
-      0 0 20px 4px rgba(200, 215, 235, 0.42),
-      0 0 36px 10px rgba(180, 200, 230, 0.2),
-      inset 0 0 24px rgba(230, 240, 255, 0.1);
+      0 0 0 1.5px rgba(230, 238, 250, 0.65),
+      0 0 16px 3px rgba(200, 215, 235, 0.5),
+      0 0 28px 6px rgba(180, 200, 230, 0.28),
+      inset 0 0 18px rgba(230, 240, 255, 0.14);
   }
 }
 
+.unit-shield-ward {
+  border-radius: 0.55rem;
+  background: rgba(180, 195, 220, 0.08);
+  animation: unit-shield-breathe 2.4s ease-in-out infinite;
+  outline: 1px solid rgba(200, 215, 235, 0.4);
+  outline-offset: 0;
+  /* Keep focus/magnet rings legible on top of the bubble */
+  z-index: 1;
+}
+
+/* Legacy whole-strip class — unused; kept so old cached CSS refs don't break hard */
 .party-shield-ward {
   border-radius: 0.65rem;
   background: rgba(180, 195, 220, 0.05);
-  animation: party-shield-breathe 2.4s ease-in-out infinite;
-  /* Soft silver wash — readable at classroom distance without fighting boss FX */
   outline: 1px solid rgba(200, 215, 235, 0.28);
-  outline-offset: 0;
 }
 
 .token-fall {
@@ -2893,6 +2901,569 @@ body {
   100% {
     opacity: 0;
     transform: scale(1.6) translateX(6px);
+  }
+}
+
+/*
+ * Spearman — kinetic spear detonation (CSS-only windup; no windup.png).
+ * Olive / chartreuse steel; tip compression then diamond-tip explosion.
+ * Distinct from archer gold volley, vanguard plates, fire/thunder rings.
+ */
+.fx-spear-charge {
+  filter: drop-shadow(0 0 10px rgba(190, 230, 90, 0.7))
+    drop-shadow(0 0 18px rgba(120, 160, 50, 0.4));
+}
+.fx-spear-charge .portrait-frame {
+  animation: spear-coil-breathe 0.42s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(200, 240, 100, 0.55),
+    0 0 16px rgba(160, 210, 70, 0.5),
+    0 0 28px rgba(90, 130, 40, 0.3);
+  border-color: rgba(190, 230, 90, 0.6);
+}
+.fx-spear-blast {
+  filter: drop-shadow(0 0 14px rgba(230, 255, 120, 0.9))
+    drop-shadow(0 0 26px rgba(170, 220, 60, 0.55));
+}
+.fx-spear-blast .portrait-frame {
+  animation: spear-detonate-flash 0.55s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(240, 255, 150, 0.7),
+    0 0 22px rgba(200, 240, 80, 0.7),
+    0 0 40px rgba(130, 180, 40, 0.4);
+  border-color: rgba(220, 255, 120, 0.7);
+}
+
+.spear-pierce-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -18% -16% -10% -14%;
+  z-index: 6;
+  overflow: visible;
+}
+
+/* Vertical kinetic shaft through the torso */
+.spear-pierce-shaft {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  width: 5px;
+  height: 58%;
+  margin-left: -2.5px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to top,
+    rgba(80, 110, 40, 0.15) 0%,
+    rgba(180, 220, 70, 0.85) 45%,
+    rgba(240, 255, 160, 0.95) 78%,
+    rgba(255, 255, 220, 0.4) 100%
+  );
+  box-shadow:
+    0 0 8px rgba(190, 240, 80, 0.7),
+    0 0 16px rgba(140, 190, 50, 0.35);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform-origin: center top;
+}
+.spear-pierce-fx--charge .spear-pierce-shaft {
+  animation: spear-shaft-compress 0.65s ease-in-out infinite;
+}
+.spear-pierce-fx--blast .spear-pierce-shaft {
+  animation: spear-shaft-launch 0.55s ease-out forwards;
+}
+.spear-pierce-fx--impact .spear-pierce-shaft {
+  left: 22%;
+  top: 28%;
+  width: 56%;
+  height: 4px;
+  margin-left: 0;
+  margin-top: -2px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(180, 220, 70, 0.7) 30%,
+    rgba(240, 255, 160, 0.95) 70%,
+    rgba(255, 255, 220, 0.5) 100%
+  );
+  transform-origin: left center;
+  animation: spear-shaft-impact 0.55s ease-out forwards;
+}
+
+/* Diamond tip — pressure focus / detonation core */
+.spear-pierce-tip {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 18%;
+  height: 14%;
+  margin-left: -9%;
+  background: radial-gradient(
+    circle at 50% 55%,
+    rgba(255, 255, 230, 0.98) 0%,
+    rgba(210, 250, 100, 0.85) 35%,
+    rgba(140, 190, 50, 0.4) 65%,
+    transparent 78%
+  );
+  clip-path: polygon(50% 0%, 100% 55%, 50% 100%, 0% 55%);
+  mix-blend-mode: screen;
+  box-shadow: 0 0 14px rgba(200, 250, 90, 0.85);
+  opacity: 0;
+}
+.spear-pierce-fx--charge .spear-pierce-tip {
+  animation: spear-tip-charge 0.55s ease-in-out infinite;
+}
+.spear-pierce-fx--blast .spear-pierce-tip {
+  animation: spear-tip-burst 0.55s ease-out forwards;
+}
+.spear-pierce-fx--impact .spear-pierce-tip {
+  left: 52%;
+  top: 40%;
+  width: 22%;
+  height: 18%;
+  margin-left: -11%;
+  animation: spear-tip-impact 0.55s ease-out forwards;
+}
+
+/* Rings squeeze IN along the shaft (pressure, not magic orbit) */
+.spear-pierce-compress {
+  position: absolute;
+  left: 50%;
+  width: 42%;
+  height: 14%;
+  margin-left: -21%;
+  border-radius: 50%;
+  border: 2px solid rgba(200, 240, 100, 0.55);
+  box-shadow: 0 0 10px rgba(160, 210, 60, 0.4);
+  opacity: 0;
+}
+.spear-pierce-compress--a {
+  top: 42%;
+}
+.spear-pierce-compress--b {
+  top: 56%;
+  width: 34%;
+  margin-left: -17%;
+  border-color: rgba(170, 220, 80, 0.4);
+}
+.spear-pierce-fx--charge .spear-pierce-compress--a {
+  animation: spear-compress-in 0.6s ease-in infinite;
+}
+.spear-pierce-fx--charge .spear-pierce-compress--b {
+  animation: spear-compress-in 0.6s ease-in infinite 0.18s;
+}
+.spear-pierce-fx--blast .spear-pierce-compress,
+.spear-pierce-fx--impact .spear-pierce-compress {
+  display: none;
+}
+
+/* Diamond shockwave at tip detonation */
+.spear-pierce-diamond {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  width: 28%;
+  height: 22%;
+  margin-left: -14%;
+  background: transparent;
+  border: 2px solid rgba(240, 255, 150, 0.85);
+  box-shadow:
+    0 0 12px rgba(200, 250, 90, 0.7),
+    inset 0 0 10px rgba(180, 230, 70, 0.35);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  opacity: 0;
+  transform-origin: center center;
+}
+.spear-pierce-fx--blast .spear-pierce-diamond {
+  animation: spear-diamond-burst 0.65s ease-out forwards;
+}
+.spear-pierce-fx--impact .spear-pierce-diamond {
+  left: 50%;
+  top: 38%;
+  width: 32%;
+  height: 26%;
+  margin-left: -16%;
+  animation: spear-diamond-burst 0.6s ease-out 0.08s forwards;
+}
+
+/* Piercing lances — diagonal spear-shaped shock cones */
+.spear-pierce-lance {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  height: 10%;
+  margin-top: -5%;
+  border-radius: 0 40% 40% 0;
+  background: linear-gradient(
+    to right,
+    rgba(240, 255, 160, 0.9) 0%,
+    rgba(170, 220, 60, 0.55) 45%,
+    rgba(100, 140, 40, 0.15) 80%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform-origin: left center;
+  box-shadow: 0 0 12px rgba(190, 240, 80, 0.55);
+}
+.spear-pierce-fx--blast .spear-pierce-lance--a {
+  width: 72%;
+  animation: spear-lance-out 0.7s ease-out forwards;
+}
+.spear-pierce-fx--blast .spear-pierce-lance--b {
+  width: 58%;
+  top: 18%;
+  transform: rotate(-18deg);
+  animation: spear-lance-out-tilt 0.7s ease-out 0.03s forwards;
+  --lance-rot: -18deg;
+}
+.spear-pierce-fx--blast .spear-pierce-lance--c {
+  width: 58%;
+  top: 28%;
+  animation: spear-lance-out-tilt 0.7s ease-out 0.05s forwards;
+  --lance-rot: 18deg;
+}
+
+/* Impact: lances enter from left into center */
+.spear-pierce-fx--impact .spear-pierce-lance {
+  left: 0%;
+  top: 42%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(170, 220, 60, 0.5) 30%,
+    rgba(240, 255, 160, 0.9) 75%,
+    rgba(255, 255, 220, 0.5) 100%
+  );
+}
+.spear-pierce-fx--impact .spear-pierce-lance--a {
+  width: 58%;
+  animation: spear-lance-in 0.65s ease-out forwards;
+}
+.spear-pierce-fx--impact .spear-pierce-lance--b {
+  width: 48%;
+  top: 36%;
+  animation: spear-lance-in-tilt 0.65s ease-out 0.04s forwards;
+  --lance-rot: -14deg;
+}
+.spear-pierce-fx--impact .spear-pierce-lance--c {
+  width: 48%;
+  top: 48%;
+  animation: spear-lance-in-tilt 0.65s ease-out 0.06s forwards;
+  --lance-rot: 14deg;
+}
+
+.spear-pierce-shock {
+  position: absolute;
+  left: 48%;
+  top: 20%;
+  width: 22%;
+  height: 28%;
+  margin-left: -11%;
+  border-radius: 50%;
+  border: 2px solid rgba(230, 255, 130, 0.75);
+  box-shadow:
+    0 0 16px rgba(190, 240, 80, 0.65),
+    0 0 28px rgba(140, 190, 50, 0.35);
+  opacity: 0;
+  transform-origin: center center;
+}
+.spear-pierce-fx--blast .spear-pierce-shock {
+  animation: spear-shock-pop 0.55s ease-out forwards;
+}
+.spear-pierce-fx--impact .spear-pierce-shock {
+  left: 50%;
+  top: 40%;
+  width: 26%;
+  height: 32%;
+  margin-left: -13%;
+  animation: spear-shock-pop 0.55s ease-out 0.1s forwards;
+}
+
+/* Shrapnel: suck into tip on charge, fan out on detonation */
+.spear-pierce-shards {
+  position: absolute;
+  inset: 0;
+}
+.spear-pierce-shard {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: 12px;
+  height: 3px;
+  margin-left: -6px;
+  margin-top: -1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 220, 0.95) 0%,
+    rgba(180, 230, 70, 0.85) 55%,
+    transparent 100%
+  );
+  box-shadow: 0 0 5px rgba(200, 250, 90, 0.85);
+  opacity: 0;
+  transform-origin: left center;
+}
+.spear-pierce-fx--charge .spear-pierce-shard {
+  animation: spear-shard-suck 0.55s ease-in infinite;
+  animation-delay: calc(var(--shard-i) * 0.04s);
+}
+.spear-pierce-fx--blast .spear-pierce-shard {
+  animation: spear-shard-spray 0.7s ease-out forwards;
+  animation-delay: calc(var(--shard-i) * 0.015s);
+}
+.spear-pierce-fx--impact {
+  inset: -12% -10% -8% -16%;
+}
+.spear-pierce-fx--impact .spear-pierce-shard {
+  left: 8%;
+  top: 42%;
+  animation: spear-shard-impact 0.65s ease-out forwards;
+  animation-delay: calc(var(--shard-i) * 0.018s);
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(170, 220, 60, 0.8) 35%,
+    rgba(255, 255, 220, 0.95) 100%
+  );
+}
+
+@keyframes spear-coil-breathe {
+  0%,
+  100% {
+    filter: brightness(1.05) saturate(1.1);
+    transform: scale(1) translateX(0);
+  }
+  50% {
+    filter: brightness(1.22) saturate(1.35);
+    transform: scale(1.03) translateX(1px);
+  }
+}
+@keyframes spear-detonate-flash {
+  0% {
+    filter: brightness(1.65) saturate(1.5);
+  }
+  30% {
+    filter: brightness(1.3) saturate(1.25);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+@keyframes spear-shaft-compress {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleY(0.85) scaleX(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.05) scaleX(1.15);
+  }
+}
+@keyframes spear-shaft-launch {
+  0% {
+    opacity: 1;
+    transform: scaleY(1) scaleX(1.1);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scaleY(0.7) scaleX(0.6) translateY(-6%);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.3) scaleX(0.35) translateY(-18%);
+  }
+}
+@keyframes spear-shaft-impact {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+  35% {
+    opacity: 1;
+    transform: scaleX(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.15);
+  }
+}
+@keyframes spear-tip-charge {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+@keyframes spear-tip-burst {
+  0% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+@keyframes spear-tip-impact {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateX(-12px);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.35) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1) translateX(4px);
+  }
+}
+@keyframes spear-compress-in {
+  0% {
+    opacity: 0.15;
+    transform: scale(1.35);
+  }
+  70% {
+    opacity: 0.85;
+    transform: scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+}
+@keyframes spear-diamond-burst {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.25) rotate(0deg);
+  }
+  45% {
+    opacity: 0.9;
+    transform: scale(1.15) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2) rotate(16deg);
+  }
+}
+@keyframes spear-lance-out {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.12);
+  }
+  25% {
+    opacity: 1;
+    transform: scaleX(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.4);
+  }
+}
+@keyframes spear-lance-out-tilt {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(0.12);
+  }
+  25% {
+    opacity: 1;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(1.35);
+  }
+}
+@keyframes spear-lance-in {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.15) translateX(-6%);
+  }
+  30% {
+    opacity: 1;
+    transform: scaleX(0.75) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.2) translateX(10%);
+  }
+}
+@keyframes spear-lance-in-tilt {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(0.15) translateX(-6%);
+  }
+  30% {
+    opacity: 1;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(0.75) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--lance-rot, 0deg)) scaleX(1.15) translateX(8%);
+  }
+}
+@keyframes spear-shock-pop {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+@keyframes spear-shard-suck {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--shard-angle)) translateX(28px) scaleX(0.5);
+  }
+  45% {
+    opacity: 0.95;
+    transform: rotate(var(--shard-angle)) translateX(10px) scaleX(0.9);
+  }
+  100% {
+    opacity: 0.15;
+    transform: rotate(var(--shard-angle)) translateX(2px) scaleX(0.4);
+  }
+}
+@keyframes spear-shard-spray {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--shard-angle)) translateX(0) scaleX(0.7);
+  }
+  35% {
+    opacity: 1;
+    transform: rotate(var(--shard-angle)) translateX(22px) scaleX(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--shard-angle)) translateX(72px) scaleX(0.55);
+  }
+}
+@keyframes spear-shard-impact {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--shard-angle) * 0.35)) translateX(-8px)
+      scaleX(0.45);
+  }
+  35% {
+    opacity: 1;
+    transform: rotate(calc(var(--shard-angle) * 0.35)) translateX(24px)
+      scaleX(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--shard-angle) * 0.35)) translateX(50px)
+      scaleX(0.6);
   }
 }
 
