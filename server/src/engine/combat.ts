@@ -12,7 +12,6 @@ import {
   MAX_LOG_ENTRIES,
   PARTY_HURT_LAYER_DELAY_MS,
   PARTY_SIZE,
-  randomInt,
   type Grade,
   type Position,
   type Soldier,
