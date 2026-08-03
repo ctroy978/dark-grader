@@ -7,6 +7,7 @@ import {
 } from "@dungeon-grades/shared";
 import { createTeam, selectParty, startFight } from "./combat.js";
 import { livingParty } from "./damage.js";
+import { applyDot } from "./dots.js";
 import { resolveSpecialistAction } from "./specialists.js";
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
@@ -30,15 +31,7 @@ function supportParty(withHealer: boolean): TeamState {
     )
     .slice(0, 3)
     .map((s) => s.id);
-  // Back seat = support
-  selectParty(team, [tank.id, ...rest, necro.id, support.id].slice(0, 6));
-  // Ensure necro + support in party
-  const ids = [
-    tank.id,
-    ...rest.slice(0, 3),
-    necro.id,
-    support.id,
-  ].slice(0, 6);
+  const ids = [tank.id, ...rest.slice(0, 3), necro.id, support.id].slice(0, 6);
   selectParty(team, ids);
   startFight(team, "moss_grub", POOL);
   for (const s of livingParty(team)) {
@@ -71,10 +64,8 @@ describe("Necromancer Life Power", () => {
     if (lp?.kind === "LifePower") {
       expect(lp.bonus).toBe(NECRO_LIFE_POWER.A);
     }
-    // No direct ally heal from Necro
     const after = livingParty(team).filter((s) => s.id !== necro.id);
     after.forEach((s, i) => {
-      // boss drain may not change ally HP
       expect(s.currentHp).toBe(allyHp[i]);
     });
   });
@@ -119,16 +110,28 @@ describe("Necromancer Life Power", () => {
 
     const powers = healer.statuses.filter((st) => st.kind === "LifePower");
     expect(powers).toHaveLength(1);
-    expect(powers[0]).toMatchObject({ kind: "LifePower", bonus: NECRO_LIFE_POWER.C });
+    expect(powers[0]).toMatchObject({
+      kind: "LifePower",
+      bonus: NECRO_LIFE_POWER.C,
+    });
   });
 
-  it("Healer A schedules Life Power follow-up; stays until used", () => {
+  it("charged Healer: clean seats heal; dirty seats cleanse with no HP", () => {
     const team = supportParty(true);
     const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
     healer.statuses.push({ kind: "LifePower", bonus: 6 });
-    for (const s of livingParty(team)) {
+    const living = livingParty(team);
+    for (const s of living) {
       s.currentHp = 10;
+      s.statuses = s.statuses.filter((st) => st.kind !== "Dot");
     }
+    const dirty = living.filter((s) => s.id !== healer.id).slice(0, 2);
+    for (const s of dirty) {
+      applyDot(s, "Poison", 1, undefined, true);
+      applyDot(s, "Fire", 1, undefined, true);
+    }
+    const clean = living.filter((s) => !dirty.some((d) => d.id === s.id));
+    const dirtyIds = new Set(dirty.map((s) => s.id));
 
     const result = resolveSpecialistAction(
       team,
@@ -138,21 +141,51 @@ describe("Necromancer Life Power", () => {
       () => {},
     );
 
-    // Base heal applied; Life Power still on until combat follow-up consumes it
-    expect(result.lifePowerFollowUp).toEqual({
-      bonus: 6,
-      targetIds: expect.arrayContaining(livingParty(team).map((s) => s.id)),
-      supportId: healer.id,
-    });
-    expect(healer.statuses.some((st) => st.kind === "LifePower")).toBe(true);
-
-    // Base amounts landed
     for (const s of livingParty(team)) {
-      expect(s.currentHp).toBe(10 + HEALER_HEAL.A);
+      if (dirtyIds.has(s.id)) {
+        expect(s.currentHp).toBe(10); // no heal
+        expect(
+          s.statuses.some(
+            (st) =>
+              st.kind === "Dot" && (st.type === "Poison" || st.type === "Fire"),
+          ),
+        ).toBe(false);
+      } else {
+        expect(s.currentHp).toBe(10 + HEALER_HEAL.A);
+      }
     }
+
+    expect(result.lifePowerFollowUp?.healTargetIds.sort()).toEqual(
+      clean.map((s) => s.id).sort(),
+    );
+    expect(result.lifePowerFollowUp?.cleanseTargetIds.sort()).toEqual(
+      dirty.map((s) => s.id).sort(),
+    );
+    expect(result.lifePowerFollowUp?.bonus).toBe(6);
   });
 
-  it("Necro then Healer: base heal + purple Life Power totals", () => {
+  it("uncharged Healer does not cleanse Fire/Poison", () => {
+    const team = supportParty(true);
+    const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
+    const ally = livingParty(team).find((s) => s.id !== healer.id)!;
+    ally.currentHp = 10;
+    applyDot(ally, "Poison", 1, undefined, true);
+
+    resolveSpecialistAction(
+      team,
+      healer,
+      { token: "A", soldierId: healer.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+
+    expect(
+      ally.statuses.some((st) => st.kind === "Dot" && st.type === "Poison"),
+    ).toBe(true);
+    expect(ally.currentHp).toBe(10 + HEALER_HEAL.A);
+  });
+
+  it("Necro then Healer on clean line: base heal + purple bonus", () => {
     const team = supportParty(true);
     const necro = livingParty(team).find((s) => s.archetype === "Necromancer")!;
     const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
@@ -168,7 +201,6 @@ describe("Necromancer Life Power", () => {
       () => 0.5,
       () => {},
     );
-    expect(healer.statuses.some((st) => st.kind === "LifePower")).toBe(true);
 
     const r = resolveSpecialistAction(
       team,
@@ -178,11 +210,11 @@ describe("Necromancer Life Power", () => {
       () => {},
     );
     expect(r.lifePowerFollowUp?.bonus).toBe(6);
+    expect(r.lifePowerFollowUp?.cleanseTargetIds).toEqual([]);
 
-    // Apply follow-up as combat.ts would
     if (r.lifePowerFollowUp) {
       healer.statuses = healer.statuses.filter((st) => st.kind !== "LifePower");
-      for (const id of r.lifePowerFollowUp.targetIds) {
+      for (const id of r.lifePowerFollowUp.healTargetIds) {
         const t = team.roster.find((s) => s.id === id)!;
         t.currentHp = Math.min(
           t.maxHp,
@@ -191,12 +223,49 @@ describe("Necromancer Life Power", () => {
       }
     }
 
-    expect(healer.statuses.some((st) => st.kind === "LifePower")).toBe(false);
     for (const prev of before) {
       const s = team.roster.find((x) => x.id === prev.id)!;
       if (!s.alive) continue;
       const expected = Math.min(s.maxHp, prev.hp + HEALER_HEAL.A + 6);
       expect(s.currentHp).toBe(expected);
     }
+  });
+
+  it("charged Runesinger washes poison instead of applying HoT", () => {
+    const team = supportParty(false);
+    const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
+    rs.statuses.push({ kind: "LifePower", bonus: 4 });
+    team.lastClaims = livingParty(team).map((s) => ({
+      token: "C" as Grade,
+      soldierId: s.id,
+      effectiveGrade: "C" as Grade,
+    }));
+    const front = livingParty(team).filter(
+      (s) => s.position != null && s.position <= 3,
+    );
+    for (const s of front) {
+      applyDot(s, "Poison", 1, undefined, true);
+      s.statuses = s.statuses.filter((st) => st.kind !== "Hot");
+    }
+
+    // B = front hymn
+    const result = resolveSpecialistAction(
+      team,
+      rs,
+      { token: "B", soldierId: rs.id, effectiveGrade: "B" },
+      () => 0.5,
+      () => {},
+    );
+
+    for (const s of front) {
+      expect(
+        s.statuses.some((st) => st.kind === "Dot" && st.type === "Poison"),
+      ).toBe(false);
+      expect(s.statuses.some((st) => st.kind === "Hot")).toBe(false);
+    }
+    expect(result.lifePowerFollowUp?.cleanseTargetIds.length).toBe(
+      front.length,
+    );
+    expect(result.lifePowerFollowUp?.healTargetIds.length).toBe(0);
   });
 });

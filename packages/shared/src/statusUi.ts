@@ -125,7 +125,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `life-power-${index}`,
       icon: "💜",
       label: `Life +${st.bonus}`,
-      title: `Life Power — next Healer/Runesinger heal adds +${st.bonus} HP per ally (purple rain after the base heal). No stack; stays until used (Necromancer).`,
+      title: `Life Power — next Healer/Runesinger action: seats with Fire/Poison are cleansed (no heal); clean seats heal and get +${st.bonus} purple. Maiden remains primary strip. No stack; until used (Necromancer).`,
       colorClass: "text-fuchsia-200 border-fuchsia-400/50 bg-fuchsia-950/40",
     };
   }

@@ -500,10 +500,10 @@ export function commitRound(team: TeamState): TeamState {
         { hitFocusIds, slainNames },
       );
 
-      // Life Power: second purple rain after Healer/Runesinger base heal/hymn.
-      // Base heal already on the board; this beat only applies the flat bonus.
+      // Life Power purple rain: bonus HP on heal seats; FX on cleanse seats too.
       if (lifePowerFollowUp) {
-        const { bonus, targetIds, supportId } = lifePowerFollowUp;
+        const { bonus, healTargetIds, cleanseTargetIds, supportId } =
+          lifePowerFollowUp;
         const support = team.roster.find((s) => s.id === supportId);
         if (support) {
           support.statuses = support.statuses.filter(
@@ -512,19 +512,31 @@ export function commitRound(team: TeamState): TeamState {
         }
         const purpleFocus: string[] = [];
         let purpleTotal = 0;
-        for (const id of targetIds) {
+        for (const id of healTargetIds) {
           const t = team.roster.find((s) => s.id === id);
           if (!t?.alive) continue;
           const got = healSoldier(t, bonus);
-          if (got > 0 || t.alive) {
-            purpleFocus.push(t.id);
-            purpleTotal += got;
-          }
+          purpleFocus.push(t.id);
+          purpleTotal += got;
+        }
+        for (const id of cleanseTargetIds) {
+          const t = team.roster.find((s) => s.id === id);
+          if (!t?.alive) continue;
+          if (!purpleFocus.includes(t.id)) purpleFocus.push(t.id);
         }
         if (purpleFocus.length) {
+          const parts: string[] = [];
+          if (healTargetIds.length) {
+            parts.push(
+              `+${bonus} on ${healTargetIds.length} (${purpleTotal} HP)`,
+            );
+          }
+          if (cleanseTargetIds.length) {
+            parts.push(`wash glow on ${cleanseTargetIds.length} (no HP)`);
+          }
           pushLog(
             team,
-            `  [Life Power] purple rain +${bonus} each on ${purpleFocus.length} (${purpleTotal} total HP)`,
+            `  [Life Power] purple rain — ${parts.join("; ")}`,
             ["party"],
           );
           pushCue(team, {

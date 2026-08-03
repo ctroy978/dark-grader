@@ -50,9 +50,9 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {
-    A: "Drain 12; Life Power +6 on Healer or Runesinger (purple rain after their next heal)",
-    B: "Drain 9; Life Power +4 on Healer or Runesinger",
-    C: "Drain 6; Life Power +2 on Healer or Runesinger",
+    A: "Drain 12; Life Power +6 on Healer/Runesinger — their next heal washes Fire/Poison (no HP) or mends + purple",
+    B: "Drain 9; Life Power +4 on Healer/Runesinger (wash or mend)",
+    C: "Drain 6; Life Power +2 on Healer/Runesinger (wash or mend)",
     D: "Weak drain, self-damage (no Life Power)",
     F: "Backlash — hits highest-HP ally for 10",
   },

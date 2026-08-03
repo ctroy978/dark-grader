@@ -26,17 +26,17 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   FireMage:
     "Hits several enemies with fire and can burn the boss. Gap minions only from seat 1 (like other non-Archers). Only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime. D/F can hurt allies.",
   Healer:
-    "Instant triage heals only (no cleanse). A = whole party, B = two lowest, C = one lowest, D = tiny all-party. F heals the boss. Back seat only — not with a Runesinger. Necromancer Life Power can empower her next heal.",
+    "Instant triage heals (A all, B two lowest, C one, D tiny all). F heals the boss. Back seat only. Uncharged: no cleanse (Maiden primary). With Necromancer Life Power: Fire/Poison seats wash (no HP); clean seats heal + purple.",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:
     "Front-line striker with Parry. A/B also grant Last Stand (A all living, B front). Seat 1 without parry takes extra boss heat.",
   Necromancer:
-    "Drains the boss and grants Life Power to the living Healer or Runesinger — their next heal gets a purple bonus rain. Does not heal allies directly.",
+    "Drains the boss and grants Life Power to the Healer or Runesinger. Their next heal: Fire/Poison seats get washed (no HP); clean seats get healed plus purple bonus. Maiden is still the primary one-token cleanse. Does not heal allies directly.",
   Thundercaller:
     "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
   Runesinger:
-    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Slow gold hymn HoT (no cleanse). Back seat only — not with a Healer. Necromancer Life Power can empower her next hymn.",
+    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Slow gold hymn HoT. Back seat only — not with a Healer. With Necromancer Life Power, dirty seats get Fire/Poison wash instead of hymn; clean seats get HoT + purple.",
 };
 
 export interface ArchetypeGradeScout {
