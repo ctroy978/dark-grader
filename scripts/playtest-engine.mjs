@@ -63,6 +63,13 @@ function smartPos(team) {
       L.reduce((a, s) => a + s.maxHp, 0) <
     0.55;
   const pick = (...as) => L.find((s) => as.includes(s.archetype))?.position;
+  const minions = (team.minions ?? []).filter((m) => m.currentHp > 0);
+  const dead = (team.roster ?? []).some(
+    (s) => team.activePartyIds?.includes(s.id) && !s.alive,
+  );
+  if (dead && hasA) return pick("Thundercaller") ?? L[0].position;
+  if (minions.length)
+    return pick("Archer", "Spearman", "Vanguard") ?? L[0].position;
   if (dots) return pick("FireMage", "Healer") ?? L[0].position;
   if (hurt)
     return pick("Healer", "Runesinger", "Necromancer") ?? L[0].position;
@@ -72,12 +79,13 @@ function smartPos(team) {
         "FireMage",
         "Thundercaller",
         "Archer",
+        "Spearman",
         "Runesinger",
         "ShieldMaiden",
       ) ?? L[0].position
     );
   return (
-    pick("FireMage", "Archer", "Thundercaller", "ShieldMaiden") ??
+    pick("FireMage", "Archer", "Spearman", "Thundercaller", "ShieldMaiden") ??
     L[Math.floor(L.length / 2)].position
   );
 }

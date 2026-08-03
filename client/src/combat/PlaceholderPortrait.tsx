@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Archetype } from "@dungeon-grades/shared";
+import { ARCHETYPE_CLEANSE_DOTS, type Archetype } from "@dungeon-grades/shared";
 import { artAssetUrl } from "./artCache";
 import type { CombatPose } from "./poses";
 
@@ -178,6 +178,28 @@ export function PlaceholderPortrait({
     ? "w-full h-full object-contain object-center block"
     : "w-full h-full object-cover object-top block";
 
+  const cleanseDots =
+    kind.role === "party"
+      ? ARCHETYPE_CLEANSE_DOTS[kind.archetype] ?? []
+      : [];
+
+  const cleanseDotEl =
+    cleanseDots.length > 0 ? (
+      <div
+        className="pointer-events-none absolute bottom-1 left-1 flex gap-0.5 z-10"
+        title={cleanseDots.map((d) => d.type).join(" / ") + " cleanse"}
+      >
+        {cleanseDots.map((d) => (
+          <span
+            key={d.type}
+            className="block h-2 w-2 rounded-full border border-black/40 shadow"
+            style={{ backgroundColor: d.color }}
+            aria-label={`Cleanses ${d.type}`}
+          />
+        ))}
+      </div>
+    ) : null;
+
   if (useImg) {
     return (
       <div
@@ -205,6 +227,7 @@ export function PlaceholderPortrait({
         {pose === "attack" && (
           <div className="pointer-events-none absolute inset-0 portrait-attack-veil" />
         )}
+        {cleanseDotEl}
       </div>
     );
   }
@@ -215,6 +238,7 @@ export function PlaceholderPortrait({
       data-pose={pose}
       data-art-placeholder="true"
     >
+      {cleanseDotEl}
       <svg
         viewBox="0 0 100 120"
         className="w-full h-full block"

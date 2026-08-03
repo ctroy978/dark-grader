@@ -163,6 +163,29 @@ export function thundercallerRezHp(maxHp: number): number {
   return Math.max(1, Math.floor(maxHp * 0.1));
 }
 
+/**
+ * 2nd+ minion shot in the same boss-phase volley multiplies damage
+ * (all shots still hard-focus the magnet seat).
+ */
+export const MULTI_MINION_FOCUS_MULT = 1.5;
+
+/**
+ * Portrait cleanse color dots (bottom-left). Empty = no cleanse role.
+ * Matches DoT chip colors for classroom teaching.
+ */
+export const ARCHETYPE_CLEANSE_DOTS: Partial<
+  Record<Archetype, { type: "Fire" | "Poison" | "Ice" | "Slime"; color: string }[]>
+> = {
+  Healer: [
+    { type: "Fire", color: "#fb923c" },
+    { type: "Poison", color: "#a3e635" },
+  ],
+  FireMage: [
+    { type: "Ice", color: "#7dd3fc" },
+    { type: "Slime", color: "#6ee7b7" },
+  ],
+};
+
 /** Display colors for grades */
 export const GRADE_COLORS: Record<Grade, string> = {
   A: "#d4af37",

@@ -141,49 +141,48 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Friendly fire **bypasses** shield + personal block  
 
 ### Personal block (Vanguard)
-- A–C personal block + party-wide block; D/F still hit  
-- Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase** (not at next token drop — that made chips vanish before the attack reveal)  
+- **Personal only** (no party-wide pad). A–D personal block + hit; F weak hit  
+- Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase**
 
-### DoTs
-- Fire **4** (party stacks max **2**) / Ice **3**/tick × **3**r flat (stack cap **1**, no ramp) / Poison party splash **8**/stack (intensity 1) / Slime **2** flat (stack cap **1**, **until cleansed**, no ramp, **no token slow**) — `DOT_STATS`  
-- **Ice:** claim downgrade while up; **natural expiry → soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter; clears after wasted action or Fire Mage thaw).  
-- **Boss party DoTs ramp:** PoisonCloud, FireCloud, and Fire minion on-hit set `escalationStep` (starts 1). **Ice / Slime** stay flat.  
-- **Moss Mite** on-hit: Slime (until cleanse). **Frost Archer** (`bone_archer`) on-hit: Ice.  
-- Boss can hold DoTs (`boss.statuses`); tick damages boss HP (Poison flat on boss, not splash; no ramp on boss-held DoTs)  
-- Doomcaller strips DoTs+Marks; transfers **DoTs only** → boss (not Marks, not Frozen)  
-- Healer cleanses Fire/Ice/Poison (**not Slime**); Fire Mage A/B thaws Frozen + cleanses Ice/Slime (front/back)  
+### Gap rule + minions (frontline redesign)
+- **Only pos 1 and Archers** may damage minions (`actorCanHitMinions` / `hitEnemies`). Everyone else hits the boss only.  
+- **Minions always target the magnet seat** (hard focus). **2nd+ minion shot** in the same volley uses `MULTI_MINION_FOCUS_MULT`.  
+- Boss outgoing damage tables still from TOML / cascade bases (further retune after playtest).
 
-- **UI today:** small status chips only (`statusUi` / `StatusChips`). Easy to miss on a Chromebook from across the table.  
+### DoTs (color split)
+- Fire **4** (party stacks max **2**) / Ice **3**/tick × **3**r flat / Poison splash **8**/stack / Slime **2** until cleansed — `DOT_STATS`  
+- **Healer:** cleanse **Fire + Poison** only (A all, B front, C back).  
+- **Fire Mage A/B:** thaw **Frozen** + cleanse **Ice + Slime** (A front / B back).  
+- **Marks:** no dedicated cleanse class.  
+- **UI:** status chips; cleanse color dots on portraits (`ARCHETYPE_CLEANSE_DOTS`).
 
 ### Bosses
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
 - **Cascade** raw pos1→6 = 16,13,10,7,4,2  
-- **Frost Archer** minions (`bone_archer`): **12 HP / 4 dmg** (Colossus is a glass summoner: boss HP lower, adds tax DPS)  
-- Stun: `stunRoundsLeft` skips **boss + minions**; **telegraph must not wind up as attack** when already stunned  
+- **Frost Archer** minions (`bone_archer`): **12 HP / 4 dmg**  
+- Stun: `stunRoundsLeft` skips **boss + minions**  
 - Boss HP (balance A+): Ash **210**, Bone Colossus **230**; Regenerate heals **10**
 
 ---
 
-## Ability summary (source of truth: `specialists.ts`)
-
-Full tables live in **`README.md` → Character abilities**. High level:
+## Ability summary (source of truth: `specialists.ts` + `README.md`)
 
 | Archetype | Role |
 |-----------|------|
-| **Vanguard** | Personal block + hit; A–C also +party block (self A=6+3, B=4+2) |
-| **ShieldMaiden** | Damage ladder; A refresh shield; F dump shield |
-| **FireMage** | Wildfire AOE (A/B≤3, C≤2, D1) + boss Fire burn; **A front / B back** thaw **Frozen** + Ice/Slime; C/D/F friendly fire |
-| **Healer** | A all / B front / C back heal + cleanse **Fire/Ice/Poison**; F boss heal +8 |
-| **Archer** | Arrow Storm AOE (A/B≤3, C≤2, D1) + small minion bonus; F misfire |
-| **Doomcaller** | Strip DoTs+Marks; transfer **DoTs only** (A stacks 2r, B unique 3r, C/D strip lines); **never** Frozen; F copy boss DoT types onto self; death → poison by last claim tier |
-| **Necromancer** | Drain + heal lowest; F hit **highest-HP ally 10** (no boss heal) |
-| **Thundercaller** | Single lightning (no chain); A/B/C 30% boss stun; A front Charge+3 / B back Charge+3; F 30% stun **unresolved** claimer |
-| **Runesinger** | **Always first**; rewrite tokens + heal holders (A all→A +5, B floor B +4, C lowest→C +3, D heal+3, F shift all down) |
+| **Vanguard** | Personal block + hit (self only) |
+| **Spearman** | ST thrust; A–D **Parry** vs boss; pos 1 without parry takes extra boss damage |
+| **ShieldMaiden** | Hit + one-round cover on self + most-likely-to-die; no free open; F dumps |
+| **FireMage** | Wildfire AOE + boss Fire; A/B Frozen thaw + Ice/Slime; C/D/F friendly fire |
+| **Healer** | Heal + cleanse **Fire/Poison**; F boss heal |
+| **Archer** | Arrow Storm + minion bonus; can hit gap from any seat |
+| **Necromancer** | Drain + heal lowest; F hit highest-HP ally |
+| **Thundercaller** | Lightning + stun/Charge; **A** rez once/soldier/fight at ~10% HP + Dazed |
+| **Runesinger** | Always first; rewrite tokens + heal holders |
 
-**Charge:** status on soldiers; consumed into next `hitEnemies` for that actor.
+**Doomcaller removed.**
 
-**Roster (22):** Archer×3, Doomcaller×2, Necromancer×2, Runesinger×2, rest unchanged.  
-**Names / art gender:** Male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; Female = ShieldMaiden, Healer, Archer, Runesinger — `server/src/seed/names.ts`.
+**Roster (21):** Vanguard×2, Spearman×2, ShieldMaiden×2, FireMage×3, Healer×3, Archer×3, Necromancer×2, Thundercaller×2, Runesinger×2.  
+**Names / art gender:** Male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; Female = ShieldMaiden, Healer, Archer, Runesinger — `server/src/seed/names.ts`.
 
 ---
 
@@ -214,7 +213,7 @@ Full tables live in **`README.md` → Character abilities**. High level:
 ```
 client/public/art/{key}/{pose}.png
 ```
-Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `doomcaller`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`, **`bone_archer`**, **`moss_mite`**, **`cinder_imp`** (minions — not nested under boss folders).  
+Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `spearman`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`, **`bone_archer`**, **`moss_mite`**, **`cinder_imp`** (minions — not nested under boss folders).  
 Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ---
@@ -259,7 +258,7 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `act_shieldmaiden` | Shield Maiden | sword strike |
 | `act_firemage` | Fire Mage | fire cast burst |
 | `act_archer` | Archer | bow / arrow volley |
-| `act_doomcaller` | Doomcaller | dark curse pulse |
+| `act_spearman` | Spearman | spear thrust |
 | `act_necromancer` | Necromancer | drain / ethereal suck |
 | `act_thundercaller` | Thundercaller | lightning crack |
 | `hurt_male` | Party hurt bubble (male art) | short male hit grunt, classroom-safe |
@@ -271,7 +270,7 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `minion_shot` | Generic add fallback | any small enemy hit |
 | `music_ambient_lobby` | Lobby / between rooms loop | soft dark ambient, seamless 60–90s, **hand-authored only** |
 
-**Art gender (locked with names):** male = Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
+**Art gender (locked with names):** male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
 Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunts (not a second generic hit).
 
 ---
@@ -298,7 +297,8 @@ Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunt
 | Claims (magnet guarantee) | `claims.ts`, `magnet.ts`, `claims.test.ts` |
 | Specialists / abilities | `specialists.ts`, `playbook.ts`, `README.md` abilities |
 | Runesinger first + Charge + party stun | `combat.ts` action order, `specialists.ts`, `damage.ts` (`applyCharge`/`consumeCharge`) |
-| Boss DoTs / Doomcaller | `dots.ts`, `types.ts` `BossState.statuses` |
+| Boss DoTs | `dots.ts`, `types.ts` `BossState.statuses` |
+| Frontline redesign | branch `feature/frontline-spearman-redesign`; gap/parry/cover/rez |
 | Progressive presentation | `presentation.ts` (shared+server), `CombatScreen.tsx` |
 | DoT chips / future body FX | `statusUi.ts`, `StatusChips.tsx`; ramp on `DotInstance.escalationStep` |
 | Outcome / stun audio-visual | `CombatScreen.tsx`, `audio.ts`, `bosses.ts`, `poses.ts` |

@@ -90,8 +90,20 @@ function smartMagnet(team) {
 
   // Avoid parking F on FireMage/Healer/Necro if we can put it on tank
   if (hasF && !hasA) {
-    const tank = pick(["Vanguard", "ShieldMaiden", "Thundercaller"]);
+    const tank = pick(["Vanguard", "Spearman", "ShieldMaiden", "Thundercaller"]);
     if (tank) return tank;
+  }
+  const dead = (team.roster ?? []).some(
+    (s) => team.activePartyIds?.includes(s.id) && !s.alive,
+  );
+  if (dead && hasA) {
+    const t = pick(["Thundercaller"]);
+    if (t) return t;
+  }
+  if (minions.length) {
+    // Only front + Archer can clear the gap
+    const a = pick(["Archer", "Spearman", "Vanguard"]);
+    if (a) return a;
   }
   if (dots) {
     const d = pick(["FireMage", "Healer"]);
@@ -101,12 +113,8 @@ function smartMagnet(team) {
     const h = pick(["Healer", "Runesinger", "Necromancer"]);
     if (h) return h;
   }
-  if (minions.length) {
-    const a = pick(["Archer", "FireMage", "ShieldMaiden"]);
-    if (a) return a;
-  }
   if (shieldLow) {
-    const m = pick(["ShieldMaiden", "Vanguard"]);
+    const m = pick(["ShieldMaiden", "Vanguard", "Spearman"]);
     if (m) return m;
   }
   if (hasA) {
@@ -114,6 +122,7 @@ function smartMagnet(team) {
       "FireMage",
       "Thundercaller",
       "Archer",
+      "Spearman",
       "ShieldMaiden",
       "Runesinger",
     ]);

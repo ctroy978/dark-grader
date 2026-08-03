@@ -127,6 +127,25 @@ export default function HowToPlayPage() {
         </section>
 
         <section className="rounded-2xl border border-parchment/12 bg-navy-light/40 p-6 md:p-8 space-y-3">
+          <h2 className="text-xl font-bold">The gap and the magnet</h2>
+          <ul className="space-y-2 text-sm text-parchment-dim">
+            <li>
+              Only the <strong className="text-parchment">front seat (position 1)</strong> and{" "}
+              <strong className="text-parchment">Archers</strong> can hit minions in the gap.
+              Everyone else only hits the boss.
+            </li>
+            <li>
+              Minions <strong className="text-parchment">always shoot the magnet seat</strong> —
+              and if two fire, the second shot hits even harder. Don’t park the magnet on a
+              soft ally when the gap is full.
+            </li>
+            <li>
+              Colored dots on a portrait (bottom-left) show which DoTs that class cleanses.
+            </li>
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-parchment/12 bg-navy-light/40 p-6 md:p-8 space-y-3">
           <h2 className="text-xl font-bold">Who clears what</h2>
           <p className="text-sm text-parchment-dim leading-relaxed">
             Sticky effects need the right specialist. Full grade lists are on each{" "}
@@ -155,15 +174,24 @@ export default function HowToPlayPage() {
               <strong className="text-parchment">Spearman</strong> — front-line
               striker with Parry on A–D; vulnerable in seat 1 without a claim.
             </li>
+            <li>
+              <strong className="text-parchment">Thundercaller A</strong> — can revive a fallen
+              ally once per fight at low HP (they are dazed for one action).
+            </li>
+            <li>
+              <strong className="text-parchment">Shield Maiden</strong> — claim for one-round
+              cover on herself and the ally closest to dying (no free shield at fight start).
+            </li>
           </ul>
         </section>
 
         <section className="rounded-2xl border border-rune/25 bg-rune/5 p-6 space-y-3">
           <h2 className="text-xl font-bold text-rune">Classroom rules of thumb</h2>
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
-            <li>Deaths are permanent until the teacher resets the team.</li>
+            <li>Deaths are permanent until the teacher resets the team (Thunder A can buy one emergency return).</li>
             <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
-            <li>Poison and Fire clouds get worse every round if left up — cleanse them.</li>
+            <li>Poison and Fire clouds get worse every round if left up — cleanse them (Healer).</li>
+            <li>Ice, Slime, and Frozen → Fire Mage. Match the color on the portrait.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>
             <li>Wrong invite code? You’re on the wrong team (or period).</li>
           </ul>

@@ -1,5 +1,6 @@
 import {
   isRattleStunKitAttack,
+  MULTI_MINION_FOCUS_MULT,
   RATTLE_NEIGHBOR_STUN_PENALTY,
   RATTLE_SPARK_STUN_CHANCE,
   SPREADING_FROST_CHANCE,
@@ -266,23 +267,29 @@ function livingMinionCount(team: TeamState): number {
   return team.minions.filter((m) => m.currentHp > 0).length;
 }
 
-function magnetBiasedTarget(team: TeamState, random: () => number) {
+/**
+ * Minions always hard-focus the magnet seat (living soldier under the magnet).
+ * If that seat is empty, nearest living by position.
+ */
+export function magnetHardTarget(team: TeamState): Soldier | undefined {
   const living = livingParty(team);
   if (!living.length) return undefined;
   const magnet = team.magnetPosition;
-  const [a, b] = adjacentPositions(magnet);
-  const weights = living.map((s) => {
-    if (s.position === magnet) return 0.45;
-    if (s.position === a || s.position === b) return 0.2;
-    return 0.15 / Math.max(1, living.length - 3);
-  });
-  const total = weights.reduce((x, y) => x + y, 0);
-  let roll = random() * total;
-  for (let i = 0; i < living.length; i++) {
-    roll -= weights[i];
-    if (roll <= 0) return living[i];
-  }
-  return living[living.length - 1];
+  const under = living.find((s) => s.position === magnet);
+  if (under) return under;
+  return living
+    .slice()
+    .sort(
+      (a, b) =>
+        Math.abs((a.position ?? 99) - magnet) -
+          Math.abs((b.position ?? 99) - magnet) ||
+        (a.position ?? 99) - (b.position ?? 99),
+    )[0];
+}
+
+/** @deprecated Prefer magnetHardTarget — kept name for call-site clarity during migrate. */
+function magnetBiasedTarget(team: TeamState, _random: () => number) {
+  return magnetHardTarget(team);
 }
 
 /**
@@ -527,14 +534,22 @@ export function resolveBossPhase(
   });
 
   // Adds act after a real boss attack (not on stun skip)
+  // All living minions hard-focus the magnet; 2nd+ shot is especially hard.
+  let minionShotIndex = 0;
   for (const minion of [...team.minions]) {
     if (minion.currentHp <= 0) continue;
-    const target = magnetBiasedTarget(team, random);
+    const target = magnetHardTarget(team);
     if (!target) break;
-    const dmg = Math.floor(
+    let dmg = Math.floor(
       minion.damage * (boss.outgoingDamageMult || 1) * rage,
     );
+    if (minionShotIndex >= 1) {
+      dmg = Math.floor(dmg * MULTI_MINION_FOCUS_MULT);
+    }
     resolveMinionShot(team, minion, target, dmg, log);
+    if (minionShotIndex >= 1) {
+      log(`  (focus fire — magnet under heavy fire ×${MULTI_MINION_FOCUS_MULT})`);
+    }
     present?.onMinionAttack?.({
       minionId: minion.id,
       minionName: minion.name,
@@ -542,6 +557,7 @@ export function resolveBossPhase(
       sfxId: minion.shotSfx,
       bubbleText: minion.shotBubble,
     });
+    minionShotIndex += 1;
   }
 }
 
@@ -820,15 +836,19 @@ function performSummon(
   }
   if (spec.freeVolley) {
     log(`${boss.name} rallies the ${spec.minionName}s — free volley!`);
+    let shot = 0;
     for (const minion of team.minions) {
       if (minion.currentHp <= 0) continue;
-      const target = magnetBiasedTarget(team, random);
+      const target = magnetHardTarget(team);
       if (!target) break;
       // free-volley still uses enraged/outgoing scaling via dmg()
-      const amount = scaleBossDamageToSoldier(team, target, dmg(minion.damage));
+      let raw = dmg(minion.damage);
+      if (shot >= 1) raw = Math.floor(raw * MULTI_MINION_FOCUS_MULT);
+      const amount = scaleBossDamageToSoldier(team, target, raw);
       const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
       if (hpLost > 0) victims.add(target.id);
       log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
+      shot += 1;
       if (minion.onHitDot && minion.onHitDot.stacks > 0) {
         applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
         log(
