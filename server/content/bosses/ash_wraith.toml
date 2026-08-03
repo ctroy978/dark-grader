@@ -5,7 +5,7 @@ traits = ["Volatile"]
 difficulty = "Standard"
 summary = "Fights alone (no minions). Cascade hits the front hardest; poison cloud and magnet crush still hurt."
 recommended_rounds = "8–12"
-enrage_hp_pct = 0.4
+enrage_hp_pct = 0.2
 enrage_damage_mult = 1.15
 
 grunt_pool = ["boss_ash_hiss_1", "boss_ash_hiss_2"]

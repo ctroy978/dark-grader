@@ -116,7 +116,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       icon: "🛡️",
       label: "Last Stand",
       title:
-        "Last Stand — the next hit that would kill this soldier leaves them at 1 HP once (Vanguard/Spearman). Expires after the boss phase if unused.",
+        "Last Stand — the next hit that would kill this soldier leaves them at 1 HP once (Vanguard/Spearman A, or Thunder A rez). Expires after the boss phase if unused.",
       colorClass: "text-stone-100 border-stone-300/50 bg-stone-900/50",
     };
   }

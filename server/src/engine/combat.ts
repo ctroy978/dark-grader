@@ -8,7 +8,7 @@ import {
   createRng,
   defaultTelegraphLines,
   DEFAULT_CAMPAIGN_LENGTH,
-  INTER_ROOM_VANGUARD_HEAL_PCT,
+  INTER_ROOM_CAMP_HEAL_MISSING_PCT,
   MAX_LOG_ENTRIES,
   PARTY_HURT_LAYER_DELAY_MS,
   PARTY_SIZE,
@@ -935,22 +935,33 @@ function processDeaths(team: TeamState): void {
   }
 }
 
+/**
+ * Lobby / camp recovery after a room clear.
+ * Living soldiers recover a fraction of **missing** HP (not max HP).
+ * No archetype gate. Does not revive the dead.
+ */
 export function applyInterRoomHealing(team: TeamState): void {
-  const hasVanguard = team.roster.some(
-    (s) => s.alive && s.archetype === "Vanguard",
-  );
-  if (!hasVanguard) {
-    pushLog(team, "No living Vanguard — no inter-room healing.", ["system"]);
-    return;
-  }
+  let totalHealed = 0;
+  let wounded = 0;
   for (const s of team.roster) {
     if (!s.alive) continue;
-    const amount = Math.floor(s.maxHp * INTER_ROOM_VANGUARD_HEAL_PCT);
-    healSoldier(s, amount);
+    const missing = s.maxHp - s.currentHp;
+    if (missing <= 0) continue;
+    wounded += 1;
+    const amount = Math.floor(missing * INTER_ROOM_CAMP_HEAL_MISSING_PCT);
+    if (amount <= 0) continue;
+    totalHealed += healSoldier(s, amount);
   }
-  pushLog(team, `Vanguard camp recovery: party heals ${INTER_ROOM_VANGUARD_HEAL_PCT * 100}% max HP.`, [
-    "system",
-  ]);
+  const pct = Math.round(INTER_ROOM_CAMP_HEAL_MISSING_PCT * 100);
+  if (wounded === 0) {
+    pushLog(team, `Camp rest: party already at full strength.`, ["system"]);
+    return;
+  }
+  pushLog(
+    team,
+    `Camp rest: living soldiers recover ${pct}% of missing HP (${totalHealed} HP total).`,
+    ["system"],
+  );
 }
 
 /** Clear fight-only fields so the team can form a party again. */
@@ -1034,17 +1045,10 @@ export function enterBetweenRooms(
   }
 }
 
-/** Phases where students can abort a fight mid-encounter. */
-const RUN_AWAY_PHASES = new Set([
-  "awaiting_magnet",
-  "resolving",
-  "boss_telegraph",
-]);
-
 /**
  * Shared camp return after a failed or aborted room attempt.
  * - Does **not** advance roomIndex or apply inter-room heal.
- * - Fallen stay dead; living keep current HP (no Vanguard camp heal).
+ * - Fallen stay dead; living keep current HP (no camp heal — that is win-only).
  * - Boss / minions / fight-only state cleared so the next startFight is fresh.
  */
 function returnToCampAfterRoomAttempt(
@@ -1121,15 +1125,17 @@ export function returnFromDefeat(team: TeamState): void {
 /**
  * Mid-fight abort: living soldiers retreat to camp with current HP (no heal).
  * Boss resets for the next attempt at the **same** room.
+ * - Only while awaiting the magnet / token drop (not mid-resolve or boss attack).
  * - Idempotent when already in lobby / between_rooms.
- * - Only from active fight phases (not victory / defeat / campaign end).
  */
 export function runAway(team: TeamState): void {
   if (team.phase === "lobby" || team.phase === "between_rooms") {
     return;
   }
-  if (!RUN_AWAY_PHASES.has(team.phase)) {
-    throw new Error("Can only run away during an active fight");
+  if (team.phase !== "awaiting_magnet") {
+    throw new Error(
+      "Can only run away while planning the magnet — wait for the boss attack to finish",
+    );
   }
   returnToCampAfterRoomAttempt(team, "run_away");
 }

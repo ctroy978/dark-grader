@@ -1006,29 +1006,18 @@ export default function CombatScreen({
   }
 
   async function handleRunAway() {
-    if (
-      team.phase !== "awaiting_magnet" &&
-      team.phase !== "resolving" &&
-      team.phase !== "boss_telegraph"
-    ) {
+    // Only while planning the magnet / token drop — not mid-resolve or boss attack
+    if (team.phase !== "awaiting_magnet" || busy || playing || visualHold) {
       return;
     }
-    // Block in-flight auto boss resolve so it cannot land after we retreat
-    bossResolveLock.current = true;
     setBusy(true);
     setError(null);
-    // Stop any mid-queue presentation so we don't flash fight UI after retreat
-    setPlaying(false);
-    setPlayIndex(0);
-    setPlayQueue([]);
-    setVisualHold(null);
     // Long exclusive flee sting (~4.5s) — cuts combat SFX / ambient until done
     playExclusive("run_away", 4.5);
     try {
       const t = await api.runAway(team.teamId);
       onTeamUpdate(t);
     } catch (err) {
-      bossResolveLock.current = false;
       setError(err instanceof Error ? err.message : "Failed to run away");
     } finally {
       setBusy(false);
@@ -1678,10 +1667,19 @@ export default function CombatScreen({
               team.phase === "boss_telegraph") && (
               <button
                 type="button"
-                disabled={busy}
+                disabled={
+                  busy ||
+                  playing ||
+                  !!visualHold ||
+                  team.phase !== "awaiting_magnet"
+                }
                 onClick={() => void handleRunAway()}
-                className="rounded-lg border border-amber-500/50 bg-amber-950/50 hover:bg-amber-900/60 text-amber-100 px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                title="Abort the fight. Living soldiers keep their wounds (no heal). Boss resets for the next attempt."
+                className="rounded-lg border border-amber-500/50 bg-amber-950/50 hover:bg-amber-900/60 text-amber-100 px-3 py-2 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                title={
+                  team.phase === "awaiting_magnet" && !playing && !visualHold
+                    ? "Abort the fight. Living soldiers keep their wounds (no heal). Boss resets for the next attempt."
+                    : "Wait until tokens are ready to drop — you cannot run mid-attack"
+                }
               >
                 {busy ? "…" : "Run away"}
               </button>

@@ -22,7 +22,7 @@ const ROUNDS = [
   },
   {
     title: "Win, camp, wait",
-    body: "Clear the boss → camp heal from living Vanguards → reform. The next room stays locked until your teacher enters the next test’s grades and opens it.",
+    body: "Clear the boss → camp restores 30% of each living soldier’s missing HP → reform. The next room stays locked until your teacher enters the next test’s grades and opens it.",
   },
 ];
 
@@ -204,7 +204,7 @@ export default function HowToPlayPage() {
           <h2 className="text-xl font-bold text-rune">Classroom rules of thumb</h2>
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
             <li>Deaths are permanent until the teacher resets the team (Thunder A can buy one emergency return).</li>
-            <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
+            <li>After a room clear, camp restores 30% of each living soldier’s missing HP (dead stay dead).</li>
             <li>
               Poison and Fire clouds get worse every round if left up — cleanse
               them with the <strong className="text-parchment">Shield Maiden</strong>.

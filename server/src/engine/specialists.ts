@@ -777,7 +777,12 @@ function tryThundercallerRez(
   const hp = thundercallerRezHp(target.maxHp);
   target.alive = true;
   target.currentHp = hp;
-  target.statuses = [{ kind: "Dazed", duration: 1 }];
+  // Dazed: skip next claim. Last Stand: survive one lethal hit this boss phase
+  // so a healer can top them up (without it, ~10% HP is a free boss kill).
+  target.statuses = [
+    { kind: "Dazed", duration: 1 },
+    { kind: "LastStand" },
+  ];
   target.block = 0;
   // Clear death presentation flag if present
   (target as Soldier & { deathLogged?: boolean }).deathLogged = false;
@@ -786,7 +791,7 @@ function tryThundercallerRez(
   team.revivedSoldierIdsThisFight.push(target.id);
 
   log(
-    `${label}: shock restarts ${target.name}'s heart — ${hp} HP; skips next claim (dazed; once per soldier per fight)`,
+    `${label}: shock restarts ${target.name}'s heart — ${hp} HP + Last Stand; skips next claim (dazed; once per soldier per fight)`,
   );
   return [target.id];
 }

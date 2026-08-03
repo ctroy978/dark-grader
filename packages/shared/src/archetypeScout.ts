@@ -34,7 +34,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Necromancer:
     "Drains the boss and grants Life Power to the Healer or Runesinger. Their next heal: Fire/Poison seats get washed (no HP); clean seats get healed plus purple bonus. Maiden is still the primary one-token cleanse. Does not heal allies directly.",
   Thundercaller:
-    "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
+    "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP + Last Stand so one hit cannot re-kill them that turn). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
   Runesinger:
     "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Slow gold hymn HoT. Back seat only — not with a Healer. With Necromancer Life Power, dirty seats get Fire/Poison wash instead of hymn; clean seats get HoT + purple.",
 };

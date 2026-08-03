@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  INTER_ROOM_CAMP_HEAL_MISSING_PCT,
   isBacklineSupportArchetype,
   withBacklineSupportLast,
   type Grade,
 } from "@dungeon-grades/shared";
 import {
+  applyInterRoomHealing,
   canFormNextParty,
   commitFullRound,
   createTeam,
@@ -52,6 +54,30 @@ function fightOneRoom(team: ReturnType<typeof createTeam>, bossId: string) {
 }
 
 describe("campaign progression", () => {
+  it("camp heals 30% of missing HP for all living (no Vanguard gate)", () => {
+    const team = createTeam("c-heal", "CAMPHEAL", "Heal", 3);
+    // No living Vanguard — old rule would skip entirely
+    for (const s of team.roster) {
+      if (s.archetype === "Vanguard") {
+        s.alive = false;
+        s.currentHp = 0;
+      }
+    }
+    const maiden = team.roster.find((s) => s.archetype === "ShieldMaiden")!;
+    maiden.alive = true;
+    maiden.currentHp = 7;
+    const missing = maiden.maxHp - 7;
+    const expected = 7 + Math.floor(missing * INTER_ROOM_CAMP_HEAL_MISSING_PCT);
+
+    applyInterRoomHealing(team);
+    expect(maiden.currentHp).toBe(expected);
+    expect(maiden.currentHp).toBe(7 + Math.floor(missing * 0.3));
+    // Dead stay dead
+    expect(team.roster.filter((s) => s.archetype === "Vanguard").every((s) => !s.alive)).toBe(
+      true,
+    );
+  });
+
   it("increments rooms once and is idempotent on double continue", () => {
     const team = createTeam("c1", "CAMP1", "Camp", 1);
     // Fake a victory state
@@ -309,12 +335,16 @@ describe("campaign progression", () => {
     expect(team.boss).toBeNull();
   });
 
-  it("runAway is rejected outside an active fight", () => {
+  it("runAway is rejected outside magnet planning (not mid-boss)", () => {
     const team = createTeam("c6rc", "CAMP6RC", "Flee3", 68);
+    team.phase = "boss_telegraph";
+    expect(() => runAway(team)).toThrow(/planning the magnet/);
+    team.phase = "resolving";
+    expect(() => runAway(team)).toThrow(/planning the magnet/);
     team.phase = "victory";
-    expect(() => runAway(team)).toThrow(/active fight/);
+    expect(() => runAway(team)).toThrow(/planning the magnet/);
     team.phase = "defeat";
-    expect(() => runAway(team)).toThrow(/active fight/);
+    expect(() => runAway(team)).toThrow(/planning the magnet/);
     team.phase = "lobby";
     runAway(team); // idempotent
     expect(team.phase).toBe("lobby");

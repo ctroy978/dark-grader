@@ -129,7 +129,12 @@ export const FROST_LOCKED_TICK_DAMAGE = 3;
 /** Retain full fight history for classroom review */
 export const MAX_LOG_ENTRIES = 800;
 
-export const INTER_ROOM_VANGUARD_HEAL_PCT = 0.2;
+/**
+ * Camp / between-rooms recovery: each living soldier restores this fraction of
+ * **missing** HP (max − current). No Vanguard gate. Dead stay dead.
+ * e.g. 0.3 → a 7/48 seat regains floor(0.3 × 41) = 12 → 19 HP.
+ */
+export const INTER_ROOM_CAMP_HEAL_MISSING_PCT = 0.3;
 
 /**
  * Spearman kit (Phase 2).

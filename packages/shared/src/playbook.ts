@@ -57,7 +57,7 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — hits highest-HP ally for 10",
   },
   Thundercaller: {
-    A: "Hit 14 + 30% boss stun + front Charge+3 — or if someone is down: shock-restart their heart (~10% HP). They skip their next claim (dazed). Once per soldier per fight; no damage that claim if you rez",
+    A: "Hit 14 + 30% boss stun + front Charge+3 — or if someone is down: shock-restart their heart (~10% HP + Last Stand). They skip their next claim (dazed). Once per soldier per fight; no damage that claim if you rez",
     B: "Hit 11; 30% stun boss; back +3 Charge next attack",
     C: "Hit 9; 30% stun boss",
     D: "Hit 6",

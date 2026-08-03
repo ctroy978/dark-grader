@@ -127,7 +127,7 @@ This section is for design review — update it when abilities change.
 | Friendly fire | Many backfires **bypass** shield + block |
 | Ice DoT | On claim: **downgrade grade one step** (A→B … D→F; F stays) before resolve |
 | DoT ticks | Fire **4** (party stacks **capped at 2**) / Ice 3 / Poison splash **8** per stack / Slime 2 — see `DOT_STATS`. Boss party DoTs (clouds, minion on-hit) **ramp** (×1, ×2, ×3…) while left up |
-| Inter-room | Living Vanguard heals party 20% max HP if any living Vanguard; reform 6 |
+| Inter-room | After a clear: living soldiers recover 30% of **missing** HP (no Vanguard gate); reform 6 |
 
 ### Roster & HP
 
@@ -269,7 +269,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 | Grade | Effect |
 |-------|--------|
-| **A** | **Hit 14**; **30%** stun boss; **front Charge +3**. **Or** if someone is down (and not already rezzed this fight): **shock-restart their heart** at **~10% HP** — they are **Dazed** and **skip their next claim**; no lightning that resolve. Once per soldier per fight |
+| **A** | **Hit 14**; **30%** stun boss; **front Charge +3**. **Or** if someone is down (and not already rezzed this fight): **shock-restart their heart** at **~10% HP + Last Stand** — they are **Dazed** and **skip their next claim**; no lightning that resolve. Once per soldier per fight |
 | **B** | Hit **11**; **30%** stun boss; **back (4–6)** get **Charge +3** |
 | **C** | Hit **9**; **30%** stun boss |
 | **D** | Hit **6** |

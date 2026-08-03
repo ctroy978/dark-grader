@@ -5,7 +5,7 @@ import {
   type TeamState,
 } from "@dungeon-grades/shared";
 import { createTeam, selectParty, startFight } from "./combat.js";
-import { livingParty } from "./damage.js";
+import { applyPartyDamage, livingParty } from "./damage.js";
 import { resolveSpecialistAction } from "./specialists.js";
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
@@ -24,7 +24,7 @@ function thunderTeam(): TeamState {
 }
 
 describe("Thundercaller A rez", () => {
-  it("revives a dead party member at low HP with Dazed", () => {
+  it("revives a dead party member at low HP with Dazed and Last Stand", () => {
     const team = thunderTeam();
     const tc = livingParty(team).find((s) => s.archetype === "Thundercaller")!;
     const ally = livingParty(team).find((s) => s.id !== tc.id)!;
@@ -43,7 +43,34 @@ describe("Thundercaller A rez", () => {
     expect(ally.alive).toBe(true);
     expect(ally.currentHp).toBe(thundercallerRezHp(ally.maxHp));
     expect(ally.statuses.some((st) => st.kind === "Dazed")).toBe(true);
+    expect(ally.statuses.some((st) => st.kind === "LastStand")).toBe(true);
     expect(team.revivedSoldierIdsThisFight).toContain(ally.id);
+  });
+
+  it("Last Stand on rez soaks one lethal boss hit this phase", () => {
+    const team = thunderTeam();
+    const tc = livingParty(team).find((s) => s.archetype === "Thundercaller")!;
+    const ally = livingParty(team).find((s) => s.id !== tc.id)!;
+    ally.alive = false;
+    ally.currentHp = 0;
+
+    resolveSpecialistAction(
+      team,
+      tc,
+      { token: "A", soldierId: tc.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    const rezHp = ally.currentHp;
+    expect(rezHp).toBeLessThan(10);
+
+    // Simulate a boss hit that would kill at rez HP
+    applyPartyDamage(ally, rezHp + 20, team.partyShield);
+
+    expect(ally.alive).toBe(true);
+    expect(ally.currentHp).toBe(1);
+    expect(ally.statuses.some((st) => st.kind === "LastStand")).toBe(false);
+    expect(ally.statuses.some((st) => st.kind === "Dazed")).toBe(true);
   });
 
   it("cannot rez the same soldier twice in one fight", () => {
