@@ -197,15 +197,15 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Healer — restore HP + cleanse Fire / Ice / Poison
+### Healer — restore HP + cleanse Fire / Poison
 
-**Job (as coded):** stabilize line and strip the main damage DoTs. Does **not** clear Frozen (Fire Mage only), Slime, or Marks. F is catastrophic for the boss clock.
+**Job (as coded):** stabilize line and strip Fire/Poison. Does **not** clear Ice, Slime, Frozen (Fire Mage), or Marks. F is catastrophic for the boss clock.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | Heal **all** living **+10** each; cleanse **Fire / Ice / Poison** on all |
-| **B** | Heal **front** (pos 1–3) **+10** each; cleanse Fire/Ice/Poison on front |
-| **C** | Heal **back** (pos 4–6) **+6** each; cleanse Fire/Ice/Poison on back |
+| **A** | Heal **all** living **+10** each; cleanse **Fire / Poison** on all |
+| **B** | Heal **front** (pos 1–3) **+10** each; cleanse Fire/Poison on front |
+| **C** | Heal **back** (pos 4–6) **+6** each; cleanse Fire/Poison on back |
 | **D** | Heal **self** **+8** only (no cleanse) |
 | **F** | Heal **boss** **+8** |
 
@@ -305,7 +305,7 @@ Useful when weighing “who is just DPS?”
 | Vanguard | 11 + block 6 self only | |
 | Spearman | **12** ST | Stub thrust (parry later) |
 | Runesinger | 0 direct | Token rewrite + heal |
-| Healer | 0 direct | Heal 10 all + Fire/Ice/Poison |
+| Healer | 0 direct | Heal 10 all + Fire/Poison |
 
 ---
 

@@ -142,18 +142,18 @@ export default function HowToPlayPage() {
           <ul className="space-y-2 text-sm text-parchment-dim">
             <li>
               <strong className="text-parchment">Healer</strong> — heals and
-              clears <strong className="text-parchment">Fire, Ice, Poison</strong>{" "}
-              DoTs (not Frozen, Slime, or Marks).
+              clears <strong className="text-parchment">Fire and Poison</strong>{" "}
+              only (A = whole team). Not Ice, Slime, Frozen, or Marks.
             </li>
             <li>
               <strong className="text-parchment">Fire Mage</strong> — only class
               that burns off <strong className="text-parchment">Frozen</strong>{" "}
-              (A = front, B = back). Those grades also clear Ice and Slime on
-              that half of the line. Seat them mid/back against frost bosses.
+              and clears <strong className="text-parchment">Ice and Slime</strong>{" "}
+              (A = front, B = back). Match the DoT color to the right specialist.
             </li>
             <li>
               <strong className="text-parchment">Spearman</strong> — front-line
-              single-target fighter (parry kit arrives in a later update).
+              striker with Parry on A–D; vulnerable in seat 1 without a claim.
             </li>
           </ul>
         </section>

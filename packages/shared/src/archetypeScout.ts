@@ -26,7 +26,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   FireMage:
     "Hits several enemies with fire and can burn the boss. The only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime on that half of the line. Weak grades can hurt allies.",
   Healer:
-    "Heals allies and cleanses Fire, Ice, and Poison DoTs (A all, B front, C back). Does not clear Frozen, Slime, or Marks. F heals the boss instead.",
+    "Heals allies and cleanses Fire and Poison DoTs (A all, B front, C back). Ice, Slime, and Frozen are Fire Mage only. F heals the boss instead.",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:

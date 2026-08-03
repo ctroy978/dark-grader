@@ -111,11 +111,19 @@ describe("Ice DoT / soft freeze (Frost Archer)", () => {
     tickDots(team, () => {});
     tickDots(team, () => {});
 
-    const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
+    // Ice is Fire Mage only (Healer no longer cleanses Ice)
+    const mage = livingParty(team).find((s) => s.archetype === "FireMage")!;
+    // Ensure mage is front half so A covers pos 1
+    const magePos = mage.position!;
+    if (magePos > 3) {
+      mage.position = 2;
+      const seat2 = soldierAt(team, 2);
+      if (seat2 && seat2.id !== mage.id) seat2.position = magePos;
+    }
     resolveSpecialistAction(
       team,
-      healer,
-      { token: "A", soldierId: healer.id, effectiveGrade: "A" },
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
       () => 0.5,
       () => {},
     );

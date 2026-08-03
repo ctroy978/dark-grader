@@ -67,7 +67,7 @@ function partyWith(
 }
 
 describe("cleanse role split", () => {
-  it("Healer A cleanses Fire/Poison but not Slime", () => {
+  it("Healer A cleanses Fire/Poison but not Slime or Ice", () => {
     const team = partyWith([
       { at: 1, archetype: "Vanguard" },
       { at: 2, archetype: "Healer" },
@@ -77,6 +77,7 @@ describe("cleanse role split", () => {
     applyDot(v, "Poison", 1, undefined, true);
     applyDot(v, "Fire", 1, undefined, true);
     applyDot(v, "Slime", 1);
+    applyDot(v, "Ice", 1);
 
     const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
     resolveSpecialistAction(
@@ -93,6 +94,57 @@ describe("cleanse role split", () => {
     expect(types).not.toContain("Poison");
     expect(types).not.toContain("Fire");
     expect(types).toContain("Slime");
+    expect(types).toContain("Ice");
+  });
+
+  it("Fire Mage A front clears Ice/Slime and thaws Frozen; Healer does not thaw", () => {
+    const team = partyWith([
+      { at: 1, archetype: "Vanguard" },
+      { at: 2, archetype: "FireMage" },
+      { at: 3, archetype: "Healer" },
+    ]);
+    const front = soldierAt(team, 1)!;
+    const mid = soldierAt(team, 3)!; // Healer at 3 (front half)
+    const mage = livingParty(team).find((s) => s.archetype === "FireMage")!;
+    // Do not freeze the mage — Frozen would waste their token
+    applyDot(front, "Ice", 1);
+    applyDot(front, "Slime", 1);
+    front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
+    mid.statuses.push({ kind: "Frozen", origin: 3, stage: 0 });
+
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+
+    // A = front half (1–3)
+    expect(front.statuses.some((st) => st.kind === "Frozen")).toBe(false);
+    expect(mid.statuses.some((st) => st.kind === "Frozen")).toBe(false);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Ice"),
+    ).toBe(false);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Slime"),
+    ).toBe(false);
+
+    // Ally (Vanguard) re-frozen; Healer must be free to act
+    front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
+    applyDot(front, "Fire", 1, undefined, true);
+    const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
+    resolveSpecialistAction(
+      team,
+      healer,
+      { token: "A", soldierId: healer.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(front.statuses.some((st) => st.kind === "Frozen")).toBe(true);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Fire"),
+    ).toBe(false);
   });
 
   it("Marks are not cleared by Healer A", () => {

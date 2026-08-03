@@ -324,7 +324,7 @@ function fireMage(
   );
 }
 
-/** Healer — HP restore + cleanse Fire / Ice / Poison (not Slime, Marks, or Frozen). */
+/** Healer — HP restore + cleanse Fire / Poison (not Ice, Slime, Marks, or Frozen). */
 function healer(
   soldier: Soldier,
   g: Grade,
@@ -332,7 +332,8 @@ function healer(
   log: LogFn,
   label: string,
 ): void {
-  const healCleanse: DotType[] = ["Fire", "Ice", "Poison"];
+  // Fire + Poison only — Ice/Slime/Frozen are Fire Mage (color split).
+  const healCleanse: DotType[] = ["Fire", "Poison"];
 
   if (g === "F") {
     const healed = healBoss(team, 8);
@@ -347,7 +348,7 @@ function healer(
       total += healSoldier(s, 10);
     }
     log(
-      `${label}: heals party ${total} total${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
+      `${label}: heals party ${total} total${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
     );
     return;
   }
@@ -361,7 +362,7 @@ function healer(
       total += healSoldier(s, 10);
     }
     log(
-      `${label}: heals front ${total}${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
+      `${label}: heals front ${total}${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
     );
     return;
   }
@@ -375,7 +376,7 @@ function healer(
       total += healSoldier(s, 6);
     }
     log(
-      `${label}: heals back ${total}${cleansed ? `, cleanses Fire/Ice/Poison (${cleansed})` : ""}`,
+      `${label}: heals back ${total}${cleansed ? `, cleanses Fire/Poison (${cleansed})` : ""}`,
     );
     return;
   }
