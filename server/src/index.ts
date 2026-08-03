@@ -32,6 +32,7 @@ import {
   placeMagnet,
   resolveBoss,
   returnFromDefeat,
+  runAway,
   selectParty,
   startFight,
 } from "./engine/combat.js";
@@ -694,6 +695,16 @@ app.post<{ Params: { id: string } }>(
     return enrich(team);
   },
 );
+
+app.post<{ Params: { id: string } }>("/api/team/:id/run-away", async (req) => {
+  const team = store.getTeam(req.params.id);
+  if (!team) httpError("Team not found", 404);
+  requirePlayable(team);
+  runAway(team);
+  store.updateTeam(team);
+  broadcastTeam(team.teamId);
+  return enrich(team);
+});
 
 const io = new SocketServer({
   cors: { origin: true },

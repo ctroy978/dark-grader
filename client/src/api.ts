@@ -251,6 +251,8 @@ export const api = {
     request<EnrichedTeam>(`/api/team/${id}/return-from-defeat`, {
       method: "POST",
     }),
+  runAway: (id: string) =>
+    request<EnrichedTeam>(`/api/team/${id}/run-away`, { method: "POST" }),
 
   listClassrooms: (pin: string) =>
     request<{ classrooms: ClassroomSummary[] }>(

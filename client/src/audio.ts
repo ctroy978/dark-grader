@@ -40,6 +40,14 @@ let musicEl: HTMLAudioElement | null = null;
 let musicV = -1;
 /** Browser blocked autoplay — retry on next user gesture. */
 let ambientNeedsGesture = false;
+/**
+ * While > Date.now(), one-shot play() is suppressed and ambient stays paused
+ * so a long exclusive sting (e.g. run_away) is not mixed with other SFX.
+ */
+let exclusiveUntilMs = 0;
+let exclusiveEndTimer: ReturnType<typeof setTimeout> | null = null;
+/** Clip currently owned by playExclusive — cleared when it ends or is superseded. */
+let exclusiveClipId: string | null = null;
 
 /** URL for a clip; includes ?v=<mtime> when the server reported a version. */
 function clipUrl(id: string): string {
@@ -169,11 +177,44 @@ function pauseAmbient(): void {
   }
 }
 
+function clearExclusiveHold(): void {
+  exclusiveUntilMs = 0;
+  exclusiveClipId = null;
+  if (exclusiveEndTimer != null) {
+    clearTimeout(exclusiveEndTimer);
+    exclusiveEndTimer = null;
+  }
+}
+
+function isExclusiveActive(): boolean {
+  return Date.now() < exclusiveUntilMs;
+}
+
+/** Stop every one-shot SFX buffer (does not touch the ambient music element). */
+export function stopAllSfx(): void {
+  for (const buf of buffers.values()) {
+    const el = buf.el;
+    if (!el.paused) {
+      el.pause();
+    }
+    try {
+      el.currentTime = 0;
+    } catch {
+      /* ignore seek errors on unloaded media */
+    }
+  }
+}
+
 /**
  * Apply mute / music / ambient-desired to the looping bed.
  * Safe to call often; missing file is a no-op.
  */
 export async function syncAmbientMusic(): Promise<void> {
+  // Exclusive stings own the bus — do not re-open ambient under them
+  if (isExclusiveActive()) {
+    pauseAmbient();
+    return;
+  }
   if (!ambientDesired || muted || !musicEnabled) {
     pauseAmbient();
     return;
@@ -207,6 +248,8 @@ export function unlockAmbientFromGesture(): void {
 
 export function play(id: string): void {
   if (muted) return;
+  // Long exclusive stings (run away) suppress everything else until they finish
+  if (isExclusiveActive()) return;
   const clip = manifest?.clips.find((c) => c.id === id);
   if (clip?.kind === "vo" && !voEnabled) return;
   if (clip?.kind === "music") {
@@ -225,6 +268,53 @@ export function play(id: string): void {
   el.currentTime = 0;
   void el.play().catch(() => {
     /* autoplay policies — ignore */
+  });
+}
+
+/**
+ * Play a longer sting alone: stops all SFX, pauses ambient, and blocks other
+ * play() calls until the clip ends (or ~duration + small pad).
+ * Call from a user gesture (button click) so autoplay allows it.
+ */
+export function playExclusive(id: string, durationSeconds = 4.5): void {
+  if (muted) return;
+  const clip = manifest?.clips.find((c) => c.id === id);
+  if (clip?.kind === "vo" && !voEnabled) return;
+  if (clip?.kind === "music") return;
+
+  // Cut everything currently sounding
+  stopAllSfx();
+  pauseAmbient();
+
+  const holdMs = Math.max(500, Math.round(durationSeconds * 1000) + 200);
+  exclusiveUntilMs = Date.now() + holdMs;
+  exclusiveClipId = id;
+  if (exclusiveEndTimer != null) clearTimeout(exclusiveEndTimer);
+  exclusiveEndTimer = setTimeout(() => {
+    exclusiveEndTimer = null;
+    if (exclusiveClipId === id) {
+      clearExclusiveHold();
+      void syncAmbientMusic();
+    }
+  }, holdMs);
+
+  const v = clipVersion(id);
+  let buf = buffers.get(id);
+  if (!buf || buf.v !== v) {
+    buf = { el: new Audio(clipUrl(id)), v };
+    buffers.set(id, buf);
+  }
+  const el = buf.el;
+  el.onended = null;
+  el.volume = Math.min(1, Math.max(0, volumeFor(id)));
+  el.currentTime = 0;
+  el.onended = () => {
+    if (exclusiveClipId !== id) return;
+    clearExclusiveHold();
+    void syncAmbientMusic();
+  };
+  void el.play().catch(() => {
+    /* autoplay policies — still hold exclusive briefly so lobby don't stack */
   });
 }
 

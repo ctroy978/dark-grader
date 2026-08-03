@@ -279,6 +279,11 @@ export interface TeamState {
    */
   bossLastAttackWasStunKit?: boolean;
   /**
+   * Attack id from the previous resolved boss turn (not stun skips).
+   * Ash Wraith uses this to never cast the same move twice in a row.
+   */
+  bossLastAttackId?: string | null;
+  /**
    * Boss may not *spawn* minions while team.round &lt; this.
    * Set when the gap is cleared (last minion dies) to round+2 so the party
    * gets this boss phase + one full turn of boss access before a re-summon.

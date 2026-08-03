@@ -12,6 +12,7 @@ import {
   placeMagnet,
   requiredPartySize,
   returnFromDefeat,
+  runAway,
   selectParty,
   startFight,
 } from "./combat.js";
@@ -240,6 +241,83 @@ describe("campaign progression", () => {
     startFight(team, "ash_wraith", POOL);
     expect(team.phase).toBe("awaiting_magnet");
     expect(team.roomIndex).toBe(0);
+  });
+
+  it("runAway returns living to camp without heal; boss resets; same room", () => {
+    const team = createTeam("c6ra", "CAMP6RA", "Flee", 66);
+    selectParty(team, livingPartyIds(team, 6));
+    startFight(team, "ash_wraith", POOL);
+    expect(team.phase).toBe("awaiting_magnet");
+    expect(team.boss).not.toBeNull();
+
+    // Damage living party members mid-fight
+    const party = team.activePartyIds.map(
+      (id) => team.roster.find((s) => s.id === id)!,
+    );
+    for (const s of party) {
+      s.currentHp = Math.max(1, Math.floor(s.maxHp / 2));
+      s.statuses = [
+        {
+          kind: "Dot",
+          type: "Poison",
+          stacks: 2,
+          duration: 3,
+          escalationStep: 0,
+        },
+      ];
+    }
+    // Kill one — they stay dead after fleeing
+    const fallen = party[0]!;
+    fallen.alive = false;
+    fallen.currentHp = 0;
+    const woundedHp = party[1]!.currentHp;
+
+    const roomBefore = team.roomIndex;
+    runAway(team);
+
+    expect(team.phase).toBe("lobby");
+    expect(team.roomIndex).toBe(roomBefore);
+    expect(team.boss).toBeNull();
+    expect(team.minions).toEqual([]);
+    expect(team.activePartyIds).toEqual([]);
+    expect(fallen.alive).toBe(false);
+    expect(fallen.currentHp).toBe(0);
+    // Living keep wounds — no inter-room heal
+    expect(party[1]!.alive).toBe(true);
+    expect(party[1]!.currentHp).toBe(woundedHp);
+    // Fight statuses cleared (same as defeat return)
+    expect(party[1]!.statuses).toEqual([]);
+
+    // Can reform and retry; boss spawns fresh
+    selectParty(team, livingPartyIds(team, 6));
+    startFight(team, "ash_wraith", POOL);
+    expect(team.phase).toBe("awaiting_magnet");
+    expect(team.boss?.id).toBe("ash_wraith");
+    expect(team.boss?.currentHp).toBe(team.boss?.maxHp);
+  });
+
+  it("runAway from mid-campaign uses between_rooms and does not advance", () => {
+    const team = createTeam("c6rb", "CAMP6RB", "Flee2", 67);
+    team.roomIndex = 2;
+    selectParty(team, livingPartyIds(team, 6));
+    startFight(team, "bone_colossus", POOL);
+    expect(team.phase).toBe("awaiting_magnet");
+
+    runAway(team);
+    expect(team.phase).toBe("between_rooms");
+    expect(team.roomIndex).toBe(2);
+    expect(team.boss).toBeNull();
+  });
+
+  it("runAway is rejected outside an active fight", () => {
+    const team = createTeam("c6rc", "CAMP6RC", "Flee3", 68);
+    team.phase = "victory";
+    expect(() => runAway(team)).toThrow(/active fight/);
+    team.phase = "defeat";
+    expect(() => runAway(team)).toThrow(/active fight/);
+    team.phase = "lobby";
+    runAway(team); // idempotent
+    expect(team.phase).toBe("lobby");
   });
 
   it("allows understrength party when fewer than 6 living (no soft-lock)", () => {

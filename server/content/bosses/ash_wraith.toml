@@ -6,7 +6,7 @@ difficulty = "Standard"
 summary = "Fights alone (no minions). Cascade hits the front hardest; poison cloud and magnet crush still hurt."
 recommended_rounds = "8–12"
 enrage_hp_pct = 0.4
-enrage_damage_mult = 1.25
+enrage_damage_mult = 1.15
 
 grunt_pool = ["boss_ash_hiss_1", "boss_ash_hiss_2"]
 laugh_pool = ["boss_ash_laugh"]

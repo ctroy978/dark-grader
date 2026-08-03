@@ -83,6 +83,7 @@ export function createTeam(
     pendingBossAttackId: null,
     magnetStunRoundsLeft: 0,
     bossLastAttackWasStunKit: false,
+    bossLastAttackId: null,
     noSummonBeforeRound: 0,
     boss: null,
     minions: [],
@@ -211,6 +212,7 @@ export function startFight(
   team.pendingBossAttackId = null;
   team.magnetStunRoundsLeft = 0;
   team.bossLastAttackWasStunKit = false;
+  team.bossLastAttackId = null;
   team.noSummonBeforeRound = 0;
   team.round = 1;
   team.phase = "awaiting_magnet";
@@ -960,6 +962,7 @@ function clearFightState(team: TeamState): void {
   team.pendingBossAttackId = null;
   team.magnetStunRoundsLeft = 0;
   team.bossLastAttackWasStunKit = false;
+  team.bossLastAttackId = null;
   team.noSummonBeforeRound = 0;
   team.playback = [];
   team.lastClaims = [];
@@ -1031,20 +1034,23 @@ export function enterBetweenRooms(
   }
 }
 
-/**
- * After a wipe: return to camp to reform and retry the **same** room.
- * - Idempotent when already in lobby / between_rooms.
- * - Does **not** advance roomIndex or apply inter-room heal.
- * - Fallen stay dead; living keep current HP.
- */
-export function returnFromDefeat(team: TeamState): void {
-  if (team.phase === "lobby" || team.phase === "between_rooms") {
-    return;
-  }
-  if (team.phase !== "defeat") {
-    throw new Error("Can only return to camp after a defeat");
-  }
+/** Phases where students can abort a fight mid-encounter. */
+const RUN_AWAY_PHASES = new Set([
+  "awaiting_magnet",
+  "resolving",
+  "boss_telegraph",
+]);
 
+/**
+ * Shared camp return after a failed or aborted room attempt.
+ * - Does **not** advance roomIndex or apply inter-room heal.
+ * - Fallen stay dead; living keep current HP (no Vanguard camp heal).
+ * - Boss / minions / fight-only state cleared so the next startFight is fresh.
+ */
+function returnToCampAfterRoomAttempt(
+  team: TeamState,
+  reason: "defeat" | "run_away",
+): void {
   const living = livingRosterCount(team);
   clearFightState(team);
 
@@ -1052,6 +1058,29 @@ export function returnFromDefeat(team: TeamState): void {
   team.phase = team.roomIndex === 0 ? "lobby" : "between_rooms";
 
   const roomNum = team.roomIndex + 1;
+  if (reason === "run_away") {
+    if (living <= 0) {
+      pushLog(
+        team,
+        `The party fled room ${roomNum}, but no one made it out alive. Ask the teacher to reset the team.`,
+        ["system", "campaign"],
+      );
+    } else if (living < PARTY_SIZE) {
+      pushLog(
+        team,
+        `The party fled room ${roomNum}. Survivors keep their wounds — no camp heal. Only ${living} living; reform understrength and try again, or ask the teacher to reset.`,
+        ["system", "campaign"],
+      );
+    } else {
+      pushLog(
+        team,
+        `The party fled room ${roomNum}. Survivors keep their wounds — no camp heal. Reform a party of ${PARTY_SIZE} from the ${living} living soldiers and try again.`,
+        ["system", "campaign"],
+      );
+    }
+    return;
+  }
+
   if (living <= 0) {
     pushLog(
       team,
@@ -1071,6 +1100,38 @@ export function returnFromDefeat(team: TeamState): void {
       ["system", "campaign"],
     );
   }
+}
+
+/**
+ * After a wipe: return to camp to reform and retry the **same** room.
+ * - Idempotent when already in lobby / between_rooms.
+ * - Does **not** advance roomIndex or apply inter-room heal.
+ * - Fallen stay dead; living keep current HP.
+ */
+export function returnFromDefeat(team: TeamState): void {
+  if (team.phase === "lobby" || team.phase === "between_rooms") {
+    return;
+  }
+  if (team.phase !== "defeat") {
+    throw new Error("Can only return to camp after a defeat");
+  }
+  returnToCampAfterRoomAttempt(team, "defeat");
+}
+
+/**
+ * Mid-fight abort: living soldiers retreat to camp with current HP (no heal).
+ * Boss resets for the next attempt at the **same** room.
+ * - Idempotent when already in lobby / between_rooms.
+ * - Only from active fight phases (not victory / defeat / campaign end).
+ */
+export function runAway(team: TeamState): void {
+  if (team.phase === "lobby" || team.phase === "between_rooms") {
+    return;
+  }
+  if (!RUN_AWAY_PHASES.has(team.phase)) {
+    throw new Error("Can only run away during an active fight");
+  }
+  returnToCampAfterRoomAttempt(team, "run_away");
 }
 
 /** True if at least one living soldier can still enter a room (understrength OK). */

@@ -258,6 +258,14 @@ const CORE_CATALOG: AudioClipDef[] = [
     durationSeconds: 1.2,
     volume: 0.5,
   },
+  {
+    id: "run_away",
+    kind: "sfx",
+    text:
+      "party fleeing a dungeon fight: hurried boots on stone, clatter of armor and gear, panicked scramble, a whoosh of retreat, distant fading boss roar, dark fantasy game, cinematic but classroom-safe, no voice, no music melody",
+    durationSeconds: 4.5,
+    volume: 0.55,
+  },
 
   // --- Short VO (optional; muted by default in UI) ---
   {

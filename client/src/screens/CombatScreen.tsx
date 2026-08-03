@@ -24,6 +24,7 @@ import {
   loadAudioPrefs,
   play,
   playCommit,
+  playExclusive,
   playForLogLine,
   playMagnetMove,
   setAmbientDesired,
@@ -1004,6 +1005,36 @@ export default function CombatScreen({
     }
   }
 
+  async function handleRunAway() {
+    if (
+      team.phase !== "awaiting_magnet" &&
+      team.phase !== "resolving" &&
+      team.phase !== "boss_telegraph"
+    ) {
+      return;
+    }
+    // Block in-flight auto boss resolve so it cannot land after we retreat
+    bossResolveLock.current = true;
+    setBusy(true);
+    setError(null);
+    // Stop any mid-queue presentation so we don't flash fight UI after retreat
+    setPlaying(false);
+    setPlayIndex(0);
+    setPlayQueue([]);
+    setVisualHold(null);
+    // Long exclusive flee sting (~4.5s) — cuts combat SFX / ambient until done
+    playExclusive("run_away", 4.5);
+    try {
+      const t = await api.runAway(team.teamId);
+      onTeamUpdate(t);
+    } catch (err) {
+      bossResolveLock.current = false;
+      setError(err instanceof Error ? err.message : "Failed to run away");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   /** 0 = leftmost (back/pos 6), matching partyVisual order for magnet bar. */
   const magnetVisualIndex = Math.max(
     0,
@@ -1640,6 +1671,19 @@ export default function CombatScreen({
                 className="rounded-lg bg-crimson hover:bg-crimson-bright px-4 py-2 text-sm font-semibold disabled:opacity-50"
               >
                 {busy ? "…" : "Reform & retry"}
+              </button>
+            )}
+            {(team.phase === "awaiting_magnet" ||
+              team.phase === "resolving" ||
+              team.phase === "boss_telegraph") && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleRunAway()}
+                className="rounded-lg border border-amber-500/50 bg-amber-950/50 hover:bg-amber-900/60 text-amber-100 px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                title="Abort the fight. Living soldiers keep their wounds (no heal). Boss resets for the next attempt."
+              >
+                {busy ? "…" : "Run away"}
               </button>
             )}
             <button

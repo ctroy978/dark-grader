@@ -358,6 +358,10 @@ function pickWeightedAttack(
   const blockStunKit =
     template.id === "rattle_captain" && !!team.bossLastAttackWasStunKit;
 
+  // Ash Wraith: never the exact same attack twice in a row (stops Cascade chains)
+  const blockRepeatAttackId =
+    template.id === "ash_wraith" ? team.bossLastAttackId ?? null : null;
+
   // Soft Ice-locks do not block SpreadingFrost re-cast
   const freezeActive = partyHasChainFrozen(team);
 
@@ -370,6 +374,10 @@ function pickWeightedAttack(
     const def = attackDef(template, id);
     let w = def?.weight ?? 2;
     if (blockStunKit && isRattleStunKitAttack(id)) {
+      w = 0;
+    }
+    // Room-2 variety: last resolved attack is off-limits this pick
+    if (blockRepeatAttackId && id === blockRepeatAttackId) {
       w = 0;
     }
     // One freeze chain at a time — no re-cast while anyone is chain-Frozen
@@ -524,6 +532,8 @@ export function resolveBossPhase(
   } else {
     team.bossLastAttackWasStunKit = false;
   }
+  // Ash (and any future no-repeat bosses) need last real attack id
+  team.bossLastAttackId = attackId;
   const audio = resolveBossImpactAudio(template, attackId, random);
   present?.onBossAttack?.({
     attackId,
