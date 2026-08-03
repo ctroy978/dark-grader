@@ -32,7 +32,11 @@ export interface BoardReveal {
     damage?: number;
     statuses?: StatusTag[];
   }>;
-  partyShield: { remaining: number; active: boolean };
+  partyShield: {
+    remaining: number;
+    active: boolean;
+    coveredIds?: string[];
+  };
   /** Progressive magnet lock (Rattle Captain shock). */
   magnetStunRoundsLeft?: number;
 }

@@ -122,7 +122,7 @@ This section is for design review — update it when abilities change.
 | Resolve order | Claims → **Runesinger first** (rewrites tokens) → other claimers **front → back** → DoTs → boss |
 | Enemy damage | **Gap rule:** only **pos 1** and **Archers** can hit minions; everyone else hits the boss only (`hitEnemies`) |
 | Party damage bonus | Legacy field; Runesinger no longer uses it (token rewrite instead) |
-| Party shield | Opening **1d6** only if a living Shield Maiden is in the party; no stacking; Maiden **A** rerolls it; Maiden **F** dumps it to 0 |
+| Party cover | **No free open.** Shield Maiden claim raises one-round cover (self + most endangered); size by grade; **F** dumps; expires after boss phase |
 | Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
 | Friendly fire | Many backfires **bypass** shield + block |
 | Ice DoT | On claim: **downgrade grade one step** (A→B … D→F; F stays) before resolve |
@@ -163,19 +163,19 @@ Personal block absorbs boss/minion/DoT damage after it is granted; leftover expi
 
 ---
 
-### ShieldMaiden — striker + party shield (A refresh / F dump)
+### ShieldMaiden — striker + one-round cover
 
-**Job (as coded):** steady damage ladder; **A** refreshes party shield; **F** kills the shield if it is up.
+**Job (as coded):** hit + raise **one-round cover** on **herself and the ally most likely to die** (lowest HP%). Cover expires after the boss phase. **No free opening shield.**
 
-| Grade | Effect |
-|-------|--------|
-| **A** | Hit for **14**; **reroll party shield** to fresh **1d6** |
-| **B** | Hit for **11** |
-| **C** | Hit for **9** |
-| **D** | Hit for **7** |
-| **F** | If party shield active with remaining &gt; 0: set shield to **0** (inactive). If no shield: nothing |
+| Grade | Hit | Cover pool |
+|-------|-----|------------|
+| **A** | **14** | **8** |
+| **B** | **11** | **6** |
+| **C** | **9** | **4** |
+| **D** | **7** | **3** |
+| **F** | — | Dump cover to **0** (or nothing if already down) |
 
-Opening shield at fight start: **1d6** only when a living Maiden is in the party.
+Uncovered seats take full damage even while cover is active.
 
 ---
 

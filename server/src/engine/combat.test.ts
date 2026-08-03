@@ -40,11 +40,11 @@ function readyTeam() {
 }
 
 describe("combat loop", () => {
-  it("starts fight with shield only when a Shield Maiden is in the party", () => {
+  it("starts fight with no free shield (cover only on Maiden claim)", () => {
     const withMaiden = readyTeam();
     expect(withMaiden.phase).toBe("awaiting_magnet");
-    expect(withMaiden.partyShield.active).toBe(true);
-    expect(withMaiden.partyShield.remaining).toBeGreaterThanOrEqual(1);
+    expect(withMaiden.partyShield.active).toBe(false);
+    expect(withMaiden.partyShield.remaining).toBe(0);
 
     const noMaiden = createTeam("t-nm", "NOMDN", "No Maiden", 9);
     selectParty(noMaiden, [

@@ -22,7 +22,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
     "Personal block and hits the boss. Block protects only himself (not the whole party).",
   ShieldMaiden:
-    "Strikes hard and controls the party shield. A refreshes the shield; F drops it to zero.",
+    "Strikes hard and raises a one-round cover over herself and the ally most likely to die. Better grades = bigger cover. F dumps cover.",
   FireMage:
     "Hits several enemies with fire and can burn the boss. The only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime on that half of the line. Weak grades can hurt allies.",
   Healer:

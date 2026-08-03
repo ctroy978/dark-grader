@@ -118,6 +118,11 @@ export interface Soldier {
 export interface PartyShield {
   remaining: number;
   active: boolean;
+  /**
+   * Soldier ids protected this round (Maiden + most-likely-to-die).
+   * Empty when inactive. Only these seats may spend `remaining`.
+   */
+  coveredIds?: string[];
 }
 
 export interface TokenPool {

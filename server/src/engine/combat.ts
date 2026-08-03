@@ -214,25 +214,20 @@ export function startFight(
     s.statuses = [];
   }
 
-  // Party shield only if a Shield Maiden is in the active line (spec)
-  const hasShieldMaiden = activeParty(team).some(
-    (s) => s.alive && s.archetype === "ShieldMaiden",
-  );
-  if (hasShieldMaiden) {
-    const shieldRoll = randomInt(random, 1, 6);
-    team.partyShield = { remaining: shieldRoll, active: true };
-  } else {
-    team.partyShield = { remaining: 0, active: false };
-  }
+  // Cover only when a Shield Maiden claims (no free opening shield)
+  team.partyShield = { remaining: 0, active: false, coveredIds: [] };
 
   // Telegraph the first drop so students plan the magnet
   const prep = preparePendingForRound(team);
 
   team.log = [];
   const roomNum = team.roomIndex + 1;
+  const hasShieldMaiden = activeParty(team).some(
+    (s) => s.alive && s.archetype === "ShieldMaiden",
+  );
   const shieldMsg = hasShieldMaiden
-    ? `Party shield: ${team.partyShield.remaining} (Shield Maiden).`
-    : `No party shield (bring a Shield Maiden for opening protection).`;
+    ? `Shield Maiden ready — claim a token for one-round cover.`
+    : `No Shield Maiden — no cover this fight.`;
   pushLog(
     team,
     `Room ${roomNum}: fight starts vs ${team.boss.name}! ${shieldMsg} Tokens: ${gradePool.length}.`,
@@ -759,12 +754,13 @@ export function resolveBoss(team: TeamState): TeamState {
     });
   }
 
-  // Defensive window closed: leftover personal block and Spearman parry expire
-  // after the boss/add volley that could consume them (not at the next token drop).
+  // Defensive window closed: leftover personal block, Spearman parry, and
+  // Maiden cover expire after the boss/add volley (not at the next token drop).
   for (const s of activeParty(team)) {
     s.block = 0;
     s.statuses = s.statuses.filter((st) => st.kind !== "Parry");
   }
+  team.partyShield = { remaining: 0, active: false, coveredIds: [] };
 
   processDeaths(team);
 

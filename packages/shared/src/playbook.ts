@@ -15,11 +15,11 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "No block; weak hit (2)",
   },
   ShieldMaiden: {
-    A: "Heavy strike (14) + reroll party shield 1d6",
-    B: "Strong strike (11)",
-    C: "Solid strike (9)",
-    D: "Light strike (7)",
-    F: "Shield shorts out → 0 (nothing if already down)",
+    A: "Strike 14 + cover 8 (self + most endangered) this round",
+    B: "Strike 11 + cover 6 (self + most endangered) this round",
+    C: "Strike 9 + cover 4 (self + most endangered) this round",
+    D: "Strike 7 + cover 3 (self + most endangered) this round",
+    F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {
     A: "Wildfire ≤3 foes (9) + boss Fire; front: burn Frozen + clear Ice/Slime",
@@ -82,7 +82,7 @@ export function gradeRiskNote(archetype: Archetype, grade: Grade): string | null
     Necromancer: { D: "Self damage", F: "Hits highest-HP ally (10)" },
     Thundercaller: { F: "May stun a not-yet-acted claimer" },
     Runesinger: { F: "Downgrades all tokens" },
-    ShieldMaiden: { F: "Drops party shield to 0" },
+    ShieldMaiden: { F: "Drops cover to 0" },
   };
   return risky[archetype]?.[grade] ?? null;
 }

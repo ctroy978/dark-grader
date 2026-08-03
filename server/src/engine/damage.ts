@@ -48,6 +48,25 @@ export function applySpearmanBossDefense(
   return amount;
 }
 
+/**
+ * Ally most likely to die next (for Shield Maiden cover).
+ * Lowest HP%, then lowest current HP, then front-most position.
+ */
+export function mostLikelyToDie(
+  team: TeamState,
+  excludeId?: string,
+): Soldier | undefined {
+  const candidates = livingParty(team).filter((s) => s.id !== excludeId);
+  if (!candidates.length) return undefined;
+  return candidates.slice().sort((a, b) => {
+    const ra = a.currentHp / Math.max(1, a.maxHp);
+    const rb = b.currentHp / Math.max(1, b.maxHp);
+    if (ra !== rb) return ra - rb;
+    if (a.currentHp !== b.currentHp) return a.currentHp - b.currentHp;
+    return (a.position ?? 99) - (b.position ?? 99);
+  })[0];
+}
+
 export function applyPartyDamage(
   soldier: Soldier,
   raw: number,
@@ -62,13 +81,20 @@ export function applyPartyDamage(
   let blockAbsorbed = 0;
 
   if (!opts?.bypassAbsorb) {
-    if (shield.active && shield.remaining > 0) {
+    // One-round Maiden cover: only listed seats may spend the pool
+    const inCover =
+      shield.active &&
+      shield.remaining > 0 &&
+      Array.isArray(shield.coveredIds) &&
+      shield.coveredIds.includes(soldier.id);
+    if (inCover) {
       shieldAbsorbed = Math.min(shield.remaining, remaining);
       shield.remaining -= shieldAbsorbed;
       remaining -= shieldAbsorbed;
       if (shield.remaining <= 0) {
         shield.active = false;
         shield.remaining = 0;
+        shield.coveredIds = [];
       }
     }
 

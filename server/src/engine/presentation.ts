@@ -58,6 +58,7 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
     partyShield: {
       remaining: team.partyShield.remaining,
       active: team.partyShield.active,
+      coveredIds: team.partyShield.coveredIds ?? [],
     },
     magnetStunRoundsLeft: team.magnetStunRoundsLeft ?? 0,
   };

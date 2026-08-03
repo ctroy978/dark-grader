@@ -1,5 +1,7 @@
 import {
   GRADE_RANK,
+  MAIDEN_DAMAGE,
+  MAIDEN_SHIELD,
   SPEARMAN_DAMAGE,
   SPEARMAN_PARRY_REDUCTION,
   downgradeGrade,
@@ -18,6 +20,7 @@ import {
   healSoldier,
   hitEnemies,
   livingParty,
+  mostLikelyToDie,
   soldierAt,
 } from "./damage.js";
 import {
@@ -166,36 +169,37 @@ function shieldMaiden(
   soldier: Soldier,
   g: Grade,
   team: TeamState,
-  random: () => number,
+  _random: () => number,
   log: LogFn,
   label: string,
 ): void {
   if (g === "F") {
     if (team.partyShield.active && team.partyShield.remaining > 0) {
-      team.partyShield = { remaining: 0, active: false };
-      log(`${label}: shield short-circuits — party shield drops to 0`);
+      team.partyShield = { remaining: 0, active: false, coveredIds: [] };
+      log(`${label}: shield short-circuits — cover drops to 0`);
     } else {
       log(`${label}: no shield to short (nothing happens)`);
     }
     return;
   }
 
-  const dmgTable: Record<Exclude<Grade, "F">, number> = {
-    A: 14,
-    B: 11,
-    C: 9,
-    D: 7,
+  const dmg = MAIDEN_DAMAGE[g];
+  const coverHp = MAIDEN_SHIELD[g];
+  const ally = mostLikelyToDie(team, soldier.id);
+  const coveredIds = ally
+    ? [soldier.id, ally.id]
+    : [soldier.id];
+  team.partyShield = {
+    remaining: coverHp,
+    active: true,
+    coveredIds,
   };
-  const r = hitEnemies(team, dmgTable[g], "single", 0, 0, soldier);
 
-  if (g === "A") {
-    const roll = randomInt(random, 1, 6);
-    team.partyShield = { remaining: roll, active: true };
-    log(`${label}: attacks for ${r}; party shield rerolled to ${roll}`);
-    return;
-  }
-
-  log(`${label}: attacks for ${r}`);
+  const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
+  const allyName = ally ? ally.name : "nobody";
+  log(
+    `${label}: attacks for ${r}; cover ${coverHp} on self + ${allyName} (this round)`,
+  );
 }
 
 /**

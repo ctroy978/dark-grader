@@ -142,6 +142,22 @@ export const SPEARMAN_PARRY_REDUCTION: Record<Exclude<Grade, "F">, number> = {
 /** Boss damage multiplier for Spearman in pos 1 with no active Parry. */
 export const SPEARMAN_FRONT_VULN_MULT = 1.35;
 
+/** Shield Maiden hit damage by grade (F dumps cover only). */
+export const MAIDEN_DAMAGE: Record<Exclude<Grade, "F">, number> = {
+  A: 14,
+  B: 11,
+  C: 9,
+  D: 7,
+};
+
+/** One-round cover pool size (Maiden + endangered ally only). */
+export const MAIDEN_SHIELD: Record<Exclude<Grade, "F">, number> = {
+  A: 8,
+  B: 6,
+  C: 4,
+  D: 3,
+};
+
 /** Display colors for grades */
 export const GRADE_COLORS: Record<Grade, string> = {
   A: "#d4af37",
