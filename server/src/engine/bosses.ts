@@ -11,7 +11,12 @@ import {
   type TeamState,
 } from "@dungeon-grades/shared";
 import { adjacentPositions } from "@dungeon-grades/shared";
-import { applyPartyDamage, livingParty, soldierAt } from "./damage.js";
+import {
+  applyPartyDamage,
+  applySpearmanBossDefense,
+  livingParty,
+  soldierAt,
+} from "./damage.js";
 import {
   applyDot,
   applyFrozen,
@@ -557,7 +562,8 @@ function performAttack(
   const dmg = (base: number) => Math.floor((base + bonus) * mult);
   const hit = (s: Soldier, amount: number) => {
     const scaled = scaleBossDamageToSoldier(team, s, amount);
-    const { hpLost } = applyPartyDamage(s, scaled, team.partyShield);
+    const afterParry = applySpearmanBossDefense(s, scaled);
+    const { hpLost } = applyPartyDamage(s, afterParry, team.partyShield);
     if (hpLost > 0) victims.add(s.id);
     return hpLost;
   };
@@ -660,9 +666,10 @@ function performAttack(
         if (!s) continue;
         const base = CASCADE_BASE[pos] ?? 2;
         const scaled = scaleBossDamageToSoldier(team, s, dmg(base));
+        const afterParry = applySpearmanBossDefense(s, scaled);
         const { hpLost, shieldAbsorbed, blockAbsorbed } = applyPartyDamage(
           s,
-          scaled,
+          afterParry,
           team.partyShield,
         );
         if (hpLost > 0) victims.add(s.id);

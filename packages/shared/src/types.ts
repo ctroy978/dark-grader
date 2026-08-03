@@ -52,6 +52,15 @@ export interface ChargeStatus {
 }
 
 /**
+ * Spearman parry — reduces **boss** damage to this soldier until end of boss phase.
+ * `reduction` is a fraction in [0, 1] (e.g. 0.7 → take 30% of the hit).
+ */
+export interface ParryStatus {
+  kind: "Parry";
+  reduction: number;
+}
+
+/**
  * Freeze lock.
  *
  * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed
@@ -89,6 +98,7 @@ export type StatusTag =
   | StunStatus
   | WeakenStatus
   | ChargeStatus
+  | ParryStatus
   | FrozenStatus;
 
 export interface Soldier {

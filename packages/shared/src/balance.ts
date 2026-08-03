@@ -118,6 +118,30 @@ export const MAX_LOG_ENTRIES = 800;
 
 export const INTER_ROOM_VANGUARD_HEAL_PCT = 0.2;
 
+/**
+ * Spearman kit (Phase 2).
+ * Parry reduces boss damage to self this round; front without parry takes extra boss heat.
+ * Minion preference uses the shared gap rule (pos 1 or Archer).
+ */
+export const SPEARMAN_DAMAGE: Record<Grade, number> = {
+  A: 12,
+  B: 10,
+  C: 7,
+  D: 5,
+  F: 2,
+};
+
+/** Boss damage reduction fraction while Parry is up (A–D only; F/no claim = none). */
+export const SPEARMAN_PARRY_REDUCTION: Record<Exclude<Grade, "F">, number> = {
+  A: 0.7,
+  B: 0.5,
+  C: 0.3,
+  D: 0.15,
+};
+
+/** Boss damage multiplier for Spearman in pos 1 with no active Parry. */
+export const SPEARMAN_FRONT_VULN_MULT = 1.35;
+
 /** Display colors for grades */
 export const GRADE_COLORS: Record<Grade, string> = {
   A: "#d4af37",

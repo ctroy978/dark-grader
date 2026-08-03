@@ -30,7 +30,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:
-    "Front-line striker. Solid single-target hits (parry and front vulnerability land in a later pass).",
+    "Front-line striker. Claims grant a boss Parry (better grades = stronger). In seat 1 without a parry, boss hits hurt more. Can clear the gap from the front; Archers clear from any seat.",
   Necromancer:
     "Drains the boss and heals allies. Weak grades can backfire.",
   Thundercaller:

@@ -43,11 +43,11 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Misfire — tiny hit + may hurt an ally",
   },
   Spearman: {
-    A: "Strong spear thrust (12) — stub kit; parry comes in a later phase",
-    B: "Solid thrust (10)",
-    C: "Thrust (7)",
-    D: "Light poke (5)",
-    F: "Weak poke (2)",
+    A: "Thrust 12 + parry 70% boss dmg this round (front w/o parry is vulnerable)",
+    B: "Thrust 10 + parry 50% boss dmg this round",
+    C: "Thrust 7 + parry 30% boss dmg this round",
+    D: "Thrust 5 + parry 15% boss dmg this round",
+    F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {
     A: "Drain boss + heal lowest ally",

@@ -759,10 +759,11 @@ export function resolveBoss(team: TeamState): TeamState {
     });
   }
 
-  // Defensive window closed: leftover personal block expires after the boss/add
-  // volley that could consume it (not at the next token drop).
+  // Defensive window closed: leftover personal block and Spearman parry expire
+  // after the boss/add volley that could consume them (not at the next token drop).
   for (const s of activeParty(team)) {
     s.block = 0;
+    s.statuses = s.statuses.filter((st) => st.kind !== "Parry");
   }
 
   processDeaths(team);

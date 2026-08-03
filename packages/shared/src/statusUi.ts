@@ -91,6 +91,16 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       colorClass: "text-sky-200 border-sky-400/40 bg-sky-950/40",
     };
   }
+  if (st.kind === "Parry") {
+    const pct = Math.round(st.reduction * 100);
+    return {
+      key: `parry-${index}`,
+      icon: "🗡️",
+      label: `Parry ${pct}%`,
+      title: `Parry — take ${pct}% less damage from the boss this round (expires after boss phase)`,
+      colorClass: "text-amber-200 border-amber-400/40 bg-amber-950/40",
+    };
+  }
   // Weaken — legacy / internal duration tag
   return {
     key: `weaken-${index}`,

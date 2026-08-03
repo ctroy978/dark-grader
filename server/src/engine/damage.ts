@@ -1,4 +1,9 @@
-import type { PartyShield, Soldier, TeamState } from "@dungeon-grades/shared";
+import {
+  SPEARMAN_FRONT_VULN_MULT,
+  type PartyShield,
+  type Soldier,
+  type TeamState,
+} from "@dungeon-grades/shared";
 
 /** Short phrase for logs: "3 HP to Name", "2 blocked by shield on Name", etc. */
 export function formatPartyHit(
@@ -23,6 +28,25 @@ export type DamageOpts = {
   /** Friendly fire / self-backfire: ignore party shield and personal block */
   bypassAbsorb?: boolean;
 };
+
+/**
+ * Spearman boss-only defense: Parry reduces the hit; front without Parry is vulnerable.
+ * Does **not** apply to minion shots or DoTs — call only on boss direct damage.
+ */
+export function applySpearmanBossDefense(
+  soldier: Soldier,
+  amount: number,
+): number {
+  if (amount <= 0) return 0;
+  const parry = soldier.statuses.find((st) => st.kind === "Parry");
+  if (parry && parry.kind === "Parry") {
+    return Math.max(0, Math.floor(amount * (1 - parry.reduction)));
+  }
+  if (soldier.archetype === "Spearman" && soldier.position === 1) {
+    return Math.floor(amount * SPEARMAN_FRONT_VULN_MULT);
+  }
+  return amount;
+}
 
 export function applyPartyDamage(
   soldier: Soldier,

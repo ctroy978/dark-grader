@@ -227,19 +227,19 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Spearman — single-target thrust (stub; parry later)
+### Spearman — single-target thrust + Parry
 
-**Job (as coded, Phase 0):** solid single-target damage ladder. Full kit (parry, front vulnerability, minion preference in pos 1) is planned on branch `feature/frontline-spearman-redesign`.
+**Job (as coded):** front-line striker. **A–D** grant **Parry** (reduce boss damage to self this round). **Pos 1 without Parry** takes **×1.35** boss damage. Gap rule: hits minions only from seat 1 (or as Archer). Parry expires after the boss phase.
 
-| Grade | Effect |
-|-------|--------|
-| **A** | Hit for **12** |
-| **B** | Hit for **10** |
-| **C** | Hit for **7** |
-| **D** | Hit for **5** |
-| **F** | Hit for **2** |
+| Grade | Thrust | Parry (boss → self) |
+|-------|--------|---------------------|
+| **A** | **12** | **70%** reduced |
+| **B** | **10** | **50%** |
+| **C** | **7** | **30%** |
+| **D** | **5** | **15%** |
+| **F** | **2** | **None** (front still vulnerable) |
 
-**2** Spearmen in the roster. **Doomcaller removed.**
+**2** Spearmen in the roster.
 
 ---
 

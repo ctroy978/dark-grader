@@ -1,5 +1,7 @@
 import {
   GRADE_RANK,
+  SPEARMAN_DAMAGE,
+  SPEARMAN_PARRY_REDUCTION,
   downgradeGrade,
   randomInt,
   type ClaimResult,
@@ -438,8 +440,9 @@ function archer(
 }
 
 /**
- * Spearman — Phase 0 stub: single-target damage ladder.
- * Phase 2 will add parry + front vulnerability + minion preference.
+ * Spearman — single-target thrust + A–D Parry (boss damage reduce this round).
+ * Gap rule: pos 1 prefers minions via hitEnemies; front without Parry is vulnerable
+ * to boss hits (see applySpearmanBossDefense).
  */
 function spearman(
   soldier: Soldier,
@@ -448,16 +451,23 @@ function spearman(
   log: LogFn,
   label: string,
 ): void {
-  const table: Record<Grade, number> = {
-    A: 12,
-    B: 10,
-    C: 7,
-    D: 5,
-    F: 2,
-  };
-  const dmg = table[g];
+  const dmg = SPEARMAN_DAMAGE[g];
+  // Replace any prior parry this round
+  soldier.statuses = soldier.statuses.filter((st) => st.kind !== "Parry");
+  const parts: string[] = [];
+
+  if (g !== "F") {
+    const reduction = SPEARMAN_PARRY_REDUCTION[g];
+    soldier.statuses.push({ kind: "Parry", reduction });
+    const pct = Math.round(reduction * 100);
+    parts.push(`parry ${pct}% boss damage this round`);
+  } else {
+    parts.push("no parry");
+  }
+
   const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
-  log(`${label}: spear thrust hits for ${r}`);
+  parts.push(`thrust hits for ${r}`);
+  log(`${label}: ${parts.join("; ")}`);
 }
 
 function necromancer(
