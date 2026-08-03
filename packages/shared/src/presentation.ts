@@ -143,7 +143,7 @@ export function actionBubbleText(archetype: string, grade: Grade): string {
     "Necromancer:C": "Leech!",
     "Necromancer:D": "Ow—drain…",
     "Necromancer:F": "Wrong life!",
-    "Thundercaller:A": "Lightning! Charge front!",
+    "Thundercaller:A": "Lightning! (or revive!)",
     "Thundercaller:B": "Zap! Charge back!",
     "Thundercaller:C": "Zap!",
     "Thundercaller:D": "Spark!",

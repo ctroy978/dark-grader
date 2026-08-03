@@ -76,7 +76,8 @@ export function createTeam(
     roster: createCampaignRoster(),
     activePartyIds: [],
     magnetPosition: 1,
-    partyShield: { remaining: 0, active: false },
+    partyShield: { remaining: 0, active: false, coveredIds: [] },
+    revivedSoldierIdsThisFight: [],
     tokens: { remaining: [], discard: [] },
     pendingTokens: [],
     pendingBossAttackId: null,
@@ -216,6 +217,7 @@ export function startFight(
 
   // Cover only when a Shield Maiden claims (no free opening shield)
   team.partyShield = { remaining: 0, active: false, coveredIds: [] };
+  team.revivedSoldierIdsThisFight = [];
 
   // Telegraph the first drop so students plan the magnet
   const prep = preparePendingForRound(team);

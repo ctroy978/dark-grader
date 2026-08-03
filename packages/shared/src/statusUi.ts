@@ -59,6 +59,15 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       colorClass: "text-yellow-200 border-yellow-400/40 bg-yellow-950/40",
     };
   }
+  if (st.kind === "Dazed") {
+    return {
+      key: `dazed-${index}`,
+      icon: "😵",
+      label: `Dazed ${st.duration}`,
+      title: `Dazed — just revived; loses their next attack`,
+      colorClass: "text-violet-200 border-violet-400/40 bg-violet-950/40",
+    };
+  }
   if (st.kind === "Frozen") {
     if (st.soft) {
       return {

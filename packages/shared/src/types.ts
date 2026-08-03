@@ -40,6 +40,12 @@ export interface StunStatus {
   duration: number;
 }
 
+/** Post-rez fog — skip attack (like Stun) for `duration` claims. */
+export interface DazedStatus {
+  kind: "Dazed";
+  duration: number;
+}
+
 export interface WeakenStatus {
   kind: "Weaken";
   duration: number;
@@ -96,6 +102,7 @@ export type StatusTag =
   | DotInstance
   | MarkStatus
   | StunStatus
+  | DazedStatus
   | WeakenStatus
   | ChargeStatus
   | ParryStatus
@@ -266,6 +273,11 @@ export interface TeamState {
   rngSeed: number;
   /** Last cleared boss name (for summary UI) */
   lastClearedBossName?: string | null;
+  /**
+   * Soldier ids revived by Thundercaller this boss fight (once each).
+   * Cleared on startFight.
+   */
+  revivedSoldierIdsThisFight?: string[];
 }
 
 /** Per-room grade pool + teacher open gate for one classroom. */

@@ -158,6 +158,11 @@ export const MAIDEN_SHIELD: Record<Exclude<Grade, "F">, number> = {
   D: 3,
 };
 
+/** Thundercaller A rez: HP floor (at least 1). */
+export function thundercallerRezHp(maxHp: number): number {
+  return Math.max(1, Math.floor(maxHp * 0.1));
+}
+
 /** Display colors for grades */
 export const GRADE_COLORS: Record<Grade, string> = {
   A: "#d4af37",

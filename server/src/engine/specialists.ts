@@ -6,6 +6,7 @@ import {
   SPEARMAN_PARRY_REDUCTION,
   downgradeGrade,
   randomInt,
+  thundercallerRezHp,
   type ClaimResult,
   type DotType,
   type Grade,
@@ -56,7 +57,7 @@ export type SpecialistResolveResult = {
   /** False when stun / frozen / death skipped the attack — do not play attack cue. */
   acted: boolean;
   /** Why the attack was skipped (for presentation bubbles). */
-  skipReason?: "stun" | "frozen";
+  skipReason?: "stun" | "frozen" | "dazed";
   /**
    * Extra unit ids to focus for FX when board HP/status diffs miss the intent
    * (e.g. Thundercaller F aims at an ally who shakes the stun off).
@@ -98,6 +99,14 @@ export function resolveSpecialistAction(
     soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Stun");
     log(`${label}: STUNNED — loses their attack!`);
     return { acted: false, skipReason: "stun" };
+  }
+
+  // Dazed after Thundercaller rez — skip one attack, then clear
+  const dazed = soldier.statuses.find((s) => s.kind === "Dazed");
+  if (dazed && dazed.kind === "Dazed" && dazed.duration > 0) {
+    soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Dazed");
+    log(`${label}: DAZED — just revived, loses their attack!`);
+    return { acted: false, skipReason: "dazed" };
   }
 
   let effectFocusIds: string[] = [];
@@ -571,6 +580,10 @@ function thundercaller(
   }
 
   if (g === "A") {
+    // Rez first if an eligible corpse exists (once per soldier per fight)
+    const revived = tryThundercallerRez(team, soldier, log, label);
+    if (revived) return revived;
+
     const r = hitEnemies(team, 14, "single", 0, 0, soldier);
     const stun = tryBossStun();
     for (const s of livingParty(team).filter(
@@ -602,6 +615,52 @@ function thundercaller(
   const r = hitEnemies(team, 6, "single", 0, 0, soldier);
   log(`${label}: lightning ${r}`);
   return [];
+}
+
+/**
+ * Thundercaller A: revive one dead party soldier at low HP + Dazed.
+ * Once per soldier id per boss fight. Prefer lowest position / party order.
+ * @returns focus ids if rez happened, else null (caller falls through to attack).
+ */
+function tryThundercallerRez(
+  team: TeamState,
+  _caster: Soldier,
+  log: LogFn,
+  label: string,
+): string[] | null {
+  const already = new Set(team.revivedSoldierIdsThisFight ?? []);
+  // Prefer active-party corpses that still have a seat, then any roster dead
+  const partyDead = team.activePartyIds
+    .map((id) => team.roster.find((s) => s.id === id))
+    .filter((s): s is Soldier => !!s && !s.alive && !already.has(s.id));
+  const benchDead = team.roster.filter(
+    (s) =>
+      !s.alive &&
+      !already.has(s.id) &&
+      !team.activePartyIds.includes(s.id),
+  );
+  const candidates = [...partyDead, ...benchDead];
+  if (!candidates.length) return null;
+
+  candidates.sort(
+    (a, b) => (a.position ?? 99) - (b.position ?? 99) || a.id.localeCompare(b.id),
+  );
+  const target = candidates[0]!;
+  const hp = thundercallerRezHp(target.maxHp);
+  target.alive = true;
+  target.currentHp = hp;
+  target.statuses = [{ kind: "Dazed", duration: 1 }];
+  target.block = 0;
+  // Clear death presentation flag if present
+  (target as Soldier & { deathLogged?: boolean }).deathLogged = false;
+
+  if (!team.revivedSoldierIdsThisFight) team.revivedSoldierIdsThisFight = [];
+  team.revivedSoldierIdsThisFight.push(target.id);
+
+  log(
+    `${label}: REVIVE — ${target.name} returns at ${hp} HP (dazed next action; once per fight)`,
+  );
+  return [target.id];
 }
 
 /**

@@ -57,7 +57,7 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — hits highest-HP ally for 10",
   },
   Thundercaller: {
-    A: "Hit 14; 30% stun boss; front +3 Charge next attack",
+    A: "If someone is dead: revive at low HP (dazed, once/fight). Else hit 14; 30% stun; front Charge+3",
     B: "Hit 11; 30% stun boss; back +3 Charge next attack",
     C: "Hit 9; 30% stun boss",
     D: "Hit 6",

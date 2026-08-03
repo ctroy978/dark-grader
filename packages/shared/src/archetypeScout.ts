@@ -34,7 +34,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Necromancer:
     "Drains the boss and heals allies. Weak grades can backfire.",
   Thundercaller:
-    "Hits hard with a chance to stun the boss; strong grades grant Charge for the next attack.",
+    "Hits hard with a chance to stun the boss; A can revive a fallen ally once per fight at low HP (they are dazed). Strong grades grant Charge.",
   Runesinger:
     "Acts first — rewrites claimed tokens and heals holders. F downgrades every token.",
 };

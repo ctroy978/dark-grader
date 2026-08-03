@@ -259,19 +259,19 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Thundercaller — single lightning + Charge + stun
+### Thundercaller — lightning + Charge + stun + A rez
 
-**Job (as coded):** solid single-target hits; **30% boss stun** (skips boss attack that round); **Charge** buffs allies’ next hit.
+**Job (as coded):** solid single-target hits; **30% boss stun**; **Charge** buffs allies’ next hit. **A** can **revive** a dead ally first if any eligible.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | Hit **14**; **30%** stun boss; **front (1–3)** get **Charge +3** (next enemy hit) |
+| **A** | If a dead party soldier has **not** been rezzed this fight: return them at **~10% HP** (min 1) with **Dazed** (skip next action). Else: hit **14**; **30%** stun boss; **front** **Charge +3** |
 | **B** | Hit **11**; **30%** stun boss; **back (4–6)** get **Charge +3** |
 | **C** | Hit **9**; **30%** stun boss |
 | **D** | Hit **6** |
-| **F** | No hit; pick a **random other token-holder who has not acted yet** this drop — **30%** **Stun** (they **lose their attack**). Never targets Runesinger after she has already resolved; if nobody remains, fizzles. |
+| **F** | No hit; pick a **random other token-holder who has not acted yet** this drop — **30%** **Stun**. |
 
-Charge stacks if applied multiple times; consumed on that soldier’s next `hitEnemies`. No chain lightning.
+Once per soldier per boss fight. Charge stacks; consumed on next `hitEnemies`.
 
 ---
 
