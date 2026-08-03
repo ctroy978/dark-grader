@@ -28,7 +28,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Healer:
     "Heals allies and cleanses Fire, Ice, and Poison DoTs (A all, B front, C back). Does not clear Frozen, Slime, or Marks. F heals the boss instead.",
   Archer:
-    "Hits multiple foes with arrows; extra damage against minions. F can misfire.",
+    "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
   Spearman:
     "Front-line striker. Solid single-target hits (parry and front vulnerability land in a later pass).",
   Necromancer:

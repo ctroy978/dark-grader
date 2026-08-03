@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Grade, TeamState } from "@dungeon-grades/shared";
 import { createTeam, selectParty, startFight } from "./combat.js";
-import { hitEnemies } from "./damage.js";
+import { hitEnemies, soldierAt } from "./damage.js";
 import { resolveSpecialistAction } from "./specialists.js";
 
 const POOL: Grade[] = [
@@ -74,10 +74,36 @@ describe("hitEnemies aoe", () => {
   });
 });
 
-describe("FireMage / Archer kits", () => {
-  it("FireMage A wildfires adds and applies Fire to surviving minions + boss", () => {
+describe("gap rule (pos 1 + Archer only hit minions)", () => {
+  it("FireMage not in front hits boss only (minions untouched)", () => {
+    const team = teamWithAdds();
+    // party order: Vanguard=1, FireMage=2, Archer=3, …
+    const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
+    expect(mage.position).toBe(2);
+    const bossBefore = team.boss!.currentHp;
+    const minionHp = team.minions.map((m) => m.currentHp);
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(team.minions[0]!.currentHp).toBe(minionHp[0]);
+    expect(team.minions[1]!.currentHp).toBe(minionHp[1]);
+    expect(team.boss!.currentHp).toBe(bossBefore - 9);
+    const bossFire = team.boss!.statuses.find((s) => s.kind === "Dot" && s.type === "Fire");
+    expect(bossFire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
+  });
+
+  it("FireMage in pos 1 wildfires adds and applies Fire to survivors + boss", () => {
     const team = teamWithAdds();
     const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
+    const front = soldierAt(team, 1)!;
+    // Swap mage into seat 1
+    const magePos = mage.position!;
+    mage.position = 1;
+    front.position = magePos;
     const bossBefore = team.boss!.currentHp;
     resolveSpecialistAction(
       team,
@@ -98,9 +124,18 @@ describe("FireMage / Archer kits", () => {
     expect(bossFire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
   });
 
-  it("Archer A arrow-storm one-shots bone archers (12 vs minion)", () => {
+  it("Vanguard in pos 1 can hit minions with single-target", () => {
+    const team = teamWithAdds();
+    const vg = soldierAt(team, 1)!;
+    expect(vg.archetype).toBe("Vanguard");
+    hitEnemies(team, 12, "single", 0, 0, vg);
+    expect(team.minions[0]!.currentHp).toBe(0);
+  });
+
+  it("Archer any seat arrow-storm one-shots bone archers (12 vs minion)", () => {
     const team = teamWithAdds();
     const archer = team.roster.find((s) => s.archetype === "Archer" && s.position)!;
+    expect(archer.position).not.toBe(1);
     const bossBefore = team.boss!.currentHp;
     resolveSpecialistAction(
       team,

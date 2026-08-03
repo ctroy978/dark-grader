@@ -134,17 +134,27 @@ export function applyCharge(soldier: Soldier, amount: number): void {
 }
 
 /**
- * Deal damage to enemies. Minions first (design §6.6).
- * - single: all damage into first living minion, else boss
- * - chain: hit primary then up to `extraBounces` additional enemies (reduced bounce dmg)
- * - aoe: hit up to `extraBounces` **distinct** living enemies (minions first, then boss);
- *   each takes full base damage. (`extraBounces` = max targets when mode is aoe.)
+ * True when this actor may damage gap minions.
+ * Only the front seat (pos 1) and Archers can hit minions; others hit boss only.
+ * No actor → unrestricted (legacy / internal callers).
+ */
+export function actorCanHitMinions(actor?: Soldier | null): boolean {
+  if (!actor) return true;
+  return actor.position === 1 || actor.archetype === "Archer";
+}
+
+/**
+ * Deal damage to enemies.
+ * - single: first living minion (if allowed), else boss
+ * - chain: primary then up to `extraBounces` hops (minions if allowed, else boss)
+ * - aoe: up to `extraBounces` distinct targets — minions first when allowed, then
+ *   one boss hit for leftover slots (non-gap actors never multi-hit the boss)
  *
  * Dead minions stay on the roster at 0 HP until `purgeDeadMinions` so the
  * client can show who killed them during action playback.
  *
  * @param minionBonus Extra damage when the hit lands on a minion (not boss).
- * @param actor If set, consumes their Charge bonus into this hit.
+ * @param actor If set, consumes their Charge bonus; also applies the gap rule.
  */
 export function hitEnemies(
   team: TeamState,
@@ -157,6 +167,7 @@ export function hitEnemies(
   const charge = consumeCharge(actor);
   const bonus = (team.partyDamageBonus || 0) + charge;
   const parts: string[] = [];
+  const canMinions = actorCanHitMinions(actor);
 
   const applyToBoss = (amount: number) => {
     if (!team.boss || team.boss.currentHp <= 0) return false;
@@ -177,6 +188,7 @@ export function hitEnemies(
 
   /** Hit first living minion (or a specific one for aoe). */
   const applyToMinion = (amount: number, minionId?: string) => {
+    if (!canMinions) return false;
     const m = minionId
       ? team.minions.find((x) => x.id === minionId && x.currentHp > 0)
       : team.minions.find((x) => x.currentHp > 0);
@@ -207,9 +219,9 @@ export function hitEnemies(
     // Charge only on the first target so multi-hit kits don't explode with Thundercaller buffs
     let chargeLeft = charge;
 
-    const livingMinionIds = team.minions
-      .filter((m) => m.currentHp > 0)
-      .map((m) => m.id);
+    const livingMinionIds = canMinions
+      ? team.minions.filter((m) => m.currentHp > 0).map((m) => m.id)
+      : [];
     let hits = 0;
     for (const id of livingMinionIds) {
       if (hits >= maxTargets) break;
@@ -217,6 +229,7 @@ export function hitEnemies(
       chargeLeft = 0;
       if (applyToMinion(amount, id)) hits += 1;
     }
+    // Non-gap actors: one boss hit only (no multi-hit on boss for leftover AOE slots)
     if (
       hits < maxTargets &&
       team.boss &&
@@ -236,7 +249,8 @@ export function hitEnemies(
   }
 
   for (const amount of amounts) {
-    const livingMinion = team.minions.some((x) => x.currentHp > 0);
+    const livingMinion =
+      canMinions && team.minions.some((x) => x.currentHp > 0);
     if (livingMinion) {
       applyToMinion(amount + minionBonus);
     } else {

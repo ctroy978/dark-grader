@@ -36,10 +36,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — heals the boss (+8)",
   },
   Archer: {
-    A: "Arrow Storm ≤3 foes (10; +2 vs minions)",
-    B: "Arrow Storm ≤3 foes (8; +1 vs minions)",
-    C: "Arrow Storm ≤2 foes (6; +1 vs minions)",
-    D: "Single shot (4; +1 vs minions)",
+    A: "Arrow Storm ≤3 foes (10; +2 vs minions) — can hit the gap from any seat",
+    B: "Arrow Storm ≤3 foes (8; +1 vs minions) — gap from any seat",
+    C: "Arrow Storm ≤2 foes (6; +1 vs minions) — gap from any seat",
+    D: "Single shot (4; +1 vs minions) — gap from any seat",
     F: "Misfire — tiny hit + may hurt an ally",
   },
   Spearman: {

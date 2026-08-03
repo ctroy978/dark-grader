@@ -120,7 +120,7 @@ This section is for design review — update it when abilities change.
 | Magnet | Only control: raise claim odds on one living position (1–6) |
 | Claim rules | **Magnet always claims one token** (which grade is random among the drop). Remaining tokens: living party **except magnet**, weighted by proximity (adjacent 2× far). Each soldier ≤1 token. |
 | Resolve order | Claims → **Runesinger first** (rewrites tokens) → other claimers **front → back** → DoTs → boss |
-| Enemy damage | **Minions first**, then boss (`hitEnemies`) |
+| Enemy damage | **Gap rule:** only **pos 1** and **Archers** can hit minions; everyone else hits the boss only (`hitEnemies`) |
 | Party damage bonus | Legacy field; Runesinger no longer uses it (token rewrite instead) |
 | Party shield | Opening **1d6** only if a living Shield Maiden is in the party; no stacking; Maiden **A** rerolls it; Maiden **F** dumps it to 0 |
 | Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
