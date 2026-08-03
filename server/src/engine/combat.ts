@@ -474,6 +474,20 @@ export function commitRound(team: TeamState): TeamState {
       if (partyDamaged) fx.push("hurt-flash");
       // Soft tag: heals landing on party or boss (client uses for pose + impact)
       if (partyHealed || bossHealed) fx.push("heal-glow");
+      // Necro Life Power on Healer/Runesinger — buff, not a hit (client: no hit.png)
+      if (
+        soldier.archetype === "Necromancer" &&
+        (effectFocusIds ?? []).some((id) => {
+          const s = team.roster.find((x) => x.id === id);
+          return (
+            !!s &&
+            (s.archetype === "Healer" || s.archetype === "Runesinger") &&
+            s.statuses.some((st) => st.kind === "LifePower")
+          );
+        })
+      ) {
+        fx.push("life-power-grant");
+      }
       if (bossStunnedNow) fx.push("boss-stunned");
       cueAction(
         team,

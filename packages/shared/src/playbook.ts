@@ -22,10 +22,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {
-    A: "Wildfire ≤3 foes (9) + boss Fire; front: burn Frozen + clear Ice/Slime",
-    B: "Wildfire ≤3 foes (7) + boss Fire; back: burn Frozen + clear Ice/Slime",
-    C: "Wildfire ≤2 foes (6 each) + Fire burn; friendly fire front (ignores shield)",
-    D: "Ember 1 foe (4); worse friendly fire",
+    A: "Wildfire ≤3 (9) + boss Fire; front: Frozen + Ice/Slime cleanse — gap minions only from seat 1",
+    B: "Wildfire ≤3 (7) + boss Fire; back: Frozen + Ice/Slime cleanse — gap minions only from seat 1",
+    C: "Wildfire ≤2 foes (6 each) + boss Fire burn — no friendly fire",
+    D: "Ember 1 foe (4); friendly fire pos 1–2 (ignores shield)",
     F: "Explodes on the whole party (ignores shield)",
   },
   Healer: {
@@ -76,7 +76,7 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
 export function gradeRiskNote(archetype: Archetype, grade: Grade): string | null {
   if (grade !== "F" && grade !== "D") return null;
   const risky: Partial<Record<Archetype, Partial<Record<Grade, string>>>> = {
-    FireMage: { C: "Hurts allies", D: "Hurts allies", F: "Hurts all allies" },
+    FireMage: { D: "Hurts allies", F: "Hurts all allies" },
     Healer: { F: "Heals boss" },
     Archer: { F: "May hit ally" },
     Necromancer: { D: "Self damage", F: "Hits highest-HP ally (10)" },

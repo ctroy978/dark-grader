@@ -55,8 +55,14 @@ export function poseForUnit(
         return "hit";
       }
       if (isSpeaker) return "attack";
-      // Focused non-speaker: flinch on strikes; soft heal/hymn recipients stay calm
+      // Focused non-speaker: flinch on strikes; soft heal/hymn/buff recipients stay calm
       if (inFocus) {
+        // Necro Life Power empower (or purple rain spend) — never hit.png
+        if (
+          fx.some((f) => f === "life-power-grant" || f === "life-power-blast")
+        ) {
+          return "standing";
+        }
         const offensive = fx.some(
           (f) =>
             f === "hurt-flash" ||
@@ -208,6 +214,9 @@ export function fxClassesForUnit(
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";
+      if (f === "life-power-grant" || f === "life-power-blast") {
+        return !isBoss ? "fx-life-power-glow" : "";
+      }
       if (f === "hymn-glow" || f === "hymn-tick") {
         return !isBoss ? "fx-hymn-glow" : "";
       }

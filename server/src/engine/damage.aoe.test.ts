@@ -96,6 +96,27 @@ describe("gap rule (pos 1 + Archer only hit minions)", () => {
     expect(bossFire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
   });
 
+  it("FireMage C has no friendly fire on the front", () => {
+    const team = teamWithAdds();
+    const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
+    const front = soldierAt(team, 1)!;
+    const seat2 = soldierAt(team, 2)!;
+    const hp1 = front.currentHp;
+    const hp2 = seat2.currentHp;
+    const bossBefore = team.boss!.currentHp;
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "C", soldierId: mage.id, effectiveGrade: "C" },
+      () => 0.5,
+      () => {},
+    );
+    expect(front.currentHp).toBe(hp1);
+    expect(seat2.currentHp).toBe(hp2);
+    // Mid-line mage: boss only (gap rule), C dmg 6 + Fire
+    expect(team.boss!.currentHp).toBe(bossBefore - 6);
+  });
+
   it("FireMage in pos 1 wildfires adds and applies Fire to survivors + boss", () => {
     const team = teamWithAdds();
     const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;

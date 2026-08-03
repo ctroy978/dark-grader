@@ -179,17 +179,17 @@ Uncovered seats take full damage even while cover is active.
 
 ---
 
-### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw (risky mid grades)
+### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw
 
-**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. C/D/F still punish the party.
+**Job (as coded):** multi-target fire + short **Fire** burn on the boss. **Gap minions only from seat 1** (same gap rule as non-Archers; mid/back Wildfire hits boss only). **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on that half of the line. Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. **D/F** still punish the party (**C** does not).
 
-**AOE rules:** minions first, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots are unused (no minions → single boss hit).
+**AOE rules:** minions first when allowed, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots unused (no minions / not in seat 1 → single boss hit).
 
 | Grade | Targets | Direct each | Boss Fire | Also |
 |-------|---------|-------------|-----------|------|
 | **A** | ≤**3** | **9** | **1** stack, **2** rounds | **Front** (1–3): burn **Frozen** + cleanse **Ice/Slime** |
 | **B** | ≤**3** | **7** | **1** stack, **2** rounds | **Back** (4–6): burn **Frozen** + cleanse **Ice/Slime** |
-| **C** | ≤**2** | **6** | **1** stack, **2** rounds | **2** friendly fire to pos **1 and 2** (bypasses shield/block) |
+| **C** | ≤**2** | **6** | **1** stack, **2** rounds | No friendly fire |
 | **D** | **1** | **4** | — | **3** friendly fire to pos **1 and 2** (bypasses) |
 | **F** | — | — | — | No enemy hit; **3** damage to **entire** living party (bypasses) |
 

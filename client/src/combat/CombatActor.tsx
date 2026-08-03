@@ -620,30 +620,38 @@ export function CombatActor({
   const speaking = cue?.bubble?.speakerId === unitId;
   const inFocus = cue?.focusIds?.includes(unitId) ?? false;
   const isBoss = portrait.role === "boss";
-  // Siphon heal seat: same cue has necro-blast for the drain, but the ally only
-  // gained HP — skip purple impact / hit pose so the green +N float is readable.
+  // Soft ally seats on a necro cast: real heals (legacy siphon) or Life Power buff.
+  // Same cue often has necro-blast for the drain — skip hit.png / purple impact.
   const partyHurtFx =
     (cue?.fx?.includes("hurt-flash") ?? false) ||
     (cue?.fx?.includes("shock-flash") ?? false) ||
     (cue?.fx?.includes("fire-tint") ?? false) ||
     (cue?.fx?.includes("fire-flash") ?? false) ||
     (cue?.fx?.includes("party-stunned") ?? false);
+  const lifePowerBuffSeat =
+    portrait.role === "party" &&
+    inFocus &&
+    !speaking &&
+    (cue?.fx?.includes("life-power-grant") ?? false) &&
+    !partyHurtFx;
   const siphonHealSeat =
     portrait.role === "party" &&
     inFocus &&
     !speaking &&
     (cue?.fx?.includes("heal-glow") ?? false) &&
-    !partyHurtFx;
+    !partyHurtFx &&
+    !lifePowerBuffSeat;
+  const softNecroAllySeat = siphonHealSeat || lifePowerBuffSeat;
 
   const pose =
     poseOverride ??
-    (siphonHealSeat
+    (softNecroAllySeat
       ? "standing"
       : poseForUnit(unitId, alive, cue, statuses));
   // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
   let cueFx = fxClassesForUnit(unitId, cue);
-  if (siphonHealSeat) {
-    // Drop drain blast filter; keep soft heal-glow if present
+  if (softNecroAllySeat) {
+    // Drop drain blast filter; keep soft heal/life glow if present
     cueFx = cueFx
       .split(/\s+/)
       .filter((c) => c && c !== "fx-necro-blast" && c !== "fx-attack-flash")
@@ -680,7 +688,7 @@ export function CombatActor({
     !speaking &&
     inFocus &&
     (cue?.fx?.includes("necro-blast") ?? false) &&
-    !siphonHealSeat;
+    !softNecroAllySeat;
   const showThunderCharge =
     speaking && (cue?.fx?.includes("thunder-charge") ?? false);
   const showThunderBlast =
@@ -700,9 +708,11 @@ export function CombatActor({
     ((cue?.fx?.includes("heal-blast") ?? false) ||
       (cue?.fx?.includes("heal-glow") ?? false)) &&
     !(cue?.fx?.includes("life-power-blast") ?? false);
-  // Necromancer Life Power — purple rain after base heal/hymn
+  // Necromancer Life Power — purple rain on grant (buff) and when spent after heal/hymn
   const showLifePower =
-    inFocus && (cue?.fx?.includes("life-power-blast") ?? false);
+    inFocus &&
+    ((cue?.fx?.includes("life-power-blast") ?? false) ||
+      (lifePowerBuffSeat && (cue?.fx?.includes("life-power-grant") ?? false)));
   // Cast: growing orb on the Runesinger only (not rain)
   const showRuneCharge =
     speaking && (cue?.fx?.includes("rune-charge") ?? false);

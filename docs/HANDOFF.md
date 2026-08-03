@@ -172,7 +172,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 | **Vanguard** | Personal block + hit (self only) |
 | **Spearman** | ST thrust; A–D **Parry** vs boss; pos 1 without parry takes extra boss damage |
 | **ShieldMaiden** | Hit + one-round cover on self + most-likely-to-die; no free open; F dumps |
-| **FireMage** | Wildfire AOE + boss Fire; A/B Frozen thaw + Ice/Slime; C/D/F friendly fire |
+| **FireMage** | Wildfire AOE + boss Fire; gap minions seat 1 only; A/B Frozen thaw + Ice/Slime; D/F friendly fire (C clean) |
 | **Healer** | Heal + cleanse **Fire/Poison**; F boss heal |
 | **Archer** | Arrow Storm + minion bonus; can hit gap from any seat |
 | **Necromancer** | Drain + heal lowest; F hit highest-HP ally |

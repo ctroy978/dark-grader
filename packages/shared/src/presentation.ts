@@ -120,7 +120,7 @@ export function actionBubbleText(archetype: string, grade: Grade): string {
     "ShieldMaiden:F": "Shield out!",
     "FireMage:A": "Inferno!",
     "FireMage:B": "Burn!",
-    "FireMage:C": "Fire—watch out!",
+    "FireMage:C": "Wildfire!",
     "FireMage:D": "Sparks!",
     "FireMage:F": "BOOM—sorry!",
     "Healer:A": "Heal all!",

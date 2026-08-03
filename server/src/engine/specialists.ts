@@ -303,9 +303,10 @@ function shieldMaiden(
 
 /**
  * FireMage — Wildfire AOE + boss Fire burn.
+ * Gap rule: minions only from seat 1 (same as non-Archers); mid/back = boss only.
  * A/B: burn off Frozen and cleanse Ice/Slime on half the line (A front, B back).
  * Does not clear Fire/Poison (Shield Maiden).
- * Targets: A/B ≤3, C ≤2, D 1. F unchanged.
+ * Targets: A/B ≤3, C ≤2, D 1. C has no friendly fire; D/F still punish the party.
  */
 function fireMage(
   soldier: Soldier,
@@ -349,6 +350,7 @@ function fireMage(
   );
   const bossHpBefore = team.boss?.currentHp ?? 0;
 
+  // Gap rule applied inside hitEnemies (pos 1 or Archer only → minions)
   const r = hitEnemies(team, t.dmg, "aoe", t.targets, 0, soldier);
 
   const burnBits: string[] = [];
@@ -392,24 +394,11 @@ function fireMage(
     return;
   }
   if (g === "C") {
-    const hits: string[] = [];
-    for (const pos of [1, 2] as const) {
-      const s = soldierAt(team, pos);
-      if (s) {
-        hits.push(
-          formatPartyHit(
-            s,
-            applyPartyDamage(s, 2, team.partyShield, { bypassAbsorb: true }),
-          ),
-        );
-      }
-    }
-    log(
-      `${label}: Wildfire ${r}${burnNote}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`,
-    );
+    // Solid mid grade: multi-hit + boss Fire, no friendly fire
+    log(`${label}: Wildfire ${r}${burnNote}`);
     return;
   }
-  // D — single-target ember, no burn, worse friendly fire
+  // D — single-target ember, no burn, friendly fire front
   const hits: string[] = [];
   for (const pos of [1, 2] as const) {
     const s = soldierAt(team, pos);
