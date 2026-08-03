@@ -142,32 +142,22 @@ function vanguard(
   log: LogFn,
   label: string,
 ): void {
-  // Personal block + hit unchanged on A/B/C; A–C also grant party-wide block.
-  // D/F: weaker personal kit (D hits now; F hits with no block).
-  const table: Record<
-    Grade,
-    { personalBlock: number; partyBlock: number; dmg: number }
-  > = {
-    A: { personalBlock: 6, partyBlock: 3, dmg: 11 },
-    B: { personalBlock: 4, partyBlock: 2, dmg: 9 },
-    C: { personalBlock: 3, partyBlock: 1, dmg: 6 },
-    D: { personalBlock: 1, partyBlock: 0, dmg: 4 },
-    F: { personalBlock: 0, partyBlock: 0, dmg: 2 },
+  // Personal block + hit only — no party-wide pad (frontline redesign Phase 3).
+  const table: Record<Grade, { personalBlock: number; dmg: number }> = {
+    A: { personalBlock: 6, dmg: 11 },
+    B: { personalBlock: 4, dmg: 9 },
+    C: { personalBlock: 3, dmg: 6 },
+    D: { personalBlock: 1, dmg: 4 },
+    F: { personalBlock: 0, dmg: 2 },
   };
-  const { personalBlock, partyBlock, dmg } = table[g];
+  const { personalBlock, dmg } = table[g];
 
   soldier.block += personalBlock;
-  if (partyBlock > 0) {
-    for (const s of livingParty(team)) {
-      s.block += partyBlock;
-    }
-  }
 
   const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
   const parts: string[] = [];
   if (personalBlock > 0) parts.push(`+${personalBlock} personal block`);
-  if (partyBlock > 0) parts.push(`+${partyBlock} block to whole party`);
-  if (personalBlock === 0 && partyBlock === 0) parts.push("no block");
+  else parts.push("no block");
   parts.push(`hits for ${r}`);
   log(`${label}: ${parts.join(", ")}`);
 }

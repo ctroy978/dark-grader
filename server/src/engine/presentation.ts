@@ -250,7 +250,7 @@ export function cueAction(
         grade === "F"
           ? "Weak…"
           : grade === "A"
-            ? "Hold the line!"
+            ? "My shield!"
             : grade === "B"
               ? "Brace!"
               : "Stand!",

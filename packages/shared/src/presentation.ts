@@ -104,10 +104,10 @@ export function claimBubbleText(grade: Grade): string {
 export function actionBubbleText(archetype: string, grade: Grade): string {
   const key = `${archetype}:${grade}`;
   const table: Record<string, string> = {
-    "Vanguard:A": "Party block!",
-    "Vanguard:B": "Hold the line!",
-    "Vanguard:C": "Shields up!",
-    "Vanguard:D": "Brace!",
+    "Vanguard:A": "My shield!",
+    "Vanguard:B": "Hold!",
+    "Vanguard:C": "Brace!",
+    "Vanguard:D": "Guard…",
     "Vanguard:F": "Weak swing!",
     "ShieldMaiden:A": "Strike + shield!",
     "ShieldMaiden:B": "Hit!",

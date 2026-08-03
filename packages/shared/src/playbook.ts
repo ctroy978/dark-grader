@@ -8,10 +8,10 @@ export function describeGradeEffect(archetype: Archetype, grade: Grade): string 
 
 const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
   Vanguard: {
-    A: "Big personal block + strong hit; +3 block whole party",
-    B: "Solid personal block + hit; +2 block whole party",
-    C: "Some personal block + light hit; +1 block whole party",
-    D: "+1 block + light hit (4)",
+    A: "Big personal block (6) + strong hit (11) — self only",
+    B: "Solid personal block (4) + hit (9) — self only",
+    C: "Some personal block (3) + light hit (6) — self only",
+    D: "+1 personal block + light hit (4)",
     F: "No block; weak hit (2)",
   },
   ShieldMaiden: {

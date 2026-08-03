@@ -147,19 +147,19 @@ Full campaign roster = **21**. Names match art gender (see `server/src/seed/name
 
 ---
 
-### Vanguard — personal block + hit (+ party block on good grades)
+### Vanguard — personal block + hit (self only)
 
-**Job (as coded):** tank spike damage; A–C also pad the whole line’s personal block this round.
+**Job (as coded):** tank spike damage on himself. **Does not** pad the rest of the line.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | +**6** personal block, hit for **11**, **+3 block to whole party** |
-| **B** | +**4** personal block, hit for **9**, **+2 block to whole party** |
-| **C** | +**3** personal block, hit for **6**, **+1 block to whole party** |
+| **A** | +**6** personal block, hit for **11** |
+| **B** | +**4** personal block, hit for **9** |
+| **C** | +**3** personal block, hit for **6** |
 | **D** | +**1** personal block, hit for **4** |
 | **F** | No block, hit for **2** |
 
-Personal block absorbs boss/minion/DoT damage after it is granted; leftover expires after the boss phase (so chips stay until the hit that spends them, not at the next token drop). Party block stacks on each living soldier’s personal block (includes self — so A self total block = 6+3 = 9). Not the same as party shield. Damage goes minions → boss.
+Personal block absorbs boss/minion/DoT damage after it is granted; leftover expires after the boss phase (so chips stay until the hit that spends them, not at the next token drop). Not the same as party shield. Gap rule: can hit minions only from pos 1.
 
 ---
 
@@ -302,7 +302,7 @@ Useful when weighing “who is just DPS?”
 | Thundercaller | 14 + stun/charge | Single target |
 | ShieldMaiden | 14 + shield 1d6 | |
 | Necromancer | 12 + heal 10 | |
-| Vanguard | 11 + block 6 self + 3 party | |
+| Vanguard | 11 + block 6 self only | |
 | Spearman | **12** ST | Stub thrust (parry later) |
 | Runesinger | 0 direct | Token rewrite + heal |
 | Healer | 0 direct | Heal 10 all + Fire/Ice/Poison |

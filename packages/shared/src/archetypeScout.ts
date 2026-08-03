@@ -20,7 +20,7 @@ export const ARCHETYPE_DISPLAY_NAMES: Record<Archetype, string> = {
 /** One-line role summary for lobby intel — what they do, not who else to bring. */
 const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
-    "Blocks damage and hits the boss. Stronger grades also share block with the party.",
+    "Personal block and hits the boss. Block protects only himself (not the whole party).",
   ShieldMaiden:
     "Strikes hard and controls the party shield. A refreshes the shield; F drops it to zero.",
   FireMage:
