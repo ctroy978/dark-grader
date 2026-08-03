@@ -256,7 +256,7 @@ export function dotIntensity(dot: { escalationStep?: number }): number {
   return Math.max(1, dot.escalationStep ?? 1);
 }
 
-/** Apply / stack a DoT on the boss (Doomcaller transfer, death poison). */
+/** Apply / stack a DoT on the boss (Fire Mage burn, etc.). */
 export function applyBossDot(
   boss: BossState,
   type: DotType,
@@ -347,7 +347,7 @@ export function thawFrozen(soldiers: Soldier[]): number {
 
 /**
  * Remove matching DoT types. Does **not** affect Frozen (FireMage thaw only)
- * or Marks (Doomcaller / dedicated strip).
+ * or Marks (no dedicated strip class currently).
  */
 export function cleanseDots(
   soldiers: Soldier[],
@@ -514,7 +514,7 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     );
   }
 
-  // --- Boss DoTs (Doomcaller transfers, death poison) ---
+  // --- Boss DoTs (Fire Mage burn, etc.) ---
   tickBossDots(team, log);
 
   // --- Minion DoTs (FireMage Wildfire on adds) ---

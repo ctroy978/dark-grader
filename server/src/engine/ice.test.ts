@@ -33,7 +33,7 @@ function makeColossusTeam(seed = 9): TeamState {
     "healer_1",
     "firemage_1",
     "archer_1",
-    "doomcaller_1",
+    "spearman_1",
   ]);
   startFight(team, "bone_colossus", POOL);
   team.log = [];

@@ -20,11 +20,8 @@ import {
 } from "./damage.js";
 import {
   applyBossDot,
-  applyDot,
   applyMinionDot,
-  bossDotTypes,
   cleanseDots,
-  stripDotsAndMarks,
   thawFrozen,
 } from "./dots.js";
 
@@ -115,8 +112,8 @@ export function resolveSpecialistAction(
     case "Archer":
       archer(soldier, g, team, random, log, label);
       break;
-    case "Doomcaller":
-      doomcaller(soldier, g, team, log, label);
+    case "Spearman":
+      spearman(soldier, g, team, log, label);
       break;
     case "Necromancer":
       necromancer(soldier, g, team, random, log, label);
@@ -212,7 +209,7 @@ function shieldMaiden(
 /**
  * FireMage — Wildfire AOE + boss Fire burn.
  * A/B: burn off Frozen and cleanse Ice/Slime on half the line (A front, B back).
- * Does not clear Fire/Poison (Healer) or Marks (Doomcaller).
+ * Does not clear Fire/Poison (Healer).
  * Targets: A/B ≤3, C ≤2, D 1. F unchanged.
  */
 function fireMage(
@@ -441,152 +438,26 @@ function archer(
 }
 
 /**
- * Doomcaller — strip party DoTs + Marks; transfer **DoTs only** to the boss.
- * Never clears Frozen (FireMage only). Death poison by last claim grade.
+ * Spearman — Phase 0 stub: single-target damage ladder.
+ * Phase 2 will add parry + front vulnerability + minion preference.
  */
-function doomcaller(
+function spearman(
   soldier: Soldier,
   g: Grade,
   team: TeamState,
   log: LogFn,
   label: string,
 ): void {
-  // Always tag death tier from this claim (5=A … 1=F)
-  soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Weaken");
-  soldier.statuses.push({
-    kind: "Weaken",
-    duration: g === "A" ? 5 : g === "B" ? 4 : g === "C" ? 3 : g === "D" ? 2 : 1,
-  });
-
-  if (g === "C") {
-    const front = livingParty(team).filter(
-      (s) => s.position && s.position <= 3,
-    );
-    const dots = stripDotsAndMarks(front).length;
-    // stripDotsAndMarks already removed Marks; count is DoT entries only
-    log(
-      `${label}: strips DoTs/Marks from front (${dots} DoT stack group(s); Marks cleared; Frozen stays)`,
-    );
-    return;
-  }
-  if (g === "D") {
-    const back = livingParty(team).filter(
-      (s) => s.position && s.position >= 4,
-    );
-    const dots = stripDotsAndMarks(back).length;
-    log(
-      `${label}: strips DoTs/Marks from back (${dots} DoT stack group(s); Marks cleared; Frozen stays)`,
-    );
-    return;
-  }
-
-  if (!team.boss) {
-    log(`${label}: no boss on the field`);
-    return;
-  }
-
-  if (g === "F") {
-    const types = bossDotTypes(team.boss);
-    if (!types.length) {
-      log(`${label}: boss has no DoTs — nothing to copy`);
-      return;
-    }
-    for (const type of types) {
-      applyDot(soldier, type, 1);
-    }
-    log(`${label}: copies boss DoT types onto self — ${types.join(", ")}`);
-    return;
-  }
-
-  // A / B — strip whole living party; transfer DoTs only (Marks strip, no transfer)
-  const party = livingParty(team);
-  const markCount = party.reduce(
-    (n, s) => n + s.statuses.filter((st) => st.kind === "Mark").length,
-    0,
-  );
-  const collected = stripDotsAndMarks(party);
-  const marksNote =
-    markCount > 0 ? `; stripped ${markCount} Mark(s) (not transferred)` : "";
-
-  if (!collected.length) {
-    log(
-      markCount > 0
-        ? `${label}: strips Marks only — no DoTs to transfer${marksNote}`
-        : `${label}: party has no DoTs/Marks to strip`,
-    );
-    return;
-  }
-
-  if (g === "A") {
-    // All stacks summed by type, duration 2 on boss
-    const byType = new Map<DotType, number>();
-    for (const c of collected) {
-      byType.set(c.type, (byType.get(c.type) ?? 0) + c.stacks);
-    }
-    const parts: string[] = [];
-    for (const [type, stacks] of byType) {
-      applyBossDot(team.boss, type, stacks, 2);
-      parts.push(`${type}×${stacks}`);
-    }
-    log(
-      `${label}: transfers all DoT stacks to boss for 2 rounds — ${parts.join(", ")}${marksNote}`,
-    );
-    return;
-  }
-
-  // B — one of each distinct type, duration 3
-  const unique = new Set(collected.map((c) => c.type));
-  for (const type of unique) {
-    applyBossDot(team.boss, type, 1, 3);
-  }
-  log(
-    `${label}: transfers one of each DoT type to boss for 3 rounds — ${[...unique].join(", ")}${marksNote}`,
-  );
-}
-
-/** Called when a Doomcaller dies — Weaken duration encodes last claim 5=A … 1=F */
-export function triggerDoomcallerDeath(
-  team: TeamState,
-  soldier: Soldier,
-  log: LogFn,
-): void {
-  const tag = soldier.statuses.find((s) => s.kind === "Weaken");
-  const tier = tag && tag.kind === "Weaken" ? tag.duration : 3;
-
-  if (tier >= 5) {
-    // A death — boss poison 3 rounds
-    if (team.boss) {
-      applyBossDot(team.boss, "Poison", 1, 3);
-      log(`${soldier.name}'s death curse: Poison on ${team.boss.name} (3 rounds)`);
-    } else {
-      log(`${soldier.name}'s death curse fades (no boss)`);
-    }
-  } else if (tier === 4) {
-    if (team.boss) {
-      applyBossDot(team.boss, "Poison", 1, 2);
-      log(`${soldier.name}'s death curse: Poison on ${team.boss.name} (2 rounds)`);
-    }
-  } else if (tier === 3) {
-    if (team.boss) {
-      applyBossDot(team.boss, "Poison", 1, 1);
-      log(`${soldier.name}'s death curse: Poison on ${team.boss.name} (1 round)`);
-    }
-  } else if (tier === 2) {
-    // D — poison first living ally (DoT applies directly; ticks use normal absorb)
-    const allies = livingParty(team);
-    if (allies.length) {
-      applyDot(allies[0], "Poison", 1);
-      log(
-        `${soldier.name}'s risky death: Poison on ${allies[0].name}`,
-      );
-    }
-  } else {
-    // F — poison full party
-    for (const s of livingParty(team)) {
-      applyDot(s, "Poison", 1);
-    }
-    log(`${soldier.name}'s backfire death: Poison on the whole party`);
-  }
+  const table: Record<Grade, number> = {
+    A: 12,
+    B: 10,
+    C: 7,
+    D: 5,
+    F: 2,
+  };
+  const dmg = table[g];
+  const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
+  log(`${label}: spear thrust hits for ${r}`);
 }
 
 function necromancer(

@@ -2,7 +2,7 @@ import type { Archetype, Grade } from "./types.js";
 
 /**
  * Art-presenting gender (names + portrait art).
- * Male: Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller
+ * Male: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
  * Female: ShieldMaiden, Healer, Archer, Runesinger
  */
 export type ArtGender = "male" | "female";
@@ -29,7 +29,7 @@ export const ARCHETYPE_ATTACK_SFX: Record<Archetype, string> = {
   FireMage: "act_firemage",
   Healer: "act_healer",
   Archer: "act_archer",
-  Doomcaller: "act_doomcaller",
+  Spearman: "act_spearman",
   Necromancer: "act_necromancer",
   Thundercaller: "act_thundercaller",
   Runesinger: "act_runesinger",

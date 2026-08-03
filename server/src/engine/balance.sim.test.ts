@@ -26,7 +26,7 @@ function runFight(seed: number, mode: "afk" | "smart") {
       ? [
           "vanguard_1",
           "archer_1",
-          "doomcaller_1",
+          "spearman_1",
           "healer_2",
           "archer_2",
           "firemage_1",

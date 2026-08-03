@@ -28,7 +28,7 @@ const STEPS = [
   {
     n: "02",
     title: "Form a party of six",
-    body: "Pick specialists from a roster of 22 — tanks, healers, mages, archers, and more. Front stands nearest the boss.",
+    body: "Pick specialists from a roster of 21 — tanks, healers, mages, archers, and more. Front stands nearest the boss.",
   },
   {
     n: "03",

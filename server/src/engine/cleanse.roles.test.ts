@@ -17,7 +17,7 @@ function partyWith(
     archetype:
       | "Healer"
       | "FireMage"
-      | "Doomcaller"
+      | "Spearman"
       | "Vanguard"
       | "Archer"
       | "ShieldMaiden";
@@ -95,39 +95,28 @@ describe("cleanse role split", () => {
     expect(types).toContain("Slime");
   });
 
-  it("Doomcaller A transfers DoTs only and strips Marks; leaves Frozen", () => {
+  it("Marks are not cleared by Healer A", () => {
     const team = partyWith([
-      { at: 1, archetype: "Doomcaller" },
-      { at: 2, archetype: "Vanguard" },
+      { at: 1, archetype: "Vanguard" },
+      { at: 2, archetype: "Healer" },
       { at: 3, archetype: "Archer" },
     ]);
-    const v = soldierAt(team, 2)!;
-    applyDot(v, "Poison", 2, undefined, true);
+    const v = soldierAt(team, 1)!;
     v.statuses.push({ kind: "Mark" });
-    v.statuses.push({ kind: "Frozen", origin: 2, stage: 0 });
+    applyDot(v, "Poison", 1, undefined, true);
 
-    const doom = livingParty(team).find((s) => s.archetype === "Doomcaller")!;
+    const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
     resolveSpecialistAction(
       team,
-      doom,
-      { token: "A", soldierId: doom.id, effectiveGrade: "A" },
+      healer,
+      { token: "A", soldierId: healer.id, effectiveGrade: "A" },
       () => 0.5,
       () => {},
     );
 
-    expect(v.statuses.some((st) => st.kind === "Dot")).toBe(false);
-    expect(v.statuses.some((st) => st.kind === "Mark")).toBe(false);
-    expect(v.statuses.some((st) => st.kind === "Frozen")).toBe(true);
-    const bossPoison = team.boss?.statuses.find(
-      (st) => st.kind === "Dot" && st.type === "Poison",
+    expect(v.statuses.some((st) => st.kind === "Mark")).toBe(true);
+    expect(v.statuses.some((st) => st.kind === "Dot" && st.type === "Poison")).toBe(
+      false,
     );
-    expect(bossPoison).toMatchObject({
-      kind: "Dot",
-      type: "Poison",
-      stacks: 2,
-      duration: 2,
-    });
-    // Mark must not appear on boss
-    expect(team.boss?.statuses.some((st) => st.kind === "Mark")).toBeFalsy();
   });
 });

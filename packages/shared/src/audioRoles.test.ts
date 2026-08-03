@@ -13,7 +13,7 @@ const ALL: Archetype[] = [
   "FireMage",
   "Healer",
   "Archer",
-  "Doomcaller",
+  "Spearman",
   "Necromancer",
   "Thundercaller",
   "Runesinger",
@@ -23,7 +23,7 @@ describe("audioRoles", () => {
   it("maps art gender from names/art contract", () => {
     expect(archetypeArtGender("Vanguard")).toBe("male");
     expect(archetypeArtGender("FireMage")).toBe("male");
-    expect(archetypeArtGender("Doomcaller")).toBe("male");
+    expect(archetypeArtGender("Spearman")).toBe("male");
     expect(archetypeArtGender("Necromancer")).toBe("male");
     expect(archetypeArtGender("Thundercaller")).toBe("male");
     expect(archetypeArtGender("ShieldMaiden")).toBe("female");

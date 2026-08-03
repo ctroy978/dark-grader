@@ -8,7 +8,7 @@ export type Archetype =
   | "FireMage"
   | "Healer"
   | "Archer"
-  | "Doomcaller"
+  | "Spearman"
   | "Necromancer"
   | "Thundercaller"
   | "Runesinger";
@@ -160,7 +160,7 @@ export interface BossState {
   attackIds: string[];
   sequenceIndex: number;
   /**
-   * DoTs / marks on the boss (Doomcaller transfer, death poison, etc.).
+   * DoTs on the boss (Fire Mage burn, etc.).
    * Ticked after party DoTs; damage goes to boss HP.
    */
   statuses: StatusTag[];

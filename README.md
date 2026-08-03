@@ -131,16 +131,16 @@ This section is for design review — update it when abilities change.
 
 ### Roster & HP
 
-Full campaign roster = **22**. Names match art gender (see `server/src/seed/names.ts`).
+Full campaign roster = **21**. Names match art gender (see `server/src/seed/names.ts`).
 
 | Archetype | Max HP | Count | Art / names |
 |-----------|--------|-------|-------------|
 | Vanguard | 55 | 2 | Male |
-| ShieldMaiden | 48 | 3 | Female |
+| Spearman | 52 | **2** | Male |
+| ShieldMaiden | 48 | **2** | Female |
 | FireMage | 38 | 3 | Male |
 | Healer | 40 | 3 | Female |
 | Archer | 36 | **3** | Female |
-| Doomcaller | 42 | **2** | Male |
 | Necromancer | 40 | **2** | Male |
 | Thundercaller | 38 | 2 | Male |
 | Runesinger | 40 | **2** | Female |
@@ -181,7 +181,7 @@ Opening shield at fight start: **1d6** only when a living Maiden is in the party
 
 ### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw (risky mid grades)
 
-**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (Healer) or Marks (Doomcaller). C/D/F still punish the party.
+**Job (as coded):** clear gap minions with multi-target fire, start a short **Fire** burn on the boss. **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on the same half of the line. Does **not** cleanse Fire/Poison (Healer) or Marks. C/D/F still punish the party.
 
 **AOE rules:** minions first, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots are unused (no minions → single boss hit).
 
@@ -227,29 +227,19 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Doomcaller — strip DoTs + Marks; transfer DoTs only
+### Spearman — single-target thrust (stub; parry later)
 
-**Job (as coded):** strip the line’s DoTs and Marks; good grades move **DoTs onto the boss** (they tick boss HP). **Marks strip but never transfer.** **Frozen is never cleared** (Fire Mage only). Death leaves **Poison** based on last claim grade.
+**Job (as coded, Phase 0):** solid single-target damage ladder. Full kit (parry, front vulnerability, minion preference in pos 1) is planned on branch `feature/frontline-spearman-redesign`.
 
-Boss holds DoTs on `boss.statuses` and takes DoT damage each DoT phase.
+| Grade | Effect |
+|-------|--------|
+| **A** | Hit for **12** |
+| **B** | Hit for **10** |
+| **C** | Hit for **7** |
+| **D** | Hit for **5** |
+| **F** | Hit for **2** |
 
-| Grade | On claim |
-|-------|----------|
-| **A** | Strip **all** party DoTs + Marks; boss gets **all DoT stacks** of each type for **2** rounds (Marks not transferred) |
-| **B** | Strip **all** party DoTs + Marks; boss gets **one stack of each distinct DoT type** for **3** rounds |
-| **C** | Strip DoTs/Marks from **front** (pos 1–3) only — no transfer |
-| **D** | Strip DoTs/Marks from **back** (pos 4–6) only — no transfer |
-| **F** | Doomcaller gains **1 stack of each DoT type currently on the boss** (boss keeps its DoTs) |
-
-| Last claim | On death |
-|------------|----------|
-| **A** | Boss **Poison** 1 stack, **3** rounds |
-| **B** | Boss **Poison** 1 stack, **2** rounds |
-| **C** | Boss **Poison** 1 stack, **1** round |
-| **D** | **Poison** on first living ally |
-| **F** | **Poison** on whole living party |
-
-**2** Doomcallers in the roster.
+**2** Spearmen in the roster. **Doomcaller removed.**
 
 ---
 
@@ -313,7 +303,7 @@ Useful when weighing “who is just DPS?”
 | ShieldMaiden | 14 + shield 1d6 | |
 | Necromancer | 12 + heal 10 | |
 | Vanguard | 11 + block 6 self + 3 party | |
-| Doomcaller | 0 direct | DoT transfer; strip Marks |
+| Spearman | **12** ST | Stub thrust (parry later) |
 | Runesinger | 0 direct | Token rewrite + heal |
 | Healer | 0 direct | Heal 10 all + Fire/Ice/Poison |
 
@@ -330,7 +320,7 @@ Use this space when you decide changes. Leave blank until then.
 | FireMage | | | |
 | Healer | | | |
 | Archer | | | |
-| Doomcaller | | | |
+| Spearman | | | |
 | Necromancer | | | |
 | Thundercaller | | | |
 | Runesinger | | | |

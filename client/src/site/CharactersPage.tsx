@@ -15,7 +15,7 @@ const ALL: Archetype[] = [
   "FireMage",
   "Healer",
   "Archer",
-  "Doomcaller",
+  "Spearman",
   "Necromancer",
   "Thundercaller",
   "Runesinger",
@@ -41,7 +41,7 @@ export function CharactersListPage() {
             Characters
           </h1>
           <p className="text-parchment-dim leading-relaxed">
-            Nine specialist classes fill a roster of 22 soldiers. You field six
+            Nine specialist classes fill a roster of 21 soldiers. You field six
             per room. Click any class to see what each grade A–F does in combat.
           </p>
         </header>

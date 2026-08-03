@@ -63,7 +63,7 @@ function smartPos(team) {
       L.reduce((a, s) => a + s.maxHp, 0) <
     0.55;
   const pick = (...as) => L.find((s) => as.includes(s.archetype))?.position;
-  if (dots) return pick("Doomcaller", "FireMage") ?? L[0].position;
+  if (dots) return pick("FireMage", "Healer") ?? L[0].position;
   if (hurt)
     return pick("Healer", "Runesinger", "Necromancer") ?? L[0].position;
   if (hasA)

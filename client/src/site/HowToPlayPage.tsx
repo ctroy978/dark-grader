@@ -152,9 +152,8 @@ export default function HowToPlayPage() {
               that half of the line. Seat them mid/back against frost bosses.
             </li>
             <li>
-              <strong className="text-parchment">Doomcaller</strong> — strips
-              DoTs and Marks; good grades move DoTs onto the boss. Marks never
-              transfer. Cannot clear Frozen.
+              <strong className="text-parchment">Spearman</strong> — front-line
+              single-target fighter (parry kit arrives in a later update).
             </li>
           </ul>
         </section>
@@ -164,7 +163,7 @@ export default function HowToPlayPage() {
           <ul className="list-disc list-inside space-y-2 text-sm text-parchment-dim">
             <li>Deaths are permanent until the teacher resets the team.</li>
             <li>Living Vanguards help heal between rooms — keep at least one if you can.</li>
-            <li>Poison and Fire clouds get worse every round if left up — cleanse or transfer.</li>
+            <li>Poison and Fire clouds get worse every round if left up — cleanse them.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>
             <li>Wrong invite code? You’re on the wrong team (or period).</li>
           </ul>

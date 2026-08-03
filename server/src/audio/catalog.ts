@@ -125,11 +125,11 @@ const CORE_CATALOG: AudioClipDef[] = [
     volume: 0.5,
   },
   {
-    id: "act_doomcaller",
+    id: "act_spearman",
     kind: "sfx",
-    text: "dark curse magic pulse, short ominous fantasy, classroom safe, no voice",
-    durationSeconds: 0.8,
-    volume: 0.55,
+    text: "spear thrust whoosh and sharp metal pierce, short fantasy, classroom safe, no voice",
+    durationSeconds: 0.7,
+    volume: 0.5,
   },
   {
     id: "act_necromancer",

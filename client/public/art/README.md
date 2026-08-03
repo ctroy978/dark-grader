@@ -39,7 +39,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 | `firemage` | FireMage |
 | `healer` | Healer |
 | `archer` | Archer |
-| `doomcaller` | Doomcaller |
+| `spearman` | Spearman |
 | `necromancer` | Necromancer |
 | `thundercaller` | Thundercaller |
 | `runesinger` | Runesinger |

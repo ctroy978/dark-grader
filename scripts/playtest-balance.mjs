@@ -188,7 +188,7 @@ const glass = [
   "ShieldMaiden",
 ];
 const doom = [
-  "Doomcaller",
+  "Spearman",
   "FireMage",
   "Healer",
   "Vanguard",

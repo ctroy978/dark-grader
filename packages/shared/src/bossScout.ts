@@ -166,7 +166,7 @@ export function describeMinionScout(opts: {
   if (opts.onHitDot) {
     if (opts.onHitDot === "Slime") {
       parts.push(
-        `Hits leave sticky Slime until cleansed (Fire Mage A/B or Doomcaller strip).`,
+        `Hits leave sticky Slime until cleansed (Fire Mage A/B).`,
       );
     } else if (opts.onHitDot === "Fire") {
       parts.push(`Hits can apply Fire burn (ramps if left up).`);

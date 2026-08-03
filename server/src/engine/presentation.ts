@@ -256,19 +256,19 @@ export function cueAction(
               : "Stand!",
       durationMs: 700,
     },
-    // Doomcaller: void sigils collapse inward then rupture (siphon, not ghosts)
-    Doomcaller: {
-      chargeFx: "doom-charge",
-      blastFx: "doom-blast",
+    // Spearman: thrust charge then pierce (reuse spear-themed tags; client may map later)
+    Spearman: {
+      chargeFx: "spear-charge",
+      blastFx: "spear-blast",
       bubble:
         grade === "F"
-          ? "On me…"
+          ? "Slip…"
           : grade === "A"
-            ? "Reap…"
+            ? "Thrust!"
             : grade === "B"
-              ? "Bind…"
-              : "Mark…",
-      durationMs: 820,
+              ? "Pierce!"
+              : "Stab!",
+      durationMs: 700,
     },
     // Archer: draw focus at center, then horizontal blast toward the boss (right)
     Archer: {

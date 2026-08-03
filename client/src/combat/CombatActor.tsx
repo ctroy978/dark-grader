@@ -374,7 +374,7 @@ function VanguardBastionFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
 }
 
 /**
- * Doomcaller — void sigils orbit/collapse, then reverse-rupture (siphon → dump).
+ * Legacy doom FX (unused) — void sigils orbit/collapse, then reverse-rupture.
  * Geometric curse seals, not ghost wisps.
  */
 function DoomSigilFx({ mode }: { mode: "charge" | "blast" | "impact" }) {

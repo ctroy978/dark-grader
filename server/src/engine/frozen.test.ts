@@ -144,7 +144,7 @@ describe("SpreadingFrost / Frozen", () => {
     ).toBe(1);
   });
 
-  it("Ice cleanse and Doomcaller strip do not remove Frozen", () => {
+  it("DoT cleanse and stripDotsAndMarks do not remove Frozen", () => {
     const team = wardenTeam();
     applyFrozen(soldierAt(team, 1)!, 1, 0);
     applyFrozen(soldierAt(team, 2)!, 1, 1);

@@ -3,11 +3,11 @@ import type { Archetype, Grade } from "./types.js";
 /** Base max HP by archetype (design §6.1) */
 export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
   Vanguard: 55,
+  Spearman: 52,
   ShieldMaiden: 48,
   FireMage: 38,
   Healer: 40,
   Archer: 36,
-  Doomcaller: 42,
   Necromancer: 40,
   Thundercaller: 38,
   Runesinger: 40,
@@ -15,17 +15,17 @@ export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
 
 /**
  * Roster counts for a new campaign.
- * Total 22: art-aligned gender pools (see server/src/seed/names.ts).
- * Males: Vanguard, FireMage, Doomcaller, Necromancer, Thundercaller
+ * Total 21: art-aligned gender pools (see server/src/seed/names.ts).
+ * Males: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
  * Females: ShieldMaiden, Healer, Archer, Runesinger
  */
 export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
   { archetype: "Vanguard", count: 2 },
-  { archetype: "ShieldMaiden", count: 3 },
+  { archetype: "Spearman", count: 2 },
+  { archetype: "ShieldMaiden", count: 2 },
   { archetype: "FireMage", count: 3 },
   { archetype: "Healer", count: 3 },
   { archetype: "Archer", count: 3 },
-  { archetype: "Doomcaller", count: 2 },
   { archetype: "Necromancer", count: 2 },
   { archetype: "Thundercaller", count: 2 },
   { archetype: "Runesinger", count: 2 },
@@ -85,7 +85,7 @@ export const DOT_STATS = {
   Poison: { tick: 8, duration: 4 },
   /**
    * Flat chip only (no token slow). Duration field is unused for expiry —
-   * party Slime never times out; Fire Mage A/B or Doomcaller strip removes it.
+   * party Slime never times out; Fire Mage A/B removes it.
    */
   Slime: { tick: 2, duration: 99 },
 } as const;
@@ -129,11 +129,11 @@ export const GRADE_COLORS: Record<Grade, string> = {
 
 export const ARCHETYPE_ICONS: Record<Archetype, string> = {
   Vanguard: "🛡️",
+  Spearman: "🗡️",
   ShieldMaiden: "⚔️",
   FireMage: "🔥",
   Healer: "✨",
   Archer: "🏹",
-  Doomcaller: "💀",
   Necromancer: "🌑",
   Thundercaller: "⚡",
   Runesinger: "📜",

@@ -42,12 +42,12 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     D: "Single shot (4; +1 vs minions)",
     F: "Misfire — tiny hit + may hurt an ally",
   },
-  Doomcaller: {
-    A: "Strip DoTs+Marks; transfer all DoT stacks → boss (2r). Frozen stays",
-    B: "Strip DoTs+Marks; transfer 1 of each DoT → boss (3r). Frozen stays",
-    C: "Strip DoTs+Marks from front only (no transfer). Frozen stays",
-    D: "Strip DoTs+Marks from back only (no transfer). Frozen stays",
-    F: "Copy each boss DoT type onto self (1 stack each)",
+  Spearman: {
+    A: "Strong spear thrust (12) — stub kit; parry comes in a later phase",
+    B: "Solid thrust (10)",
+    C: "Thrust (7)",
+    D: "Light poke (5)",
+    F: "Weak poke (2)",
   },
   Necromancer: {
     A: "Drain boss + heal lowest ally",
@@ -79,7 +79,6 @@ export function gradeRiskNote(archetype: Archetype, grade: Grade): string | null
     FireMage: { C: "Hurts allies", D: "Hurts allies", F: "Hurts all allies" },
     Healer: { F: "Heals boss" },
     Archer: { F: "May hit ally" },
-    Doomcaller: { F: "Takes boss DoT types onto self" },
     Necromancer: { D: "Self damage", F: "Hits highest-HP ally (10)" },
     Thundercaller: { F: "May stun a not-yet-acted claimer" },
     Runesinger: { F: "Downgrades all tokens" },

@@ -11,7 +11,7 @@ export const ARCHETYPE_DISPLAY_NAMES: Record<Archetype, string> = {
   FireMage: "Fire Mage",
   Healer: "Healer",
   Archer: "Archer",
-  Doomcaller: "Doomcaller",
+  Spearman: "Spearman",
   Necromancer: "Necromancer",
   Thundercaller: "Thundercaller",
   Runesinger: "Runesinger",
@@ -29,8 +29,8 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
     "Heals allies and cleanses Fire, Ice, and Poison DoTs (A all, B front, C back). Does not clear Frozen, Slime, or Marks. F heals the boss instead.",
   Archer:
     "Hits multiple foes with arrows; extra damage against minions. F can misfire.",
-  Doomcaller:
-    "Strips party DoTs and Marks. Good grades transfer DoTs onto the boss (Marks strip but never transfer). Cannot clear Frozen — only Fire Mage can.",
+  Spearman:
+    "Front-line striker. Solid single-target hits (parry and front vulnerability land in a later pass).",
   Necromancer:
     "Drains the boss and heals allies. Weak grades can backfire.",
   Thundercaller:

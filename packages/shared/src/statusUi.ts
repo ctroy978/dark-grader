@@ -31,7 +31,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
         : "";
     const untilNote =
       st.type === "Slime"
-        ? "until cleansed (Fire Mage A/B or Doomcaller strip)"
+        ? "until cleansed (Fire Mage A/B)"
         : `${st.duration} round(s) left`;
     return {
       key: `dot-${st.type}-${index}`,
@@ -91,7 +91,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       colorClass: "text-sky-200 border-sky-400/40 bg-sky-950/40",
     };
   }
-  // Weaken — also used by Doomcaller for death-curse tier
+  // Weaken — legacy / internal duration tag
   return {
     key: `weaken-${index}`,
     icon: "💀",

@@ -46,7 +46,6 @@ import {
   endPartyActionPhase,
   markClaimerResolved,
   resolveSpecialistAction,
-  triggerDoomcallerDeath,
 } from "./specialists.js";
 import {
   consumePendingTokens,
@@ -832,18 +831,6 @@ function processDeaths(team: TeamState): void {
       fx: ["death"],
       durationMs: 1000,
     });
-    if (s.archetype === "Doomcaller") {
-      triggerDoomcallerDeath(team, s, (text) => {
-        pushLog(team, text, ["death"]);
-        pushCue(team, {
-          kind: "death",
-          focusIds: [s.id, "boss"],
-          fx: ["curse-burst"],
-          sfxId: "hit_heavy",
-          durationMs: 1000,
-        });
-      });
-    }
   }
 }
 

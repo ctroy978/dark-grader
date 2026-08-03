@@ -94,7 +94,7 @@ function smartMagnet(team) {
     if (tank) return tank;
   }
   if (dots) {
-    const d = pick(["Doomcaller", "FireMage"]);
+    const d = pick(["FireMage", "Healer"]);
     if (d) return d;
   }
   if (hurt) {
@@ -293,7 +293,7 @@ function pickBalancedParty(roster) {
     "Archer",
     "Runesinger",
   ];
-  const alt = ["Thundercaller", "Doomcaller", "Necromancer", "Archer", "FireMage"];
+  const alt = ["Thundercaller", "Spearman", "Necromancer", "Archer", "FireMage"];
   const picked = [];
   const used = new Set();
   for (const a of want) {
