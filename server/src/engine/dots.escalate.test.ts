@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { DOT_STATS, type TeamState } from "@dungeon-grades/shared";
+import {
+  DOT_STATS,
+  MAX_PARTY_POISON_STACKS,
+  MAX_POISON_INTENSITY,
+  type TeamState,
+} from "@dungeon-grades/shared";
 import { applyDot, tickDots } from "./dots.js";
 import { createTeam, selectParty, startFight } from "./combat.js";
+import { pickBossAttackId } from "./bosses.js";
 
 function makeAshTeam(seed = 1): TeamState {
   const team = createTeam("dot-esc", "DOT1", "Dot", seed);
@@ -43,7 +49,7 @@ function poisonOnFront(team: TeamState) {
 }
 
 describe("boss DoT escalation", () => {
-  it("PoisonCloud-style poison ramps splash each tick", () => {
+  it("PoisonCloud-style poison ramps splash each tick (intensity capped)", () => {
     const team = makeAshTeam(11);
     for (const s of team.roster) {
       if (s.alive && team.activePartyIds.includes(s.id)) {
@@ -57,17 +63,40 @@ describe("boss DoT escalation", () => {
       tickDots(team, (t) => logs.push(t));
       totals.push(before - partyHp(team));
       const line = logs.find((l) => l.includes("[Poison]"));
-      expect(line).toMatch(new RegExp(`intensity ${i + 1}`));
+      // Intensity 1,2,3 then stays at 3 (cap) for the 4th tick of duration
+      const expectedInt = Math.min(MAX_POISON_INTENSITY, i + 1);
+      expect(line).toMatch(new RegExp(`intensity ${expectedInt}`));
     }
-    // base 8 × intensity 1..4
+    // base 8 × intensity 1,2,3,3 (capped) — duration 4 then gone
     expect(totals).toEqual([
       DOT_STATS.Poison.tick * 1,
       DOT_STATS.Poison.tick * 2,
       DOT_STATS.Poison.tick * 3,
-      DOT_STATS.Poison.tick * 4,
+      DOT_STATS.Poison.tick * 3,
     ]);
     // Fully consumed
     expect(poisonOnFront(team)).toBeUndefined();
+  });
+
+  it("party Poison stacks cap at 2", () => {
+    const team = makeAshTeam(16);
+    const front = team.roster.find((s) => s.position === 1)!;
+    applyDot(front, "Poison", 1, undefined, true);
+    applyDot(front, "Poison", 1, undefined, true);
+    applyDot(front, "Poison", 1, undefined, true);
+    const st = poisonOnFront(team);
+    expect(st?.stacks).toBe(MAX_PARTY_POISON_STACKS);
+  });
+
+  it("blocks PoisonCloud while party still has Poison", () => {
+    const team = makeAshTeam(17);
+    const front = team.roster.find((s) => s.position === 1)!;
+    applyDot(front, "Poison", 1, undefined, true);
+    // Force many picks — none should be PoisonCloud while toxin remains
+    for (let i = 0; i < 40; i++) {
+      const id = pickBossAttackId(team, () => (i * 0.017) % 1);
+      expect(id).not.toBe("PoisonCloud");
+    }
   });
 
   it("player/ally poison stays flat (no intensity)", () => {

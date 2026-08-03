@@ -64,16 +64,16 @@ export const PARTY_SIZE = 6;
  * DoT defaults — base per stack before boss escalation.
  *
  * Party Poison is one splash (max stacks × intensity across the line), not
- * per carrier; magnet takes the largest share.
+ * per carrier; magnet takes the largest share. Distinct from Fire (per-seat).
  *
- * Boss-sourced party DoTs (see `escalationStep` on DotInstance) tick as:
+ * Boss-sourced Fire/Poison (see `escalationStep` on DotInstance) tick as:
  *   base × stacks × intensity
- * Intensity starts at 1 and +1 after each tick while the DoT remains.
- * Example Poison (base 8, 4 rounds, intensity 1→4): 8 + 16 + 24 + 32 = 80
- * if never cleansed. Player/ally DoTs stay flat (intensity 1 forever).
+ * Intensity starts at 1 and +1 after each tick while the DoT remains (capped
+ * for Poison — see MAX_POISON_INTENSITY). Player/ally DoTs stay flat.
  *
- * Fire is softer than early prototypes: tick 4 + party stack cap 2 so Cloud
- * spam buys response time without deleting the burn threat (intensity still ramps).
+ * Fire: tick 4, stack cap 2, per seat — Cloud spam without deleting the line.
+ * Poison: tick 8 party splash, stack cap 2, intensity cap 3 — worse if ignored
+ * than Fire chip, but not uncapped wipe spirals (max splash 8×2×3 = 48).
  */
 export const DOT_STATS = {
   Fire: { tick: 4, duration: 3 },
@@ -93,6 +93,18 @@ export const DOT_STATS = {
 
 /** Max Fire stacks on a party soldier (Clouds / imp hits stop piling past this). */
 export const MAX_PARTY_FIRE_STACKS = 2;
+
+/**
+ * Max Poison stacks per soldier (re-cloud stacks up to this, then refreshes only).
+ * With MAX_POISON_INTENSITY, line splash tops out at tick × 2 × 3.
+ */
+export const MAX_PARTY_POISON_STACKS = 2;
+
+/**
+ * Boss Poison intensity ceiling after each tick (+1 until this).
+ * Fire is uncapped by duration (shorter + per-seat + stack cap).
+ */
+export const MAX_POISON_INTENSITY = 3;
 
 /** Moss Mite (etc.) slime: re-hits do not pile stacks. */
 export const MAX_PARTY_SLIME_STACKS = 1;

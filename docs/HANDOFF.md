@@ -150,8 +150,9 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Boss outgoing damage tables still from TOML / cascade bases (further retune after playtest).
 
 ### DoTs (color split)
-- Fire **4** (party stacks max **2**) / Ice **3**/tick × **3**r flat / Poison splash **8**/stack / Slime **2** until cleansed — `DOT_STATS`  
-- **Healer:** cleanse **Fire + Poison** only (A all, B front, C back).  
+- Fire **4** (stacks max **2**, per seat, intensity ramps) / Ice **3**/tick × **3**r flat / Poison splash **8** × stacks × intensity (stacks max **2**, intensity max **3**, party splash) / Slime **2** until cleansed — `DOT_STATS`  
+- **PoisonCloud** blocked while any living ally still has Poison (Ash / Colossus).  
+- **Shield Maiden:** cleanse **Fire + Poison** (A all, B front, C back).  
 - **Fire Mage A/B:** thaw **Frozen** + cleanse **Ice + Slime** (A front / B back).  
 - **Marks:** no dedicated cleanse class.  
 - **UI:** status chips; cleanse color dots on portraits (`ARCHETYPE_CLEANSE_DOTS`).

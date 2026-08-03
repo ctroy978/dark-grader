@@ -195,6 +195,8 @@ Uncovered seats take full damage even while cover is active.
 
 Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss and any living minions** still standing after the hit (one-shots skip the chip). Minions show a Fire status under their portrait.
 
+**Party Poison (Ash / Colossus clouds)** — distinct from Fire: one **magnet-weighted party splash** each DoT phase (`8 × stacks × intensity`). Stacks **cap at 2**; intensity **caps at 3** (max splash **48**). Boss will not cast **PoisonCloud** again while any living ally still has Poison.
+
 ---
 
 ### Healer — instant triage (no cleanse)

@@ -6,7 +6,9 @@ import {
   MAX_HOT_STREAMS_PER_SOLDIER,
   MAX_PARTY_FIRE_STACKS,
   MAX_PARTY_ICE_STACKS,
+  MAX_PARTY_POISON_STACKS,
   MAX_PARTY_SLIME_STACKS,
+  MAX_POISON_INTENSITY,
   type BossState,
   type DotType,
   type FrozenStatus,
@@ -195,7 +197,7 @@ export function tickFrozenChain(
 /**
  * Apply / stack a DoT on a party soldier.
  * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / Fire minion on-hit).
- * Fire stacks are capped at MAX_PARTY_FIRE_STACKS so multi-Cloud does not spike to ×3+.
+ * Fire stacks capped at MAX_PARTY_FIRE_STACKS; Poison at MAX_PARTY_POISON_STACKS.
  * Ice / Slime never ramp; Ice stack cap 1; Slime never expires by duration.
  * Ice natural expiry → soft one-turn freeze (see tickDots).
  */
@@ -211,17 +213,24 @@ export function applyDot(
   const addStacks =
     type === "Fire"
       ? Math.min(stacks, MAX_PARTY_FIRE_STACKS)
-      : type === "Slime"
-        ? Math.min(stacks, MAX_PARTY_SLIME_STACKS)
-        : type === "Ice"
-          ? Math.min(stacks, MAX_PARTY_ICE_STACKS)
-          : stacks;
+      : type === "Poison"
+        ? Math.min(stacks, MAX_PARTY_POISON_STACKS)
+        : type === "Slime"
+          ? Math.min(stacks, MAX_PARTY_SLIME_STACKS)
+          : type === "Ice"
+            ? Math.min(stacks, MAX_PARTY_ICE_STACKS)
+            : stacks;
   // Slime + Ice are flat chip only — never boss-ramp intensity
   const ramp = fromBoss && type !== "Slime" && type !== "Ice";
   if (existing && existing.kind === "Dot") {
     if (type === "Fire") {
       existing.stacks = Math.min(
         MAX_PARTY_FIRE_STACKS,
+        existing.stacks + addStacks,
+      );
+    } else if (type === "Poison") {
+      existing.stacks = Math.min(
+        MAX_PARTY_POISON_STACKS,
         existing.stacks + addStacks,
       );
     } else if (type === "Slime") {
@@ -459,7 +468,11 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
       if (poison && poison.kind === "Dot") {
         poison.duration -= 1;
         if (poison.escalationStep != null) {
-          poison.escalationStep += 1;
+          // Cap intensity so stack×ramp cannot wipe after a partial cleanse
+          poison.escalationStep = Math.min(
+            MAX_POISON_INTENSITY,
+            poison.escalationStep + 1,
+          );
         }
       }
     }

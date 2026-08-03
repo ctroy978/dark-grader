@@ -361,6 +361,11 @@ function pickWeightedAttack(
   // Soft Ice-locks do not block SpreadingFrost re-cast
   const freezeActive = partyHasChainFrozen(team);
 
+  // Poison identity: one cloud is a big event — no re-cloud while toxin remains
+  const poisonActive = livingParty(team).some((s) =>
+    s.statuses.some((st) => st.kind === "Dot" && st.type === "Poison"),
+  );
+
   const weights = attackIds.map((id) => {
     const def = attackDef(template, id);
     let w = def?.weight ?? 2;
@@ -369,6 +374,10 @@ function pickWeightedAttack(
     }
     // One freeze chain at a time — no re-cast while anyone is chain-Frozen
     if (id === "SpreadingFrost" && freezeActive) {
+      w = 0;
+    }
+    // No PoisonCloud while any living ally still carries Poison (Ash / Colossus)
+    if (id === "PoisonCloud" && poisonActive) {
       w = 0;
     }
     const summon = resolveSummonSpec(template, id);
