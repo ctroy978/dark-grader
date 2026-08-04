@@ -631,8 +631,19 @@ export function tickMinionDots(
   for (const m of team.minions) {
     if (m.currentHp <= 0 || !m.statuses?.length) continue;
     const dots = m.statuses.filter((s) => s.kind === "Dot");
+    const reflecting = m.statuses.some(
+      (st) => st.kind === "Reflect" && st.duration > 0,
+    );
     for (const dot of dots) {
       if (dot.kind !== "Dot") continue;
+      if (reflecting) {
+        // Field still ticks duration down but no HP loss while Reflect is up
+        log(
+          `  [Add ${dot.type}×${dot.stacks}] 0 to ${m.name} (reflect) · ${dot.duration - 1}r left`,
+        );
+        dot.duration -= 1;
+        continue;
+      }
       const perTick = DOT_STATS[dot.type].tick * dot.stacks;
       const dmg = Math.min(m.currentHp, perTick);
       m.currentHp -= dmg;

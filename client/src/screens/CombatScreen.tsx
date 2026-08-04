@@ -1433,15 +1433,20 @@ export default function CombatScreen({
               view.minions.map((m) => {
                 const focused = focusSet.has(m.id);
                 const dead = m.currentHp <= 0;
+                const reflecting = m.statuses?.some(
+                  (st) => st.kind === "Reflect" && st.duration > 0,
+                );
                 return (
                   <div
                     key={m.id}
                     className={`relative rounded-lg border px-1.5 py-1.5 min-w-[4.5rem] max-w-[6rem] transition ${
                       dead
                         ? "opacity-40 border-parchment/10"
-                        : focused
-                          ? "border-grade-d unit-focus-hostile bg-navy-light"
-                          : "border-parchment/20 bg-navy-light/60"
+                        : reflecting
+                          ? "seat-stunned bg-navy-light"
+                          : focused
+                            ? "border-grade-d unit-focus-hostile bg-navy-light"
+                            : "border-parchment/20 bg-navy-light/60"
                     }`}
                   >
                     <CombatActor

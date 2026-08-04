@@ -33,6 +33,7 @@ import {
   healSoldier,
   livingParty,
   purgeDeadMinions,
+  tickMinionReflect,
 } from "./damage.js";
 import { tickDots, tickHots } from "./dots.js";
 import {
@@ -627,6 +628,11 @@ export function commitRound(team: TeamState): TeamState {
   processDeaths(team);
   // Keep slain minions at 0 HP on the board through party playback so the
   // client can show who killed them. Corpses are removed when the boss acts.
+
+  // Ohm Reflect: one full party turn (attacks + DoTs), then the field drops.
+  tickMinionReflect(team, (text, tags) =>
+    pushLog(team, text, tags ?? ["boss", "reflect"]),
+  );
 
   if (livingParty(team).length === 0) {
     team.phase = "defeat";

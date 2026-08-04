@@ -52,12 +52,24 @@ function hasStunStatus(statuses?: StatusTag[]): boolean {
   );
 }
 
+/** Ohm Reflect field — same electric look as stun. */
+function hasReflectStatus(statuses?: StatusTag[]): boolean {
+  return !!statuses?.some(
+    (st) => st.kind === "Reflect" && st.duration > 0,
+  );
+}
+
 /**
- * Persistent electrified card border while stunned.
- * Yellow for party (Rattle shock); cyan for boss (Thundercaller hold).
- * Readable at classroom distance — not only the under-card chip.
+ * Persistent electrified card border (party stun / Ohm reflect / boss stun).
+ * Yellow for party & Ohms; cyan for boss (Thundercaller hold).
  */
-function StunArcFx({ variant }: { variant: "party" | "boss" }) {
+function StunArcFx({
+  variant,
+  badge = "STUN",
+}: {
+  variant: "party" | "boss";
+  badge?: string;
+}) {
   const boltCount = 6;
   return (
     <div
@@ -85,7 +97,7 @@ function StunArcFx({ variant }: { variant: "party" | "boss" }) {
           />
         ))}
       </div>
-      <div className="stun-arc-badge">STUN</div>
+      <div className="stun-arc-badge">{badge}</div>
     </div>
   );
 }
@@ -589,6 +601,8 @@ export function StatusLabels({
   for (let i = 0; i < (statuses?.length ?? 0); i++) {
     const st = statuses![i]!;
     if (st.kind === "Hot") continue;
+    // REFLECT is already a big label under the name when active
+    if (st.kind === "Reflect") continue;
     const c = statusToChip(st, i);
     // Prefer "Poison ×2" style under the image
     let text = c.label;
@@ -709,11 +723,13 @@ export function CombatActor({
       .join(" ");
   }
   const isStunned = !!stunnedProp || hasStunStatus(statuses);
-  const stunTint = isStunned
-    ? isBoss
-      ? "fx-stun-tint fx-stun-tint--boss"
-      : "fx-stun-tint fx-stun-tint--party"
-    : "";
+  const isReflecting = hasReflectStatus(statuses);
+  const stunTint =
+    isStunned || isReflecting
+      ? isBoss
+        ? "fx-stun-tint fx-stun-tint--boss"
+        : "fx-stun-tint fx-stun-tint--party"
+      : "";
   const fx = [cueFx, ...dotTintClasses(statuses), stunTint]
     .filter(Boolean)
     .join(" ");
@@ -819,8 +835,9 @@ export function CombatActor({
   const showIceFrost =
     hasIceDot(statuses) &&
     !statuses?.some((st) => st.kind === "Frozen");
-  // Persistent electric border while stunned (party status or boss rounds left)
-  const showStunArc = isStunned && alive;
+  // Persistent electric border while stunned or Ohm Reflect is up
+  const showStunArc = (isStunned || isReflecting) && alive;
+  const arcBadge = isReflecting && !isStunned ? "REFLECT" : "STUN";
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -899,7 +916,10 @@ export function CombatActor({
           {showIceFrost && <IceWindowFrostFx />}
           {showSlimeDrip && <SlimeDripFx />}
           {showStunArc && (
-            <StunArcFx variant={isBoss ? "boss" : "party"} />
+            <StunArcFx
+              variant={isBoss ? "boss" : "party"}
+              badge={arcBadge}
+            />
           )}
         </div>
         <DamageFloatStack
@@ -910,6 +930,14 @@ export function CombatActor({
       {showName && (
         <div className="text-[10px] md:text-xs font-medium truncate w-full text-center mt-0.5 leading-tight">
           {name}
+        </div>
+      )}
+      {isReflecting && alive && (
+        <div
+          className="text-[9px] md:text-[10px] font-extrabold tracking-widest text-yellow-200 mt-0.5 leading-tight drop-shadow"
+          title="Immune to damage — a quarter of attack damage bounces back"
+        >
+          REFLECT
         </div>
       )}
       {subtitle && (

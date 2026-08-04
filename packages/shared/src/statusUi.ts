@@ -64,6 +64,17 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
         "text-yellow-100 border-yellow-300/70 bg-yellow-950/60 font-semibold",
     };
   }
+  if (st.kind === "Reflect") {
+    return {
+      key: `reflect-${index}`,
+      icon: "⚡",
+      label: "REFLECT",
+      title:
+        "Electric field — immune to damage this party turn; a quarter of attack damage bounces back at the attacker.",
+      colorClass:
+        "text-yellow-100 border-yellow-300/70 bg-yellow-950/60 font-extrabold tracking-wide",
+    };
+  }
   if (st.kind === "Dazed") {
     return {
       key: `dazed-${index}`,

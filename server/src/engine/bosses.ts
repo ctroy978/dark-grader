@@ -1,6 +1,7 @@
 import {
   isRattleStunKitAttack,
   MULTI_MINION_FOCUS_MULT,
+  OHM_REFLECT_CHANCE,
   RATTLE_NEIGHBOR_STUN_PENALTY,
   RATTLE_SPARK_STUN_CHANCE,
   SPREADING_FROST_CHANCE,
@@ -153,7 +154,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
     minionId: "ohm",
     minionName: "Ohm",
     maxHp: 8,
-    damage: 2,
+    damage: 4,
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
@@ -593,6 +594,13 @@ export function resolveBossPhase(
     if (minionShotIndex >= 1) {
       log(`  (focus fire — magnet under heavy fire ×${MULTI_MINION_FOCUS_MULT})`);
     }
+    // Ohms: chance to raise an independent one-turn Reflect field after zapping
+    if (isOhmMinion(minion) && random() < OHM_REFLECT_CHANCE) {
+      if (!minion.statuses) minion.statuses = [];
+      minion.statuses = minion.statuses.filter((st) => st.kind !== "Reflect");
+      minion.statuses.push({ kind: "Reflect", duration: 1 });
+      log(`  ${minion.name} raises an electric field (Reflect)!`);
+    }
     present?.onMinionAttack?.({
       minionId: minion.id,
       minionName: minion.name,
@@ -602,6 +610,10 @@ export function resolveBossPhase(
     });
     minionShotIndex += 1;
   }
+}
+
+function isOhmMinion(m: Minion): boolean {
+  return m.kind === "ohm" || m.name === "Ohm" || m.name === "Ohms";
 }
 
 /** Returns party soldier ids that took HP damage this attack. */

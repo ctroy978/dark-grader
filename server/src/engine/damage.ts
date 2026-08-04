@@ -1,5 +1,7 @@
 import {
+  OHM_REFLECT_RATIO,
   SPEARMAN_FRONT_VULN_MULT,
+  type Minion,
   type PartyShield,
   type Soldier,
   type TeamState,
@@ -155,6 +157,33 @@ export function soldierAt(team: TeamState, position: number): Soldier | undefine
   return livingParty(team).find((s) => s.position === position);
 }
 
+/** Ohm electric field — immune + bounce for this party phase. */
+export function minionHasReflect(m: Minion): boolean {
+  return !!m.statuses?.some(
+    (st) => st.kind === "Reflect" && st.duration > 0,
+  );
+}
+
+/**
+ * After party resolve: Reflect lasts one party turn, then fades.
+ * Each Ohm’s field ticks independently.
+ */
+export function tickMinionReflect(
+  team: TeamState,
+  log: (text: string, tags?: string[]) => void,
+): void {
+  for (const m of team.minions) {
+    if (m.currentHp <= 0 || !m.statuses?.length) continue;
+    const ref = m.statuses.find((st) => st.kind === "Reflect");
+    if (!ref || ref.kind !== "Reflect" || ref.duration <= 0) continue;
+    ref.duration -= 1;
+    if (ref.duration <= 0) {
+      m.statuses = m.statuses.filter((st) => st.kind !== "Reflect");
+      log(`${m.name}'s reflect fades`, ["boss", "reflect"]);
+    }
+  }
+}
+
 /** Remove slain minions from the board (after presentation snapshots are captured). */
 export function purgeDeadMinions(team: TeamState): void {
   team.minions = team.minions.filter((m) => m.currentHp > 0);
@@ -255,6 +284,20 @@ export function hitEnemies(
       ? team.minions.find((x) => x.id === minionId && x.currentHp > 0)
       : team.minions.find((x) => x.currentHp > 0);
     if (!m) return false;
+    // Ohm Reflect: immune; bounce a slice of intended damage to the attacker
+    if (minionHasReflect(m)) {
+      parts.push(`0 to ${m.name} (reflect)`);
+      const bounce = Math.floor(amount * OHM_REFLECT_RATIO);
+      if (bounce > 0 && actor && actor.alive) {
+        const { hpLost } = applyPartyDamage(actor, bounce, team.partyShield);
+        if (hpLost > 0) {
+          parts.push(`${hpLost} reflected to ${actor.name}`);
+        } else {
+          parts.push(`reflect glances off ${actor.name}`);
+        }
+      }
+      return true;
+    }
     const dmg = Math.min(m.currentHp, amount);
     m.currentHp -= dmg;
     parts.push(`${dmg} to ${m.name}`);

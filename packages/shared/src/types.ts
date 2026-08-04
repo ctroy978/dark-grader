@@ -136,6 +136,16 @@ export interface FrozenStatus {
   soft?: boolean;
 }
 
+/**
+ * Ohm electric field — immune to damage for `duration` party rounds;
+ * attack hits bounce a fraction back to the striker (see OHM_REFLECT_RATIO).
+ * Applied on the Ohm’s volley; ticks after the next party phase.
+ */
+export interface ReflectStatus {
+  kind: "Reflect";
+  duration: number;
+}
+
 export type StatusTag =
   | DotInstance
   | MarkStatus
@@ -147,7 +157,8 @@ export type StatusTag =
   | LastStandStatus
   | LifePowerStatus
   | HotStatus
-  | FrozenStatus;
+  | FrozenStatus
+  | ReflectStatus;
 
 export interface Soldier {
   id: string;
@@ -399,6 +410,11 @@ export const THUNDERCALLER_BOSS_STUN_CHANCE = 0.3;
 export const RATTLE_SPARK_STUN_CHANCE = 0.6;
 /** Grounded neighbor seat stun = magnet seat chance − this. */
 export const RATTLE_NEIGHBOR_STUN_PENALTY = 0.1;
+
+/** Chance each Ohm raises Reflect after its volley (often, not every turn). */
+export const OHM_REFLECT_CHANCE = 0.5;
+/** Fraction of intended hit damage bounced to the attacker while Reflect is up. */
+export const OHM_REFLECT_RATIO = 0.25;
 
 export const GRADES: Grade[] = ["A", "B", "C", "D", "F"];
 
