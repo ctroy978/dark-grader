@@ -30,6 +30,7 @@ export type BossWindupTheme = "ember" | "poison" | "summon" | "shock" | "frost";
 export function bossThreatTier(attackId: string): BossThreatTier {
   switch (attackId) {
     case "Cascade":
+    case "Grounded":
       return "ultimate";
     case "CrushMagnet":
     case "PoisonCloud":
@@ -59,6 +60,7 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
     case "SummonOhms":
       return "summon";
     case "RattleSpark":
+    case "Grounded":
       return "shock";
     case "SpreadingFrost":
       return "frost";
@@ -68,9 +70,9 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
   }
 }
 
-/** Rattle Captain stun-kit attacks (magnet lock / seat stuns). */
+/** Rattle Captain stun-kit attacks (seat stuns; next pick forced non-stun). */
 export function isRattleStunKitAttack(attackId: string): boolean {
-  return attackId === "RattleSpark" || attackId === "Cascade";
+  return attackId === "RattleSpark" || attackId === "Grounded";
 }
 
 /** Force electric theme for this boss (all telegraphs). */
@@ -128,6 +130,8 @@ export function defaultTelegraphLines(attackId: string): string[] {
   switch (attackId) {
     case "Cascade":
       return ["Cascade…", "Front first…", "Charge rising…"];
+    case "Grounded":
+      return ["Grounded…", "Through the magnet…", "Hold…"];
     case "CrushMagnet":
       return ["The glow…", "Magnet…", "Focusing…"];
     case "PoisonCloud":
@@ -142,6 +146,8 @@ export function defaultTelegraphLines(attackId: string): string[] {
     case "LineAttack":
     case "LightLineAttack":
       return ["Spreading…", "Wave…", "Line…"];
+    case "ArcAttack":
+      return ["Arc…", "Wave…", "Spark line…"];
     case "Regenerate":
       return ["Embers…", "Mending…"];
     case "SummonBoneArchers":

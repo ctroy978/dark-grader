@@ -7,7 +7,7 @@ name = "Rattle Captain"
 max_hp = 210
 traits = ["Shock", "StunImmune", "Summoner"]
 difficulty = "Standard"
-summary = "Electric captain. Rattle Spark may stun whoever stands under the Token Magnet (1 party round; 2 while enraged); Cascade may stun the magnet seat and both neighbors (wrap). Magnet still moves. Thundercallers trade half damage and ignore stuns both ways. Weak Ohms in the gap."
+summary = "Rattle Captain's attacks focus on whoever stands over the token magnet. Spark jolts the front of the line and often stuns the fighter under the magnet so they miss their next turn. Grounded is her big one — a surge that hits hardest on the magnet seat and fades as it travels along the line, sometimes stunning nearby seats too. She calls weak Ohms into the gap; they can reflect damage back at whoever hits them."
 recommended_rounds = "8–12"
 # Enrages earlier and harder than Cinder so the room curve steps up
 enrage_hp_pct = 0.40
@@ -80,8 +80,8 @@ text = "tiny ohm sparklings crackling into the gap, short fantasy summon, no voi
 duration_seconds = 0.9
 volume = 0.5
 
-# Stun kits: RattleSpark (main, 60% magnet-seat stun) + Cascade (rare big kit)
-# Non-stun: Line, Crush, Summon — forced after any stun kit
+# Stun kits: RattleSpark (main, 60% magnet-seat stun) + Grounded (rare big kit)
+# Non-stun: Arc, Crush, Summon — forced after any stun kit
 
 [[attacks]]
 id = "RattleSpark"
@@ -91,17 +91,17 @@ bubble_lines = ["Spark!", "Front arcs!", "Rattle!"]
 use_grunt = true
 
 [[attacks]]
-id = "LineAttack"
+id = "ArcAttack"
 weight = 2
 sfx = "boss_rattle_line"
-bubble_lines = ["Arc line!", "All spark!", "Wave!"]
+bubble_lines = ["Arc!", "All spark!", "Wave!"]
 use_grunt = true
 
 [[attacks]]
-id = "Cascade"
+id = "Grounded"
 weight = 2
 sfx = "boss_rattle_cascade"
-bubble_lines = ["Cascade!", "Front charge!", "Hold still!"]
+bubble_lines = ["Grounded!", "Magnet charge!", "Hold the line!"]
 use_laugh = true
 
 [[attacks]]

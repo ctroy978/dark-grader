@@ -19,7 +19,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   RattleSpark: {
     name: "Rattle Spark",
     description:
-      "Her main attack: electric front slam with a strong chance to stun whoever stands under the Token Magnet (they lose their next attack). The magnet still moves.",
+      "Her usual strike: shocks the front of the line and often stuns whoever is standing on the token magnet so they miss their next turn. You can still move the magnet afterward.",
   },
   LightFrontSlam: {
     name: "Front Slam",
@@ -29,6 +29,10 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
     name: "Line Attack",
     description: "A sweep across the whole party line.",
   },
+  ArcAttack: {
+    name: "Arc Attack",
+    description: "A crackling arc of lightning across the whole party line.",
+  },
   LightLineAttack: {
     name: "Line Sweep",
     description: "A sweep across the whole party line.",
@@ -36,7 +40,12 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   Cascade: {
     name: "Cascade",
     description:
-      "Hits the entire line — hardest on the front, lightest on the back. Rattle Captain may also stun the magnet seat and both neighbors.",
+      "Hits the entire line — hardest on the front, lightest on the back.",
+  },
+  Grounded: {
+    name: "Grounded",
+    description:
+      "A big charge through the token magnet — hardest on that seat, softer farther down the line. Fighters near the magnet may get stunned too.",
   },
   CrushMagnet: {
     name: "Magnet Crush",
@@ -77,7 +86,8 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   },
   SummonOhms: {
     name: "Summon Ohms",
-    description: "Summons weak Ohms (electric sparks) into the gap.",
+    description:
+      "Summons weak Ohms into the gap. They zap the party — and can reflect damage back at whoever hits them.",
   },
 };
 
@@ -151,6 +161,8 @@ export interface BossScout {
 /** Build a student-facing minion note from summon kit fields. */
 export function describeMinionScout(opts: {
   name: string;
+  /** Minion template id when known (e.g. "ohm"). */
+  id?: string;
   opensFight: boolean;
   freeVolley: boolean;
   onHitDot?: string;
@@ -177,6 +189,13 @@ export function describeMinionScout(opts: {
     } else {
       parts.push(`Hits can apply ${opts.onHitDot}.`);
     }
+  }
+  const isOhm =
+    opts.id === "ohm" ||
+    opts.name === "Ohm" ||
+    opts.name === "Ohms";
+  if (isOhm) {
+    parts.push(`Can reflect damage back at whoever attacks them.`);
   }
   return parts.join(" ");
 }

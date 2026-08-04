@@ -8,8 +8,9 @@ import {
 } from "./bossPresentation.js";
 
 describe("bossPresentation", () => {
-  it("tiers cascade as ultimate and slam as light", () => {
+  it("tiers cascade/grounded as ultimate and slam as light", () => {
     expect(bossThreatTier("Cascade")).toBe("ultimate");
+    expect(bossThreatTier("Grounded")).toBe("ultimate");
     expect(bossThreatTier("CrushMagnet")).toBe("heavy");
     expect(bossThreatTier("FrontSlam")).toBe("light");
   });
@@ -22,6 +23,7 @@ describe("bossPresentation", () => {
     expect(bossWindupTheme("FrontSlam")).toBe("ember");
     expect(bossWindupTheme("FireCloud")).toBe("ember");
     expect(bossWindupTheme("RattleSpark")).toBe("shock");
+    expect(bossWindupTheme("Grounded")).toBe("shock");
     expect(bossWindupTheme("SpreadingFrost")).toBe("frost");
     expect(bossThreatTier("SpreadingFrost")).toBe("heavy");
   });

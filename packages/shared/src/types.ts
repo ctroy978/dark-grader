@@ -287,7 +287,7 @@ export interface TeamState {
    */
   magnetStunRoundsLeft?: number;
   /**
-   * Rattle Captain: previous boss attack was a stun-kit (Spark/Cascade).
+   * Rattle Captain: previous boss attack was a stun-kit (Spark/Grounded).
    * Forces the next pick into the non-stun pool.
    */
   bossLastAttackWasStunKit?: boolean;
@@ -393,11 +393,11 @@ export const DEFAULT_ROOM_BOSSES = [
   "bone_colossus",
 ] as const;
 
-/** Thundercaller boss-stun chance; also Rattle Cascade magnet-seat baseline. */
+/** Thundercaller boss-stun chance; also Rattle Grounded magnet-seat baseline. */
 export const THUNDERCALLER_BOSS_STUN_CHANCE = 0.3;
 /** Rattle Spark magnet-seat party stun (main kit — meant to land often). */
 export const RATTLE_SPARK_STUN_CHANCE = 0.6;
-/** Cascade neighbor seat stun = magnet seat chance − this. */
+/** Grounded neighbor seat stun = magnet seat chance − this. */
 export const RATTLE_NEIGHBOR_STUN_PENALTY = 0.1;
 
 export const GRADES: Grade[] = ["A", "B", "C", "D", "F"];

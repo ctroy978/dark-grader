@@ -278,6 +278,17 @@ const CASCADE_BASE: Record<number, number> = {
   6: 2,
 };
 
+/**
+ * Rattle Grounded — same tier table as Cascade, ordered by distance from magnet.
+ * Line distance only (no wrap): magnet = 16, |d|=1 → 13, |d|=2 → 10, …
+ */
+const GROUNDED_BY_DIST = [16, 13, 10, 7, 4, 2] as const;
+
+function groundedBaseAt(magnet: number, pos: number): number {
+  const dist = Math.abs(pos - magnet);
+  return GROUNDED_BY_DIST[dist] ?? GROUNDED_BY_DIST[GROUNDED_BY_DIST.length - 1]!;
+}
+
 function livingMinionCount(team: TeamState): number {
   return team.minions.filter((m) => m.currentHp > 0).length;
 }
@@ -694,8 +705,12 @@ function performAttack(
       }
       break;
     }
-    case "LineAttack": {
-      log(`${boss.name} uses Line Attack!`);
+    case "LineAttack":
+    case "ArcAttack": {
+      // ArcAttack = Rattle’s player-facing name for the same full-line sweep
+      log(
+        `${boss.name} uses ${attackId === "ArcAttack" ? "Arc Attack" : "Line Attack"}!`,
+      );
       const lineBase = boss.id === "barrow_warden" ? 9 : 7;
       for (const s of livingParty(team)) {
         const hpLost = hit(s, dmg(lineBase));
@@ -713,6 +728,7 @@ function performAttack(
       break;
     }
     case "Cascade": {
+      // Shared front→back cascade (Ash, Colossus, …). Rattle uses Grounded instead.
       log(`${boss.name} uses Cascade! (front hard → back soft)`);
       for (const pos of [1, 2, 3, 4, 5, 6] as const) {
         const s = soldierAt(team, pos);
@@ -732,9 +748,38 @@ function performAttack(
         const note = extra.length ? ` (${extra.join(", ")})` : "";
         log(`  #${pos} ${s.name}: ${hpLost} HP${note} [raw ${base}]`);
       }
-      // Rattle Captain: stun rolls on magnet seat + wrap neighbors (magnet still moves)
-      if (boss.id === "rattle_captain") {
-        const magnet = team.magnetPosition;
+      break;
+    }
+    case "Grounded": {
+      // Rattle rare kit: cascade-tier damage centered on the magnet (no wrap).
+      // Magnet 16 → neighbors 13 → next seats 10/7/4/2 by line distance.
+      const magnet = team.magnetPosition;
+      log(
+        `${boss.name} Grounded! (shock from magnet seat #${magnet} — no wrap)`,
+      );
+      for (const pos of [1, 2, 3, 4, 5, 6] as const) {
+        const s = soldierAt(team, pos);
+        if (!s) continue;
+        const base = groundedBaseAt(magnet, pos);
+        const scaled = scaleBossDamageToSoldier(team, s, dmg(base));
+        const afterParry = applySpearmanBossDefense(s, scaled);
+        const { hpLost, shieldAbsorbed, blockAbsorbed } = applyPartyDamage(
+          s,
+          afterParry,
+          team.partyShield,
+        );
+        if (hpLost > 0) victims.add(s.id);
+        const extra: string[] = [];
+        if (shieldAbsorbed) extra.push(`${shieldAbsorbed} shield`);
+        if (blockAbsorbed) extra.push(`${blockAbsorbed} block`);
+        const note = extra.length ? ` (${extra.join(", ")})` : "";
+        const dist = Math.abs(pos - magnet);
+        log(
+          `  #${pos} ${s.name}: ${hpLost} HP${note} [raw ${base}, d=${dist}]`,
+        );
+      }
+      // Stun fan: magnet + line neighbors (wrap only for stun rolls, not damage)
+      {
         const [left, right] = adjacentPositions(magnet);
         const magnetChance = THUNDERCALLER_BOSS_STUN_CHANCE;
         const neighborChance = Math.max(

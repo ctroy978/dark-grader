@@ -58,6 +58,7 @@ export function buildBossScout(templateId: string): BossScout | null {
         freeVolley: s.freeVolley,
         onHitDot: s.onHitDot?.type,
         note: describeMinionScout({
+          id: s.minionId,
           name: s.minionName,
           opensFight,
           freeVolley: s.freeVolley,

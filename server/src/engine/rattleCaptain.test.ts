@@ -56,7 +56,8 @@ describe("Rattle Captain", () => {
     const t = getBossTemplate("rattle_captain");
     expect(t).toBeTruthy();
     expect(t!.attackIds).toContain("RattleSpark");
-    expect(t!.attackIds).toContain("Cascade");
+    expect(t!.attackIds).toContain("Grounded");
+    expect(t!.attackIds).not.toContain("Cascade");
     expect(t!.attackIds).toContain("SummonOhms");
     expect(t!.attackIds).not.toContain("FrontSlam");
     expect(t!.maxHp).toBe(210);
@@ -79,7 +80,7 @@ describe("Rattle Captain", () => {
     for (let i = 0; i < 40; i++) {
       const id = pickBossAttackId(team, () => (i * 0.17) % 1);
       ids.add(id);
-      expect(["RattleSpark", "Cascade"]).not.toContain(id);
+      expect(["RattleSpark", "Grounded"]).not.toContain(id);
     }
     expect(ids.size).toBeGreaterThan(0);
   });
@@ -246,9 +247,88 @@ describe("Rattle Captain", () => {
     const t = getBossTemplate("rattle_captain")!;
     const spark = t.attacks.find((a) => a.id === "RattleSpark")!;
     const crush = t.attacks.find((a) => a.id === "CrushMagnet")!;
-    const cascade = t.attacks.find((a) => a.id === "Cascade")!;
+    const grounded = t.attacks.find((a) => a.id === "Grounded")!;
     expect(spark.weight).toBeGreaterThan(crush.weight);
-    expect(cascade.weight).toBe(2);
+    expect(grounded.weight).toBe(2);
+  });
+
+  it("Grounded deals cascade tiers from the magnet (no wrap)", () => {
+    const team = createTeam("t", "CODE", "Test", 7);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    team.minions = [];
+    // Magnet at seat 2 — example: 16 on #2, 13 on #1+#3, 10/7/4 on #4/#5/#6
+    team.magnetPosition = 2;
+    for (const s of team.roster.filter((x) => team.activePartyIds.includes(x.id))) {
+      s.currentHp = 100;
+      s.maxHp = 100;
+      s.block = 0;
+      s.statuses = [];
+    }
+    team.partyShield = { active: false, remaining: 0, coveredIds: [] };
+    team.boss!.currentHp = team.boss!.maxHp;
+    team.boss!.stunRoundsLeft = 0;
+    team.boss!.outgoingDamageMult = 1;
+    team.boss!.nextAttackBonus = 0;
+    team.pendingBossAttackId = "Grounded";
+    // No stun rolls (random always fail chance checks that use >= chance)
+    resolveBossPhase(team, () => 0.99, () => {});
+
+    const byPos = (pos: number) =>
+      team.roster.find(
+        (s) => team.activePartyIds.includes(s.id) && s.position === pos,
+      )!;
+    // raw bases 16,13,13,10,7,4 — no enrage, full HP, assume no TC half at these seats
+    const expectLost = (pos: number, raw: number) => {
+      const s = byPos(pos);
+      // Thundercaller takes half from Rattle
+      const want = s.archetype === "Thundercaller" ? Math.floor(raw * 0.5) : raw;
+      expect(100 - s.currentHp).toBe(want);
+    };
+    expectLost(2, 16);
+    expectLost(1, 13);
+    expectLost(3, 13);
+    expectLost(4, 10);
+    expectLost(5, 7);
+    expectLost(6, 4);
+  });
+
+  it("Grounded does not wrap damage past the line ends", () => {
+    const team = createTeam("t", "CODE", "Test", 11);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    team.minions = [];
+    team.magnetPosition = 1;
+    for (const s of team.roster.filter((x) => team.activePartyIds.includes(x.id))) {
+      s.currentHp = 100;
+      s.maxHp = 100;
+      s.block = 0;
+      s.statuses = [];
+    }
+    team.partyShield = { active: false, remaining: 0, coveredIds: [] };
+    team.boss!.currentHp = team.boss!.maxHp;
+    team.boss!.stunRoundsLeft = 0;
+    team.boss!.outgoingDamageMult = 1;
+    team.boss!.nextAttackBonus = 0;
+    team.pendingBossAttackId = "Grounded";
+    resolveBossPhase(team, () => 0.99, () => {});
+
+    const byPos = (pos: number) =>
+      team.roster.find(
+        (s) => team.activePartyIds.includes(s.id) && s.position === pos,
+      )!;
+    // Magnet #1 → 16,13,10,7,4,2 down the line (seat 6 is farthest, not a neighbor)
+    const lost = (pos: number) => 100 - byPos(pos).currentHp;
+    const s1 = byPos(1);
+    const want1 =
+      s1.archetype === "Thundercaller" ? Math.floor(16 * 0.5) : 16;
+    expect(lost(1)).toBe(want1);
+    expect(lost(6)).toBeLessThan(lost(2));
+    // Seat 6 raw 2, seat 2 raw 13 — never wrap 13 onto seat 6
+    const s6 = byPos(6);
+    const want6 =
+      s6.archetype === "Thundercaller" ? Math.floor(2 * 0.5) : 2;
+    expect(lost(6)).toBe(want6);
   });
 
   it("opens with Ohms and can full-round without throwing", () => {
