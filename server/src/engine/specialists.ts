@@ -299,18 +299,25 @@ function shieldMaiden(
     coveredIds,
   };
 
-  // Fire/Poison cleanse (moved from Healer): A all / B front / C back
+  // Fire/Poison cleanse: A all / B front / C back / D self only
   const maidenCleanse: DotType[] = ["Fire", "Poison"];
   let cleanseNote = "";
-  if (g === "A" || g === "B" || g === "C") {
+  if (g === "A" || g === "B" || g === "C" || g === "D") {
     const seats =
       g === "A"
         ? livingParty(team)
         : g === "B"
           ? livingParty(team).filter((s) => s.position != null && s.position <= 3)
-          : livingParty(team).filter((s) => s.position != null && s.position >= 4);
+          : g === "C"
+            ? livingParty(team).filter((s) => s.position != null && s.position >= 4)
+            : [soldier]; // D — always cleanse herself
     const n = cleanseDots(seats, maidenCleanse);
-    if (n) cleanseNote = `; cleanses Fire/Poison (${n})`;
+    if (n) {
+      cleanseNote =
+        g === "D"
+          ? `; cleanses Fire/Poison on self (${n})`
+          : `; cleanses Fire/Poison (${n})`;
+    }
   }
 
   const r = hitEnemies(team, dmg, "single", 0, 0, soldier);

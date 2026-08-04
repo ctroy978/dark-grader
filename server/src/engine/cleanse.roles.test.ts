@@ -101,6 +101,39 @@ describe("cleanse role split", () => {
     expect(types).toContain("Ice");
   });
 
+  it("Shield Maiden D cleanses only herself, not allies", () => {
+    const team = partyWith([
+      { at: 1, archetype: "Vanguard" },
+      { at: 2, archetype: "ShieldMaiden" },
+      { at: 3, archetype: "Archer" },
+    ]);
+    const v = soldierAt(team, 1)!;
+    const maiden = livingParty(team).find((s) => s.archetype === "ShieldMaiden")!;
+    applyDot(v, "Fire", 1, undefined, true);
+    applyDot(v, "Poison", 1, undefined, true);
+    applyDot(maiden, "Fire", 1, undefined, true);
+    applyDot(maiden, "Poison", 1, undefined, true);
+
+    resolveSpecialistAction(
+      team,
+      maiden,
+      { token: "D", soldierId: maiden.id, effectiveGrade: "D" },
+      () => 0.5,
+      () => {},
+    );
+
+    const maidenDots = maiden.statuses
+      .filter((st) => st.kind === "Dot")
+      .map((st) => (st.kind === "Dot" ? st.type : ""));
+    const vDots = v.statuses
+      .filter((st) => st.kind === "Dot")
+      .map((st) => (st.kind === "Dot" ? st.type : ""));
+    expect(maidenDots).not.toContain("Fire");
+    expect(maidenDots).not.toContain("Poison");
+    expect(vDots).toContain("Fire");
+    expect(vDots).toContain("Poison");
+  });
+
   it("Shield Maiden B cleanses front only; C cleanses back only", () => {
     const team = partyWith([
       { at: 1, archetype: "Vanguard" },

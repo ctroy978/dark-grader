@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   ARCHETYPE_ICONS,
+  ARCHETYPE_LOBBY_ORDER,
   ARCHETYPE_MAX_HP,
   getArchetypeScout,
   isBacklineSupportArchetype,
@@ -433,9 +434,22 @@ export default function LobbyScreen({
     };
   }, [team.teamId, onTeamUpdate]);
 
-  const alive = useMemo(
-    () => team.roster.filter((r) => r.alive),
+  /** Frontline → support → damage → healers (stable within each class). */
+  const rosterSorted = useMemo(
+    () =>
+      [...team.roster].sort((a, b) => {
+        const byRole =
+          (ARCHETYPE_LOBBY_ORDER[a.archetype] ?? 99) -
+          (ARCHETYPE_LOBBY_ORDER[b.archetype] ?? 99);
+        if (byRole !== 0) return byRole;
+        return a.id.localeCompare(b.id);
+      }),
     [team.roster],
+  );
+
+  const alive = useMemo(
+    () => rosterSorted.filter((r) => r.alive),
+    [rosterSorted],
   );
   /** Full line of 6, or every survivor when the roster is understrength. */
   const requiredSize = Math.min(PARTY_SIZE, alive.length);
@@ -985,7 +999,7 @@ export default function LobbyScreen({
           the popup. Grayed-out soldiers are dead. Soldiers already in the line can be removed from the popup.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {team.roster.map((s) => {
+          {rosterSorted.map((s) => {
             const inLine = slots.includes(s.id);
             const linePos = inLine ? slots.indexOf(s.id) + 1 : 0;
             const intelOpen = intelSoldierId === s.id;

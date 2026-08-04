@@ -18,7 +18,7 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     A: "Strike 14 + cover 8; cleanse Fire/Poison on all",
     B: "Strike 11 + cover 6; cleanse Fire/Poison on front (1–3)",
     C: "Strike 9 + cover 4; cleanse Fire/Poison on back (4–6)",
-    D: "Strike 7 + cover 3 (no cleanse)",
+    D: "Strike 7 + cover 3; cleanse Fire/Poison on self",
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {

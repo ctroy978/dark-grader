@@ -172,7 +172,7 @@ Gap rule: can hit minions only from pos 1.
 | **A** | **14** | **8** | **All** living |
 | **B** | **11** | **6** | **Front** (1–3) |
 | **C** | **9** | **4** | **Back** (4–6) |
-| **D** | **7** | **3** | — |
+| **D** | **7** | **3** | **Self** only |
 | **F** | — | Dump cover to **0** | — |
 
 Uncovered seats take full damage even while cover is active.

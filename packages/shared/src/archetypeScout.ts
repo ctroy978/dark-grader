@@ -22,7 +22,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
     "Front leader. A/B grant Last Stand (next lethal hit leaves allies at 1 HP once). Also personal block on weaker grades and steady hits.",
   ShieldMaiden:
-    "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back). F dumps cover.",
+    "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back, D self). F dumps cover.",
   FireMage:
     "Hits several enemies with fire and can burn the boss. Gap minions only from seat 1 (like other non-Archers). Only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime. D/F can hurt allies.",
   Healer:

@@ -17,20 +17,31 @@ export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
  * Roster counts for a new campaign.
  * Total 21: art-aligned gender pools (see server/src/seed/names.ts).
  * Pattern: frontline/support/healer ×2, damage ×3.
+ * Display order (lobby): frontline → support → damage → healers.
  * Males: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
  * Females: ShieldMaiden, Healer, Archer, Runesinger
  */
 export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
+  // Frontline
   { archetype: "Vanguard", count: 2 },
   { archetype: "Spearman", count: 2 },
+  // Support
   { archetype: "ShieldMaiden", count: 2 },
-  { archetype: "FireMage", count: 3 },
-  { archetype: "Healer", count: 2 },
-  { archetype: "Archer", count: 3 },
   { archetype: "Necromancer", count: 2 },
+  // Damage
+  { archetype: "FireMage", count: 3 },
+  { archetype: "Archer", count: 3 },
   { archetype: "Thundercaller", count: 3 },
+  // Healers
+  { archetype: "Healer", count: 2 },
   { archetype: "Runesinger", count: 2 },
 ];
+
+/** Lobby / UI sort key by role group (matches ROSTER_COUNTS order). */
+export const ARCHETYPE_LOBBY_ORDER: Record<Archetype, number> =
+  Object.fromEntries(
+    ROSTER_COUNTS.map(({ archetype }, i) => [archetype, i]),
+  ) as Record<Archetype, number>;
 
 /** Full party (6) drops 3 tokens; scales down as the line thins. */
 export const TOKENS_PER_ROUND = 3;
