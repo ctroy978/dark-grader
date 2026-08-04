@@ -205,9 +205,9 @@ function PartySeatEffects({
     if (st.kind === "Dot") {
       text = `${st.type} ×${st.stacks}`;
     }
-    // Full word under the card — "Stun 1" was easy to miss mid-fight
+    // Full word under the card — round count when multi-round (enraged Rattle)
     if (st.kind === "Stun") {
-      text = "STUNNED";
+      text = st.duration > 1 ? `STUNNED ${st.duration}r` : "STUNNED";
     }
     chips.push({
       key: c.key,

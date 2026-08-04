@@ -133,11 +133,15 @@ export function resolveSpecialistAction(
     return { acted: false, skipReason: "frozen" };
   }
 
-  // Party stun (Thundercaller F / Rattle Captain) — lose this attack, then clear stun
+  // Party stun (Thundercaller F / Rattle Captain) — waste this claim.
+  // Duration is in party rounds; cleared by tickPartyStuns after the party phase
+  // (sitting out a round still counts down — no infinite carry if they never claim).
   const stun = soldier.statuses.find((s) => s.kind === "Stun");
   if (stun && stun.kind === "Stun" && stun.duration > 0) {
-    soldier.statuses = soldier.statuses.filter((s) => s.kind !== "Stun");
-    log(`${label}: STUNNED — loses their attack!`);
+    const left = stun.duration;
+    log(
+      `${label}: STUNNED — loses their attack! (${left} round${left === 1 ? "" : "s"} left)`,
+    );
     return { acted: false, skipReason: "stun" };
   }
 
@@ -187,6 +191,22 @@ export function resolveSpecialistAction(
     ...(effectFocusIds.length ? { effectFocusIds } : {}),
     ...(lifePowerFollowUp ? { lifePowerFollowUp } : {}),
   };
+}
+
+/**
+ * After party resolve: count down Stun by 1 round on every living soldier.
+ * Removes stun at 0 even if they never claimed a token this round.
+ */
+export function tickPartyStuns(team: TeamState, log: LogFn): void {
+  for (const s of livingParty(team)) {
+    const stun = s.statuses.find((st) => st.kind === "Stun");
+    if (!stun || stun.kind !== "Stun" || stun.duration <= 0) continue;
+    stun.duration -= 1;
+    if (stun.duration <= 0) {
+      s.statuses = s.statuses.filter((st) => st.kind !== "Stun");
+      log(`${s.name}'s stun wears off`, ["party", "stun"]);
+    }
+  }
 }
 
 /** Living Healer or Runesinger on the line (back-seat support for Life Power). */

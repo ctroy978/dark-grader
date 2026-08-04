@@ -15,6 +15,7 @@ import {
 } from "./combat.js";
 import { hitEnemies } from "./damage.js";
 import { pickBossAttackId, resolveBossPhase } from "./bosses.js";
+import { tickPartyStuns } from "./specialists.js";
 import { getBossTemplate } from "../seed/bossLoader.js";
 
 const POOL = "AAAABBBBCCCCDDDFFF".split("") as Grade[];
@@ -58,7 +59,7 @@ describe("Rattle Captain", () => {
     expect(t!.attackIds).toContain("Cascade");
     expect(t!.attackIds).toContain("SummonOhms");
     expect(t!.attackIds).not.toContain("FrontSlam");
-    expect(t!.maxHp).toBe(190);
+    expect(t!.maxHp).toBe(210);
   });
 
   it("is on the default campaign path", () => {
@@ -153,11 +154,66 @@ describe("Rattle Captain", () => {
     // random always < 0.3 → guaranteed stun roll success
     resolveBossPhase(team, () => 0.0, () => {});
     const after = team.roster.find((s) => s.id === target!.id)!;
-    expect(after.statuses.some((st) => st.kind === "Stun")).toBe(true);
+    const stun = after.statuses.find((st) => st.kind === "Stun");
+    expect(stun).toMatchObject({ kind: "Stun", duration: 1 });
     expect(team.bossLastAttackWasStunKit).toBe(true);
     // Magnet still movable
     placeMagnet(team, 4);
     expect(team.magnetPosition).toBe(4);
+  });
+
+  it("seat stun lasts 1 party round when not enraged", () => {
+    const team = createTeam("t", "CODE", "Test", 99);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    const target = nonThundercallerAt(team, 2)!;
+    team.magnetPosition = 2;
+    team.boss!.currentHp = team.boss!.maxHp; // full — not enraged
+    team.boss!.stunRoundsLeft = 0;
+    team.pendingBossAttackId = "RattleSpark";
+    resolveBossPhase(team, () => 0.0, () => {});
+    const stunned = team.roster.find((s) => s.id === target.id)!;
+    expect(stunned.statuses.find((st) => st.kind === "Stun")).toMatchObject({
+      kind: "Stun",
+      duration: 1,
+    });
+
+    // Sitting out a drop still ticks stun down (no infinite carry)
+    tickPartyStuns(team, () => {});
+    expect(
+      team.roster.find((s) => s.id === target.id)!.statuses.some(
+        (st) => st.kind === "Stun",
+      ),
+    ).toBe(false);
+  });
+
+  it("seat stun lasts 2 party rounds while enraged", () => {
+    const team = createTeam("t", "CODE", "Test", 99);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    const target = nonThundercallerAt(team, 2)!;
+    team.magnetPosition = 2;
+    // Below 40% enrage threshold
+    team.boss!.currentHp = Math.floor(team.boss!.maxHp * 0.3);
+    team.boss!.stunRoundsLeft = 0;
+    team.pendingBossAttackId = "RattleSpark";
+    resolveBossPhase(team, () => 0.0, () => {});
+    let s = team.roster.find((x) => x.id === target.id)!;
+    expect(s.statuses.find((st) => st.kind === "Stun")).toMatchObject({
+      kind: "Stun",
+      duration: 2,
+    });
+
+    tickPartyStuns(team, () => {});
+    s = team.roster.find((x) => x.id === target.id)!;
+    expect(s.statuses.find((st) => st.kind === "Stun")).toMatchObject({
+      kind: "Stun",
+      duration: 1,
+    });
+
+    tickPartyStuns(team, () => {});
+    s = team.roster.find((x) => x.id === target.id)!;
+    expect(s.statuses.some((st) => st.kind === "Stun")).toBe(false);
   });
 
   it("Thundercaller deals half damage to Captain", () => {

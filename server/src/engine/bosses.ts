@@ -47,6 +47,17 @@ function scaleBossDamageToSoldier(
   return amount;
 }
 
+/**
+ * Rattle seat stun length: **1** party round normally, **2** while enraged.
+ * Duration is in party phases (ticks after party resolve) — not “until claim”.
+ */
+function rattleSeatStunDuration(
+  team: TeamState,
+  template: BossTemplate | undefined,
+): number {
+  return enrageMult(team, template) > 1 ? 2 : 1;
+}
+
 /** Party stun on a line seat (Rattle Captain). Magnet still moves freely. */
 function trySeatStun(
   team: TeamState,
@@ -54,6 +65,7 @@ function trySeatStun(
   chance: number,
   random: () => number,
   log: LogFn,
+  duration = 1,
   always = false,
 ): boolean {
   const s = soldierAt(team, pos);
@@ -64,9 +76,12 @@ function trySeatStun(
     return false;
   }
   if (!always && random() >= chance) return false;
+  const rounds = Math.max(1, duration);
   s.statuses = s.statuses.filter((st) => st.kind !== "Stun");
-  s.statuses.push({ kind: "Stun", duration: 1 });
-  log(`  ${s.name} is stunned by the arc!`);
+  s.statuses.push({ kind: "Stun", duration: rounds });
+  log(
+    `  ${s.name} is stunned by the arc! (${rounds} round${rounds === 1 ? "" : "s"})`,
+  );
   return true;
 }
 
@@ -643,6 +658,10 @@ function performAttack(
         log(`  ${s.name} takes ${hpLost}`);
       }
       const magnet = team.magnetPosition;
+      const seatStunRounds = rattleSeatStunDuration(
+        team,
+        getBossTemplate(boss.id),
+      );
       log(`  Sparks hunt the magnet seat (#${magnet})…`);
       if (
         !trySeatStun(
@@ -651,6 +670,7 @@ function performAttack(
           RATTLE_SPARK_STUN_CHANCE,
           random,
           log,
+          seatStunRounds,
         )
       ) {
         const under = soldierAt(team, magnet);
@@ -721,12 +741,16 @@ function performAttack(
           0,
           magnetChance - RATTLE_NEIGHBOR_STUN_PENALTY,
         );
+        const seatStunRounds = rattleSeatStunDuration(
+          team,
+          getBossTemplate(boss.id),
+        );
         log(
           `  Lightning fans across seats #${left}, #${magnet}, #${right}…`,
         );
-        trySeatStun(team, magnet, magnetChance, random, log);
-        trySeatStun(team, left, neighborChance, random, log);
-        trySeatStun(team, right, neighborChance, random, log);
+        trySeatStun(team, magnet, magnetChance, random, log, seatStunRounds);
+        trySeatStun(team, left, neighborChance, random, log, seatStunRounds);
+        trySeatStun(team, right, neighborChance, random, log, seatStunRounds);
       }
       break;
     }

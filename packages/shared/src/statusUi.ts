@@ -51,12 +51,15 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
     };
   }
   if (st.kind === "Stun") {
+    const rounds = st.duration;
     return {
       key: `stun-${index}`,
       icon: "⚡",
-      label: "STUNNED",
+      label: rounds > 1 ? `STUNNED ${rounds}r` : "STUNNED",
       title:
-        "Stunned — next token claim is wasted (attack skipped), then stun clears. Sitting out a round does not clear it.",
+        rounds > 1
+          ? `Stunned for ${rounds} party rounds — token claims waste the attack until it wears off (counts down each drop even if they sit out).`
+          : "Stunned this party round — a token claim wastes the attack. Wears off after this drop even if they sit out.",
       colorClass:
         "text-yellow-100 border-yellow-300/70 bg-yellow-950/60 font-semibold",
     };

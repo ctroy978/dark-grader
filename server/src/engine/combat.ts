@@ -46,6 +46,7 @@ import {
   endPartyActionPhase,
   markClaimerResolved,
   resolveSpecialistAction,
+  tickPartyStuns,
 } from "./specialists.js";
 import {
   consumePendingTokens,
@@ -563,6 +564,13 @@ export function commitRound(team: TeamState): TeamState {
   } finally {
     endPartyActionPhase();
   }
+
+  // Party stun lasts N party rounds (Rattle 1, or 2 while enraged; TC F = 1).
+  // Tick after actions so a waste this drop still consumes a round; non-claimers
+  // also count down so stun cannot stick forever if they never take a token.
+  tickPartyStuns(team, (text, tags) =>
+    pushLog(team, text, tags ?? ["party", "stun"]),
+  );
 
   // Damage DoT beat first (Fire/Poison/etc.), then a separate hymn beat so
   // +HP floats are not cancelled by damage on the same board reveal.

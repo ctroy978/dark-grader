@@ -35,6 +35,12 @@ export interface MarkStatus {
   kind: "Mark";
 }
 
+/**
+ * Party stun (Rattle seat arc / Thundercaller F).
+ * `duration` = remaining **party rounds** that waste a claim.
+ * Ticks down after each party phase (`tickPartyStuns`); not claim-clear only.
+ * Rattle: 1 round normally, 2 while enraged. Thundercaller F: 1.
+ */
 export interface StunStatus {
   kind: "Stun";
   duration: number;

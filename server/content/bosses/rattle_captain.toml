@@ -7,7 +7,7 @@ name = "Rattle Captain"
 max_hp = 210
 traits = ["Shock", "StunImmune", "Summoner"]
 difficulty = "Standard"
-summary = "Electric captain. Rattle Spark may stun whoever stands under the Token Magnet; Cascade may stun the magnet seat and both neighbors (wrap). Magnet still moves. Thundercallers trade half damage and ignore stuns both ways. Weak Ohms in the gap."
+summary = "Electric captain. Rattle Spark may stun whoever stands under the Token Magnet (1 party round; 2 while enraged); Cascade may stun the magnet seat and both neighbors (wrap). Magnet still moves. Thundercallers trade half damage and ignore stuns both ways. Weak Ohms in the gap."
 recommended_rounds = "8–12"
 # Enrages earlier and harder than Cinder so the room curve steps up
 enrage_hp_pct = 0.40
