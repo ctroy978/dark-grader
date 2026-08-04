@@ -166,7 +166,8 @@ export function minionHasReflect(m: Minion): boolean {
 
 /**
  * After party resolve: Reflect lasts one party turn, then fades.
- * Each Ohm’s field ticks independently.
+ * Each Ohm’s field ticks independently. Fading sets `reflectCooldown` so the
+ * next volley cannot raise Reflect again (no back-to-back fields).
  */
 export function tickMinionReflect(
   team: TeamState,
@@ -179,6 +180,7 @@ export function tickMinionReflect(
     ref.duration -= 1;
     if (ref.duration <= 0) {
       m.statuses = m.statuses.filter((st) => st.kind !== "Reflect");
+      m.reflectCooldown = true;
       log(`${m.name}'s reflect fades`, ["boss", "reflect"]);
     }
   }

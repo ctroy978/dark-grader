@@ -188,7 +188,7 @@ describe("Rattle Captain", () => {
     ).toBe(false);
   });
 
-  it("seat stun lasts 2 party rounds while enraged", () => {
+  it("seat stun is still 1 round while enraged (never 2)", () => {
     const team = createTeam("t", "CODE", "Test", 99);
     fieldParty(team);
     startFight(team, "rattle_captain", POOL);
@@ -200,13 +200,6 @@ describe("Rattle Captain", () => {
     team.pendingBossAttackId = "RattleSpark";
     resolveBossPhase(team, () => 0.0, () => {});
     let s = team.roster.find((x) => x.id === target.id)!;
-    expect(s.statuses.find((st) => st.kind === "Stun")).toMatchObject({
-      kind: "Stun",
-      duration: 2,
-    });
-
-    tickPartyStuns(team, () => {});
-    s = team.roster.find((x) => x.id === target.id)!;
     expect(s.statuses.find((st) => st.kind === "Stun")).toMatchObject({
       kind: "Stun",
       duration: 1,

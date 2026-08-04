@@ -49,14 +49,14 @@ function scaleBossDamageToSoldier(
 }
 
 /**
- * Rattle seat stun length: **1** party round normally, **2** while enraged.
- * Duration is in party phases (ticks after party resolve) — not “until claim”.
+ * Rattle seat stun length: always **1** party round (even while enraged).
+ * Multi-seat stuns (Grounded fan) are punishing enough without 2-round locks.
  */
 function rattleSeatStunDuration(
-  team: TeamState,
-  template: BossTemplate | undefined,
+  _team: TeamState,
+  _template: BossTemplate | undefined,
 ): number {
-  return enrageMult(team, template) > 1 ? 2 : 1;
+  return 1;
 }
 
 /** Party stun on a line seat (Rattle Captain). Magnet still moves freely. */
@@ -594,12 +594,17 @@ export function resolveBossPhase(
     if (minionShotIndex >= 1) {
       log(`  (focus fire — magnet under heavy fire ×${MULTI_MINION_FOCUS_MULT})`);
     }
-    // Ohms: chance to raise an independent one-turn Reflect field after zapping
-    if (isOhmMinion(minion) && random() < OHM_REFLECT_CHANCE) {
-      if (!minion.statuses) minion.statuses = [];
-      minion.statuses = minion.statuses.filter((st) => st.kind !== "Reflect");
-      minion.statuses.push({ kind: "Reflect", duration: 1 });
-      log(`  ${minion.name} raises an electric field (Reflect)!`);
+    // Ohms: modest chance for one-turn Reflect; never back-to-back (cooldown)
+    if (isOhmMinion(minion)) {
+      if (minion.reflectCooldown) {
+        // Skip this volley’s raise; free to try again next time
+        minion.reflectCooldown = false;
+      } else if (random() < OHM_REFLECT_CHANCE) {
+        if (!minion.statuses) minion.statuses = [];
+        minion.statuses = minion.statuses.filter((st) => st.kind !== "Reflect");
+        minion.statuses.push({ kind: "Reflect", duration: 1 });
+        log(`  ${minion.name} raises an electric field (Reflect)!`);
+      }
     }
     present?.onMinionAttack?.({
       minionId: minion.id,

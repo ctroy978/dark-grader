@@ -32,6 +32,7 @@ import {
   activeParty,
   healSoldier,
   livingParty,
+  minionHasReflect,
   purgeDeadMinions,
   tickMinionReflect,
 } from "./damage.js";
@@ -561,12 +562,46 @@ export function commitRound(team: TeamState): TeamState {
           });
         }
       }
+
+      // Ohm Reflect bounce: show a real hit on anyone who lost HP this action
+      // while a Reflect field is up (usually the attacker). Separate beat so
+      // they flinch / float −HP instead of only playing the attack pose.
+      {
+        const reflecting = team.minions.some(
+          (m) => m.currentHp > 0 && minionHasReflect(m),
+        );
+        if (reflecting) {
+          const reflectVictims = beforeParty
+            .filter((prev) => {
+              const now = team.roster.find((s) => s.id === prev.id);
+              return !!now && now.alive && now.currentHp < prev.hp;
+            })
+            .map((p) => p.id);
+          if (reflectVictims.length) {
+            pushCue(team, {
+              kind: "action",
+              focusIds: reflectVictims,
+              bubble: {
+                speakerId: reflectVictims[0]!,
+                speakerName:
+                  team.roster.find((s) => s.id === reflectVictims[0])?.name ??
+                  "Ally",
+                side: "party",
+                text: "Reflect!",
+              },
+              fx: ["hurt-flash", "shock-flash", "reflect-hit"],
+              sfxId: "hit_light",
+              durationMs: 800,
+            });
+          }
+        }
+      }
     }
   } finally {
     endPartyActionPhase();
   }
 
-  // Party stun lasts N party rounds (Rattle 1, or 2 while enraged; TC F = 1).
+  // Party stun lasts 1 party round (Rattle / Thundercaller F).
   // Tick after actions so a waste this drop still consumes a round; non-claimers
   // also count down so stun cannot stick forever if they never take a token.
   tickPartyStuns(team, (text, tags) =>

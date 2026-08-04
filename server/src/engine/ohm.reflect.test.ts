@@ -125,7 +125,7 @@ describe("Ohm Reflect", () => {
     team.magnetPosition = 1;
     team.boss!.stunRoundsLeft = 0;
     team.pendingBossAttackId = "LineAttack";
-    // random always 0 → always succeeds OHM_REFLECT_CHANCE (0.5)
+    // random always 0 → always succeeds OHM_REFLECT_CHANCE
     resolveBossPhase(team, () => 0, () => {});
     const ohm = team.minions.find((m) => m.id === "ohm_vol")!;
     expect(ohm.statuses?.some((s) => s.kind === "Reflect")).toBe(true);
@@ -152,5 +152,42 @@ describe("Ohm Reflect", () => {
     resolveBossPhase(team, () => 0.99, () => {});
     const ohm = team.minions.find((m) => m.id === "ohm_vol2")!;
     expect(ohm.statuses?.some((s) => s.kind === "Reflect")).toBe(false);
+  });
+
+  it("never raises Reflect back-to-back after a field fades", () => {
+    const team = createTeam("t", "CODE", "Test", 6);
+    fieldParty(team);
+    startFight(team, "rattle_captain", POOL);
+    team.minions = [
+      {
+        id: "ohm_cd",
+        name: "Ohm",
+        kind: "ohm",
+        maxHp: 8,
+        currentHp: 8,
+        damage: 4,
+        statuses: [{ kind: "Reflect", duration: 1 }],
+      },
+    ];
+    // Fade sets cooldown
+    tickMinionReflect(team, () => {});
+    const ohm = team.minions.find((m) => m.id === "ohm_cd")!;
+    expect(ohm.reflectCooldown).toBe(true);
+    expect(ohm.statuses?.some((s) => s.kind === "Reflect")).toBe(false);
+
+    team.magnetPosition = 1;
+    team.boss!.stunRoundsLeft = 0;
+    team.pendingBossAttackId = "LineAttack";
+    // Even with guaranteed chance (random 0), cooldown blocks raise
+    resolveBossPhase(team, () => 0, () => {});
+    const after = team.minions.find((m) => m.id === "ohm_cd")!;
+    expect(after.statuses?.some((s) => s.kind === "Reflect")).toBe(false);
+    expect(after.reflectCooldown).toBe(false);
+
+    // Next volley may raise
+    team.pendingBossAttackId = "LineAttack";
+    resolveBossPhase(team, () => 0, () => {});
+    const again = team.minions.find((m) => m.id === "ohm_cd")!;
+    expect(again.statuses?.some((s) => s.kind === "Reflect")).toBe(true);
   });
 });

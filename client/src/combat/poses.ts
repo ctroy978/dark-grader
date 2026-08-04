@@ -54,6 +54,8 @@ export function poseForUnit(
       ) {
         return "hit";
       }
+      // Ohm Reflect bounce beat — flinch even if they were the attacker
+      if (isSpeaker && fx.includes("reflect-hit")) return "hit";
       if (isSpeaker) return "attack";
       // Focused non-speaker: flinch on strikes; soft heal/hymn/buff recipients stay calm
       if (inFocus) {
@@ -67,6 +69,7 @@ export function poseForUnit(
           (f) =>
             f === "hurt-flash" ||
             f === "shock-flash" ||
+            f === "reflect-hit" ||
             f === "fire-flash" ||
             f === "fire-tint" ||
             f === "fire-blast" ||
@@ -210,7 +213,8 @@ export function fxClassesForUnit(
         return !isBoss ? "fx-frost-flash" : "fx-frost-flash";
       }
       if (f === "shock-flash") return "fx-shock-flash";
-      if (f === "hurt-flash") return !isBoss ? "fx-hurt-flash" : "";
+      if (f === "hurt-flash" || f === "reflect-hit")
+        return !isBoss ? "fx-hurt-flash" : "";
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";

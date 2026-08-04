@@ -39,7 +39,7 @@ export interface MarkStatus {
  * Party stun (Rattle seat arc / Thundercaller F).
  * `duration` = remaining **party rounds** that waste a claim.
  * Ticks down after each party phase (`tickPartyStuns`); not claim-clear only.
- * Rattle: 1 round normally, 2 while enraged. Thundercaller F: 1.
+ * Always **1** party round max (including enraged Rattle / Thundercaller F).
  */
 export interface StunStatus {
   kind: "Stun";
@@ -223,6 +223,11 @@ export interface Minion {
   shotSfx?: string;
   /** Short comic bubble on volley (e.g. "Nibble!"). */
   shotBubble?: string;
+  /**
+   * Ohm: after Reflect fades, the next volley cannot raise Reflect again
+   * (no back-to-back fields). Cleared when the skip is consumed.
+   */
+  reflectCooldown?: boolean;
 }
 
 export interface BossState {
@@ -411,8 +416,11 @@ export const RATTLE_SPARK_STUN_CHANCE = 0.6;
 /** Grounded neighbor seat stun = magnet seat chance − this. */
 export const RATTLE_NEIGHBOR_STUN_PENALTY = 0.1;
 
-/** Chance each Ohm raises Reflect after its volley (often, not every turn). */
-export const OHM_REFLECT_CHANCE = 0.5;
+/**
+ * Chance each Ohm raises Reflect after its volley (when not on cooldown).
+ * Kept modest; also blocked back-to-back via `minion.reflectCooldown`.
+ */
+export const OHM_REFLECT_CHANCE = 0.28;
 /** Fraction of intended hit damage bounced to the attacker while Reflect is up. */
 export const OHM_REFLECT_RATIO = 0.25;
 

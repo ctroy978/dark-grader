@@ -87,7 +87,7 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   SummonOhms: {
     name: "Summon Ohms",
     description:
-      "Summons weak Ohms into the gap. They zap the party — and can reflect damage back at whoever hits them.",
+      "Summons Ohms into the gap. They zap the party and sometimes raise a short reflect field that bounces hits back — never two fields in a row.",
   },
 };
 
