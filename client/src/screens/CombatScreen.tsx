@@ -100,8 +100,13 @@ const DOT_BANNER: Record<
   },
   Ice: {
     icon: "❄️",
-    word: "CHILLED",
+    word: "ICED",
     className: "border-sky-400/50 bg-sky-950/70 text-sky-200",
+  },
+  Chill: {
+    icon: "🌬️",
+    word: "CHILL",
+    className: "border-cyan-300/50 bg-cyan-950/70 text-cyan-100",
   },
   Slime: {
     icon: "🟢",
@@ -135,6 +140,46 @@ function partyDotSummary(
     }
   }
   return [...map.entries()].map(([type, v]) => ({ type, ...v }));
+}
+
+/** Chain or soft Frozen seats for the center warning banner. */
+function partyFrozenSummary(
+  soldiers: { alive: boolean; name?: string; statuses?: StatusTag[] }[],
+): { count: number; chain: boolean; softOnly: boolean; names: string[] } {
+  const frozen = soldiers.filter(
+    (s) =>
+      s.alive &&
+      (s.statuses ?? []).some((st) => st.kind === "Frozen"),
+  );
+  const chain = frozen.some((s) =>
+    (s.statuses ?? []).some((st) => st.kind === "Frozen" && !st.soft),
+  );
+  const softOnly =
+    frozen.length > 0 &&
+    frozen.every((s) =>
+      (s.statuses ?? []).some((st) => st.kind === "Frozen" && !!st.soft),
+    );
+  return {
+    count: frozen.length,
+    chain,
+    softOnly,
+    names: frozen.map((s) => s.name ?? "Ally").slice(0, 3),
+  };
+}
+
+/** One-line cleanse / clear hint under each gap banner. */
+function dotClearHint(type: DotType): string {
+  switch (type) {
+    case "Fire":
+    case "Poison":
+      return "Shield Maiden cleanses (A all · B front · C back · D self)";
+    case "Ice":
+    case "Chill":
+    case "Slime":
+      return "Fire Mage cleanses (A front · B back) — not while Frozen";
+    default:
+      return "Clear it or it keeps ticking";
+  }
 }
 
 const GRADE_CLASS: Record<Grade, string> = {
@@ -1473,14 +1518,47 @@ export default function CombatScreen({
             )}
           </div>
           {(() => {
+            const frozen = partyFrozenSummary(partyVisual);
             const dots = partyDotSummary(partyVisual);
-            if (!dots.length) return null;
+            if (!frozen.count && !dots.length) return null;
             return (
               <div
                 className="w-full max-w-[14rem] shrink-0 flex flex-col gap-1"
                 role="status"
                 aria-live="polite"
               >
+                {frozen.count > 0 && (
+                  <div
+                    className="rounded-md border px-2 py-1.5 text-center text-[11px] md:text-xs font-bold tracking-wide border-cyan-200/70 bg-cyan-950/80 text-cyan-50"
+                    title={
+                      frozen.chain
+                        ? "Hard freeze: cannot act or be healed; boss hits glance off; DoTs sealed until free. Land an A on a frozen hero to crack all ice."
+                        : "Soft ice lock: wastes one claim, then clears."
+                    }
+                  >
+                    <span aria-hidden>🧊</span>{" "}
+                    {frozen.count === 1
+                      ? "Party member FROZEN"
+                      : `${frozen.count} party members FROZEN`}
+                    {frozen.names.length > 0 && (
+                      <div className="text-[9px] md:text-[10px] font-semibold opacity-95 mt-0.5 normal-case tracking-normal">
+                        {frozen.names.join(", ")}
+                        {frozen.count > frozen.names.length ? "…" : ""}
+                      </div>
+                    )}
+                    <div className="text-[9px] md:text-[10px] font-semibold opacity-95 mt-1 normal-case tracking-normal leading-snug">
+                      {frozen.chain || !frozen.softOnly ? (
+                        <>
+                          Magnet an <span className="text-grade-a">A</span> onto
+                          a frozen hero to crack all ice blocks. Ignore it and
+                          the ice spreads, then shatters.
+                        </>
+                      ) : (
+                        <>Soft lock — one wasted token claim, then free.</>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {dots.map((d) => {
                   const meta = DOT_BANNER[d.type];
                   const stackNote = d.stacks > 1 ? ` ×${d.stacks}` : "";
@@ -1490,13 +1568,13 @@ export default function CombatScreen({
                     <div
                       key={d.type}
                       className={`rounded-md border px-2 py-1.5 text-center text-[11px] md:text-xs font-bold tracking-wide ${meta.className}`}
-                      title={`${d.count} party member(s) have ${d.type}. Damage ticks each round and ramps if left up.`}
+                      title={`${d.count} party member(s) have ${d.type}. ${dotClearHint(d.type)}`}
                     >
                       <span aria-hidden>{meta.icon}</span> Party {meta.word}
                       {stackNote}
                       {rampNote}
-                      <div className="text-[9px] md:text-[10px] font-semibold opacity-90 mt-0.5 normal-case tracking-normal">
-                        Ticks each round · clear it or it grows
+                      <div className="text-[9px] md:text-[10px] font-semibold opacity-90 mt-0.5 normal-case tracking-normal leading-snug">
+                        {dotClearHint(d.type)}
                       </div>
                     </div>
                   );

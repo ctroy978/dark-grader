@@ -381,7 +381,7 @@ export function commitRound(team: TeamState): TeamState {
         stunned: s.statuses.some((st) => st.kind === "Stun"),
       }));
 
-      const { acted, skipReason, effectFocusIds, lifePowerFollowUp } =
+      const { acted, skipReason, effectFocusIds, lifePowerFollowUp, iceBreak } =
         resolveSpecialistAction(
           team,
           soldier,
@@ -409,6 +409,29 @@ export function commitRound(team: TeamState): TeamState {
             : ["party-stunned", "shock-flash", "hurt-flash"],
           sfxId: frozen ? "fizzle" : "hit_light",
           durationMs: 900,
+        });
+        continue;
+      }
+
+      // A on chain-Frozen: party ice-break beat (no kit attack)
+      if (iceBreak) {
+        const focus = [
+          soldier.id,
+          ...(effectFocusIds ?? []).filter((id) => id !== soldier.id),
+        ];
+        pushCue(team, {
+          kind: "action",
+          focusIds: focus,
+          grade: claim.effectiveGrade,
+          bubble: {
+            speakerId: soldier.id,
+            speakerName: soldier.name,
+            side: "party",
+            text: "Ice cracks!",
+          },
+          fx: ["ice-break", "frost-shatter", "ice-tint", "attack-flash"],
+          sfxId: "ice_break",
+          durationMs: 1200,
         });
         continue;
       }
@@ -610,10 +633,20 @@ export function commitRound(team: TeamState): TeamState {
 
   // Damage DoT beat first (Fire/Poison/etc.), then a separate hymn beat so
   // +HP floats are not cancelled by damage on the same board reveal.
+  // Boss frost SHATTER is its own beat *after* tickDots so HP/Frozen are final
+  // and everyone flinches (ice-break FX, not a quiet DoT tick).
   let sawDot = false;
+  let sawFrostShatter = false;
   tickDots(team, (text) => {
     pushLog(team, text, ["dot"]);
-    if (!sawDot && !text.includes("— DoT") && !text.includes("— End")) {
+    if (text.includes("SHATTER")) sawFrostShatter = true;
+    // Skip SHATTER line for the generic first-tick cue (handled below)
+    if (
+      !sawDot &&
+      !text.includes("— DoT") &&
+      !text.includes("— End") &&
+      !text.includes("SHATTER")
+    ) {
       sawDot = true;
       const dotted = livingParty(team).filter((s) =>
         s.statuses.some((st) => st.kind === "Dot" || st.kind === "Frozen"),
@@ -626,26 +659,56 @@ export function commitRound(team: TeamState): TeamState {
           if (st.kind === "Frozen") hasFrozen = true;
         }
       }
-      const isShatter = text.includes("SHATTER");
       const isFrostSpread = text.includes("[Frost]");
       const fx: string[] = ["dot-tick"];
       if (types.has("Fire")) fx.push("fire-tint");
       if (types.has("Poison")) fx.push("poison-tint");
-      if (types.has("Ice") || hasFrozen || isFrostSpread) fx.push("ice-tint");
+      if (
+        types.has("Ice") ||
+        types.has("Chill") ||
+        hasFrozen ||
+        isFrostSpread
+      )
+        fx.push("ice-tint");
       if (types.has("Slime")) fx.push("slime-tint");
-      if (isShatter) fx.push("frost-shatter", "hurt-flash");
       if (fx.length === 1) fx.push("hurt-flash");
-      if (dotted.length || isShatter || isFrostSpread) {
+      if (dotted.length || isFrostSpread) {
         pushCue(team, {
           kind: "dot",
           focusIds: dotted.map((s) => s.id),
           fx,
-          sfxId: isShatter ? "boss_attack" : "dot_tick",
-          durationMs: isShatter ? 1100 : 700,
+          sfxId: "dot_tick",
+          durationMs: 700,
         });
       }
     }
   });
+
+  // Chain frost exploded — whole line took damage; ice cleared. Hit pose + shatter FX.
+  if (sawFrostShatter) {
+    const shatterFocus = team.activePartyIds.filter((id) => {
+      const s = team.roster.find((x) => x.id === id);
+      return !!s && team.activePartyIds.includes(id);
+    });
+    pushCue(team, {
+      kind: "hurt",
+      focusIds: shatterFocus.length
+        ? shatterFocus
+        : livingParty(team).map((s) => s.id),
+      bubble: {
+        side: "boss",
+        speakerId: "boss",
+        speakerName: team.boss?.name ?? "Boss",
+        text: "Shatter!",
+      },
+      // Same family as A-break free, with hurt so portraits flinch (hit.png)
+      fx: ["ice-break", "frost-shatter", "ice-tint", "hurt-flash"],
+      sfxId: "ice_break",
+      secondarySfxId: "hit_heavy",
+      secondarySfxDelayMs: 120,
+      durationMs: 1300,
+    });
+  }
 
   // Runesinger hymn HoT — own beat (gold rain on recipients + heal SFX)
   const hymnTargets = tickHots(team, (text) => pushLog(team, text, ["dot", "hymn"]));

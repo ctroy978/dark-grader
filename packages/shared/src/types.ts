@@ -13,7 +13,8 @@ export type Archetype =
   | "Thundercaller"
   | "Runesinger";
 
-export type DotType = "Fire" | "Ice" | "Poison" | "Slime";
+/** Chill = Warden weather DoT (no token demotion). Ice = Frost Archer DoT. */
+export type DotType = "Fire" | "Ice" | "Poison" | "Slime" | "Chill";
 
 export type Position = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -107,17 +108,19 @@ export interface HotStatus {
 /**
  * Freeze lock.
  *
- * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed
- * until Fire Mage burns it off; spreads toward center, then shatters.
+ * **Chain (default):** Barrow Warden SpreadingFrost — cannot attack or be healed;
+ * boss attacks glance off; existing DoTs keep ticking but cannot be cleansed
+ * until free. Spreads toward center, then boss-shatters. Exit: land effective
+ * grade **A** on any chain-Frozen seat to crack **all** chain ice (party thaw).
  *
  * **Soft (`soft: true`):** Ice DoT natural expiry (Frost Archer arrows) —
  * cannot attack for **one** action (token wasted), heals still work, no spread/
- * shatter; clears after that skip or Fire Mage thaw.
+ * shatter; clears after that skip (or any thaw that clears Frozen).
  */
 export interface FrozenStatus {
   kind: "Frozen";
   /**
-   * Seat that started the chain (Warden: pos 1 or 2).
+   * Seat that started the chain (Warden: frontmost living at cast).
    * Spread walks toward the center along frostChainPath(origin).
    * Soft freeze: usually the locked seat's position.
    */

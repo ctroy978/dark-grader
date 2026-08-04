@@ -32,6 +32,7 @@ function dotTintClasses(statuses?: StatusTag[]): string[] {
     if (st.type === "Fire") out.push("fx-fire-tint");
     else if (st.type === "Poison") out.push("fx-poison-tint");
     else if (st.type === "Ice") out.push("fx-ice-tint");
+    else if (st.type === "Chill") out.push("fx-chill-tint");
     else if (st.type === "Slime") out.push("fx-slime-tint");
   }
   return out;
@@ -43,6 +44,31 @@ function hasSlimeDot(statuses?: StatusTag[]): boolean {
 
 function hasIceDot(statuses?: StatusTag[]): boolean {
   return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Ice");
+}
+
+function hasChillDot(statuses?: StatusTag[]): boolean {
+  return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Chill");
+}
+
+/**
+ * Ice shatter overlay — A-break free *or* boss frost SHATTER (same crystal burst).
+ * Shows on focused seats so the whole line reacts when the ice explodes.
+ */
+function cueHasIceBreak(
+  unitId: string,
+  cue: PresentationCue | null | undefined,
+): boolean {
+  if (
+    !cue?.fx?.includes("ice-break") &&
+    !cue?.fx?.includes("frost-shatter")
+  ) {
+    return false;
+  }
+  return (
+    cue.focusIds?.includes(unitId) ||
+    cue.bubble?.speakerId === unitId ||
+    false
+  );
 }
 
 /** Party Stun status (Rattle arc / Thundercaller F) — not boss stunRoundsLeft. */
@@ -126,6 +152,60 @@ function IceWindowFrostFx() {
                 "--c-y": `${10 + ((i * 37 + 5) % 70)}%`,
                 "--c-delay": `${(i % 5) * 0.35}s`,
                 "--c-size": `${4 + (i % 3) * 2}px`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A-on-Frozen break-out: ice plate cracks, white flash, shards fly outward.
+ * Classroom-readable from a few seats back; one-shot with the ice-break cue.
+ */
+function IceBreakFx() {
+  const shardCount = 14;
+  return (
+    <div className="ice-break-fx" aria-hidden>
+      <div className="ice-break-flash" />
+      <div className="ice-break-plate ice-break-plate--a" />
+      <div className="ice-break-plate ice-break-plate--b" />
+      <div className="ice-break-ring" />
+      <div className="ice-break-shards">
+        {Array.from({ length: shardCount }, (_, i) => {
+          const angle = (i / shardCount) * Math.PI * 2 + (i % 3) * 0.15;
+          const dist = 55 + (i % 4) * 18;
+          const dx = Math.cos(angle) * dist;
+          const dy = Math.sin(angle) * dist;
+          return (
+            <span
+              key={i}
+              className="ice-break-shard"
+              style={
+                {
+                  "--shard-dx": `${dx.toFixed(1)}%`,
+                  "--shard-dy": `${dy.toFixed(1)}%`,
+                  "--shard-rot": `${(i * 47) % 360}deg`,
+                  "--shard-delay": `${(i % 5) * 0.02}s`,
+                  "--shard-size": `${6 + (i % 4) * 3}px`,
+                } as CSSProperties
+              }
+            />
+          );
+        })}
+      </div>
+      <div className="ice-break-sparkles">
+        {Array.from({ length: 8 }, (_, i) => (
+          <span
+            key={i}
+            className="ice-break-sparkle"
+            style={
+              {
+                "--sp-x": `${20 + ((i * 31) % 60)}%`,
+                "--sp-y": `${15 + ((i * 23) % 55)}%`,
+                "--sp-delay": `${0.05 + i * 0.04}s`,
               } as CSSProperties
             }
           />
@@ -708,11 +788,23 @@ export function CombatActor({
     !lifePowerBuffSeat;
   const softNecroAllySeat = siphonHealSeat || lifePowerBuffSeat;
 
+  // Soft heal/LP seats skip hit.png — but never break Sticky Frozen ice.png
+  // (heal-glow still paints; portrait stays locked until A-break / soft expiry).
+  // Boss frost SHATTER is kind "hurt" + ice-break → hit.png for whole line.
+  // A-break free is kind "action" + ice-break → attack pose for the breaker.
+  const isFrozenPortrait = statuses?.some((s) => s.kind === "Frozen") ?? false;
+  const isBossShatterReact =
+    !isFrozenPortrait &&
+    cue?.kind === "hurt" &&
+    (cue?.fx?.includes("ice-break") || cue?.fx?.includes("frost-shatter")) &&
+    (inFocus || speaking);
   const pose =
     poseOverride ??
-    (softNecroAllySeat
-      ? "standing"
-      : poseForUnit(unitId, alive, cue, statuses));
+    (isBossShatterReact
+      ? "hit"
+      : softNecroAllySeat && !isFrozenPortrait
+        ? "standing"
+        : poseForUnit(unitId, alive, cue, statuses));
   // Cue flash FX + persistent DoT body tint from live statuses (Fire≠Poison)
   let cueFx = fxClassesForUnit(unitId, cue);
   if (softNecroAllySeat) {
@@ -835,6 +927,13 @@ export function CombatActor({
   const showIceFrost =
     hasIceDot(statuses) &&
     !statuses?.some((st) => st.kind === "Frozen");
+  // Chill (Warden winds) — same light window frost language as Ice, distinct chip
+  const showChillFrost =
+    hasChillDot(statuses) &&
+    !hasIceDot(statuses) &&
+    !statuses?.some((st) => st.kind === "Frozen");
+  // A-on-Frozen crack free — one-shot shard burst on this cue
+  const showIceBreak = cueHasIceBreak(unitId, cue);
   // Persistent electric border while stunned or Ohm Reflect is up
   const showStunArc = (isStunned || isReflecting) && alive;
   const arcBadge = isReflecting && !isStunned ? "REFLECT" : "STUN";
@@ -914,6 +1013,8 @@ export function CombatActor({
           />
           {/* After portrait so overlays sit on top of art (not under the PNG). */}
           {showIceFrost && <IceWindowFrostFx />}
+          {showChillFrost && <IceWindowFrostFx />}
+          {showIceBreak && <IceBreakFx />}
           {showSlimeDrip && <SlimeDripFx />}
           {showStunArc && (
             <StunArcFx

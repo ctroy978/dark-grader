@@ -93,6 +93,12 @@ export const DOT_STATS = {
    * freeze (see applySoftFreeze). Claim downgrade while Ice is up.
    */
   Ice: { tick: 3, duration: 3 },
+  /**
+   * Barrow Warden winds (North/South). Flat chip, no ramp, no token demotion,
+   * no soft-freeze on expiry. Fire Mage A/B cleanses. Duration set per seat
+   * on apply (4/3/2 ladder); re-apply resets that seat's duration.
+   */
+  Chill: { tick: 3, duration: 3 },
   /** Party splash total per stack at intensity 1 (split across living line) */
   Poison: { tick: 8, duration: 4 },
   /**
@@ -123,19 +129,37 @@ export const MAX_PARTY_SLIME_STACKS = 1;
 /** Frost Archer (id bone_archer) Ice on-hit: re-hits refresh duration, do not pile stacks. */
 export const MAX_PARTY_ICE_STACKS = 1;
 
+/** Warden Chill (North/South Wind): re-hits reset duration, do not pile stacks. */
+export const MAX_PARTY_CHILL_STACKS = 1;
+
 /**
- * Barrow Warden SpreadingFrost:
- * Always hits the whole line for LINE damage, then may freeze pos 1 or 2.
+ * Barrow Warden SpreadingFrost (freeze-focused):
+ * Small line chip, then **always** freezes a front seat (prefer pos 1, else 2).
+ * Real punish is chain → boss shatter if not cracked with an A on a frozen seat.
  */
-export const SPREADING_FROST_LINE_DAMAGE = 11;
-/** Chance that the frost wave also locks pos 1 or 2 (else nobody freezes). */
-export const SPREADING_FROST_CHANCE = 0.65;
+export const SPREADING_FROST_LINE_DAMAGE = 5;
+/**
+ * @deprecated Freeze is now mandatory (100%). Kept for any external refs; unused by engine.
+ */
+export const SPREADING_FROST_CHANCE = 1;
 /** Shatter damage to each currently Frozen soldier. */
 export const FROST_SHATTER_FROZEN_DAMAGE = 18;
 /** Shatter chip to each living non-Frozen party member. */
 export const FROST_SHATTER_SPLASH_DAMAGE = 6;
 /** Per-DoT-phase chip on each Frozen soldier (before spread/shatter). */
 export const FROST_LOCKED_TICK_DAMAGE = 3;
+
+/**
+ * North Wind (front) / South Wind (back) hit ladder — same numbers, mirrored seats.
+ * North: pos 1/2/3 · South: pos 6/5/4.
+ */
+export const WARDEN_WIND_HIT = [12, 9, 5] as const;
+/**
+ * Chill duration by hit tier (hardest seat longest).
+ * North: pos1=4, pos2=3, pos3=2 · South: pos6=4, pos5=3, pos4=2.
+ * (+1 vs original 3/2/1 so weather sticks for messy grade nights.)
+ */
+export const WARDEN_WIND_CHILL_DURATION = [4, 3, 2] as const;
 
 /** Retain full fight history for classroom review */
 export const MAX_LOG_ENTRIES = 800;
@@ -270,7 +294,10 @@ export const MULTI_MINION_FOCUS_MULT = 1.5;
  * Matches DoT chip colors for classroom teaching.
  */
 export const ARCHETYPE_CLEANSE_DOTS: Partial<
-  Record<Archetype, { type: "Fire" | "Poison" | "Ice" | "Slime"; color: string }[]>
+  Record<
+    Archetype,
+    { type: "Fire" | "Poison" | "Ice" | "Slime" | "Chill"; color: string }[]
+  >
 > = {
   /** Fire/Poison cleanse moved from Healer (A all / B front / C back). */
   ShieldMaiden: [
@@ -279,6 +306,7 @@ export const ARCHETYPE_CLEANSE_DOTS: Partial<
   ],
   FireMage: [
     { type: "Ice", color: "#7dd3fc" },
+    { type: "Chill", color: "#a5f3fc" },
     { type: "Slime", color: "#6ee7b7" },
   ],
 };

@@ -440,6 +440,230 @@ body {
   }
 }
 
+/* Warden Chill DoT — cooler/softer than Ice lock; readable next to Frozen cyan */
+.fx-chill-tint {
+  filter: drop-shadow(0 0 6px rgba(165, 243, 252, 0.55))
+    drop-shadow(0 0 12px rgba(100, 200, 240, 0.3));
+}
+.fx-chill-tint .portrait-frame {
+  box-shadow:
+    0 0 0 1px rgba(165, 243, 252, 0.4),
+    0 0 12px rgba(125, 211, 252, 0.35);
+  border-color: rgba(165, 243, 252, 0.4);
+}
+.fx-chill-tint .portrait-frame img,
+.fx-chill-tint .portrait-frame svg {
+  filter: brightness(1.04) saturate(0.9) hue-rotate(160deg)
+    drop-shadow(0 0 4px rgba(165, 243, 252, 0.35));
+}
+
+/*
+ * A-on-Frozen ice-break — one-shot shatter (cue ~1.2s).
+ * White flash + cracking plate + shards flying out + sparkles.
+ */
+.fx-ice-break {
+  animation: ice-break-glow 1.15s ease-out;
+  filter: drop-shadow(0 0 14px rgba(220, 250, 255, 1))
+    drop-shadow(0 0 28px rgba(140, 220, 255, 0.75));
+}
+.fx-ice-break .portrait-frame {
+  animation: ice-break-frame 1.15s ease-out;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 22px rgba(180, 240, 255, 0.9),
+    0 0 40px rgba(100, 200, 255, 0.55);
+  border-color: rgba(220, 250, 255, 0.95);
+}
+@keyframes ice-break-glow {
+  0% {
+    filter: brightness(1.65) drop-shadow(0 0 24px rgba(255, 255, 255, 1));
+  }
+  35% {
+    filter: brightness(1.35) drop-shadow(0 0 18px rgba(200, 240, 255, 1));
+  }
+  100% {
+    filter: brightness(1) drop-shadow(0 0 6px rgba(140, 210, 255, 0.4));
+  }
+}
+@keyframes ice-break-frame {
+  0% {
+    transform: scale(1.04);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ice-break-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -8%;
+  z-index: 12;
+  overflow: visible;
+}
+.ice-break-flash {
+  position: absolute;
+  inset: 12% 15%;
+  border-radius: 40%;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(200, 240, 255, 0.55) 35%,
+    transparent 70%
+  );
+  animation: ice-break-flash 1.1s ease-out forwards;
+  mix-blend-mode: screen;
+}
+@keyframes ice-break-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  45% {
+    opacity: 0.7;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.ice-break-plate {
+  position: absolute;
+  inset: 8% 10%;
+  border-radius: 0.4rem;
+  border: 2px solid rgba(220, 250, 255, 0.85);
+  background: linear-gradient(
+    135deg,
+    rgba(200, 240, 255, 0.35) 0%,
+    transparent 45%,
+    rgba(160, 220, 255, 0.2) 100%
+  );
+  box-shadow: inset 0 0 12px rgba(180, 235, 255, 0.4);
+  animation: ice-break-plate 1.05s ease-in forwards;
+}
+.ice-break-plate--a {
+  clip-path: polygon(0 0, 55% 0, 45% 100%, 0 100%);
+  --plate-dx: -28%;
+  --plate-rot: -18deg;
+}
+.ice-break-plate--b {
+  clip-path: polygon(55% 0, 100% 0, 100% 100%, 45% 100%);
+  --plate-dx: 28%;
+  --plate-rot: 16deg;
+  animation-delay: 0.03s;
+}
+@keyframes ice-break-plate {
+  0% {
+    opacity: 0.95;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--plate-dx), 18%) rotate(var(--plate-rot))
+      scale(0.85);
+  }
+}
+.ice-break-ring {
+  position: absolute;
+  inset: 18% 20%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 16px rgba(180, 240, 255, 0.8);
+  animation: ice-break-ring 0.9s ease-out forwards;
+}
+@keyframes ice-break-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+.ice-break-shards {
+  position: absolute;
+  inset: 0;
+}
+.ice-break-shard {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: var(--shard-size, 8px);
+  height: calc(var(--shard-size, 8px) * 1.4);
+  margin-left: calc(var(--shard-size, 8px) / -2);
+  margin-top: calc(var(--shard-size, 8px) / -2);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(160, 220, 255, 0.75) 40%,
+    rgba(100, 180, 240, 0.2) 100%
+  );
+  box-shadow: 0 0 6px rgba(200, 240, 255, 0.9);
+  clip-path: polygon(50% 0%, 100% 60%, 70% 100%, 30% 100%, 0% 55%);
+  animation: ice-break-shard 1.05s ease-out forwards;
+  animation-delay: var(--shard-delay, 0s);
+  opacity: 0;
+}
+@keyframes ice-break-shard {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(var(--shard-rot)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--shard-dx), var(--shard-dy))
+      rotate(calc(var(--shard-rot) + 90deg)) scale(0.5);
+  }
+}
+.ice-break-sparkles {
+  position: absolute;
+  inset: 0;
+}
+.ice-break-sparkle {
+  position: absolute;
+  left: var(--sp-x);
+  top: var(--sp-y);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 8px 2px rgba(180, 240, 255, 0.9);
+  animation: ice-break-sparkle 0.85s ease-out forwards;
+  animation-delay: var(--sp-delay, 0s);
+  opacity: 0;
+}
+@keyframes ice-break-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
 .fx-slime-tint {
   filter: drop-shadow(0 0 8px rgba(80, 220, 160, 0.7))
     drop-shadow(0 0 14px rgba(40, 160, 120, 0.4));

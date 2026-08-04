@@ -39,7 +39,7 @@ import {
   applyHot,
   applyMinionDot,
   cleanseDots,
-  thawFrozen,
+  crackAllChainFrozen,
 } from "./dots.js";
 
 export type LogFn = (text: string, tags?: string[]) => void;
@@ -103,6 +103,11 @@ export type SpecialistResolveResult = {
    * bonus heals and a second purple-rain cue after the base action beat.
    */
   lifePowerFollowUp?: LifePowerFollowUp;
+  /**
+   * Chain Frozen cracked with an A — combat plays ice-break FX on cracked seats
+   * instead of a normal kit action.
+   */
+  iceBreak?: boolean;
 };
 
 export function resolveSpecialistAction(
@@ -119,7 +124,7 @@ export function resolveSpecialistAction(
     claim.effectiveGrade !== claim.token ? `→${claim.effectiveGrade}` : ""
   }`;
 
-  // Frozen — token wasted. Soft ice-lock clears after this skip; chain freeze stays.
+  // Frozen — soft: waste claim and clear. Chain: A cracks all ice; else waste.
   const frozen = soldier.statuses.find((s) => s.kind === "Frozen");
   if (frozen && frozen.kind === "Frozen") {
     if (frozen.soft) {
@@ -127,9 +132,22 @@ export function resolveSpecialistAction(
         (st) => !(st.kind === "Frozen" && st.soft),
       );
       log(`${label}: FROZEN — token wasted (ice lock ends)!`);
-    } else {
-      log(`${label}: FROZEN — token wasted, cannot act!`);
+      return { acted: false, skipReason: "frozen" };
     }
+    // Chain Frozen: effective A cracks every chain ice block on the party
+    if (g === "A") {
+      const crackedIds = crackAllChainFrozen(team);
+      const n = crackedIds.length;
+      log(
+        `${label}: cracks the ice free! (${n} ice block${n === 1 ? "" : "s"} shatter — no boss shatter)`,
+      );
+      return {
+        acted: true,
+        iceBreak: true,
+        effectFocusIds: crackedIds.length ? crackedIds : [soldier.id],
+      };
+    }
+    log(`${label}: FROZEN — token wasted, cannot act!`);
     return { acted: false, skipReason: "frozen" };
   }
 
@@ -352,8 +370,8 @@ function shieldMaiden(
 /**
  * FireMage — Wildfire AOE + boss Fire burn.
  * Gap rule: minions only from seat 1 (same as non-Archers); mid/back = boss only.
- * A/B: burn off Frozen and cleanse Ice/Slime on half the line (A front, B back).
- * Does not clear Fire/Poison (Shield Maiden).
+ * A/B: cleanse Chill/Ice/Slime on half the line (A front, B back).
+ * Does not thaw chain Frozen (A on a frozen hero cracks ice). Does not clear Fire/Poison.
  * Targets: A/B ≤3, C ≤2, D 1. C has no friendly fire; D/F still punish the party.
  */
 function fireMage(
@@ -363,18 +381,21 @@ function fireMage(
   log: LogFn,
   label: string,
 ): void {
-  /** Ice + Slime only — Fire/Poison are Shield Maiden; Frozen is thawFrozen. */
-  const mageCleanse: DotType[] = ["Ice", "Slime"];
+  /** Chill + Ice + Slime — Fire/Poison are Shield Maiden; chain Frozen is A-break. */
+  const mageCleanse: DotType[] = ["Chill", "Ice", "Slime"];
 
   if (g === "F") {
-    // F unchanged — party explosion, no enemy hit
+    // F unchanged — party explosion, no enemy hit (Frozen ice still blocks)
     const hits: string[] = [];
     for (const s of livingParty(team)) {
+      const r = applyPartyDamage(s, 3, team.partyShield, {
+        bypassAbsorb: true,
+      });
       hits.push(
-        formatPartyHit(
-          s,
-          applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
-        ),
+        r.hpLost === 0 &&
+          s.statuses.some((st) => st.kind === "Frozen")
+          ? `${s.name} ice shell`
+          : formatPartyHit(s, r),
       );
     }
     log(`${label}: EXPLOSION (ignores shield/block)! ${hits.join("; ")}`);
@@ -426,17 +447,15 @@ function fireMage(
   const burnNote = burnBits.length ? `; ${burnBits.join(", ")}` : "";
 
   if (g === "A" || g === "B") {
-    // A = front (1–3), B = back (4–6): thaw Frozen + cleanse Ice/Slime
+    // A = front (1–3), B = back (4–6): cleanse Chill/Ice/Slime (not Frozen)
     const seats =
       g === "A"
         ? livingParty(team).filter((s) => s.position && s.position <= 3)
         : livingParty(team).filter((s) => s.position && s.position >= 4);
     const side = g === "A" ? "front" : "back";
-    const thawed = thawFrozen(seats);
     const n = cleanseDots(seats, mageCleanse);
     const extras: string[] = [];
-    if (thawed) extras.push(`burned off Frozen (${thawed})`);
-    if (n) extras.push(`cleansed Ice/Slime (${n})`);
+    if (n) extras.push(`cleansed Chill/Ice/Slime (${n})`);
     const extraNote = extras.length ? `; ${side}: ${extras.join(", ")}` : "";
     log(`${label}: Wildfire ${r}${burnNote}${extraNote}`);
     return;
@@ -446,16 +465,18 @@ function fireMage(
     log(`${label}: Wildfire ${r}${burnNote}`);
     return;
   }
-  // D — single-target ember, no burn, friendly fire front
+  // D — single-target ember, no burn, friendly fire front (Frozen ice still blocks)
   const hits: string[] = [];
   for (const pos of [1, 2] as const) {
     const s = soldierAt(team, pos);
     if (s) {
+      const res = applyPartyDamage(s, 3, team.partyShield, {
+        bypassAbsorb: true,
+      });
       hits.push(
-        formatPartyHit(
-          s,
-          applyPartyDamage(s, 3, team.partyShield, { bypassAbsorb: true }),
-        ),
+        res.hpLost === 0 && s.statuses.some((st) => st.kind === "Frozen")
+          ? `${s.name} ice shell`
+          : formatPartyHit(s, res),
       );
     }
   }

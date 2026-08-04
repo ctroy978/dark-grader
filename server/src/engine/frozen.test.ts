@@ -11,6 +11,7 @@ import {
 } from "./combat.js";
 import { healSoldier, livingParty, soldierAt } from "./damage.js";
 import {
+  applyDot,
   applyFrozen,
   cleanseDots,
   isFrozen,
@@ -44,18 +45,20 @@ describe("SpreadingFrost / Frozen", () => {
     expect(w!.traits).toContain("Frost");
     expect(w!.attackIds).toEqual(
       expect.arrayContaining([
-        "FrontSlam",
-        "LineAttack",
+        "NorthWind",
+        "SouthWind",
         "SpreadingFrost",
         "Regenerate",
       ]),
     );
+    expect(w!.attackIds).not.toContain("FrontSlam");
+    expect(w!.attackIds).not.toContain("LineAttack");
     expect(w!.attackIds).not.toContain("PoisonCloud");
     const frost = w!.attacks.find((a) => a.id === "SpreadingFrost");
-    expect(frost?.weight).toBe(4);
+    expect(frost?.weight).toBe(3);
   });
 
-  it("applies Frozen and blocks heal + attack", () => {
+  it("applies Frozen and blocks heal; non-A wastes attack", () => {
     const team = wardenTeam();
     const s = soldierAt(team, 1)!;
     s.currentHp = 20;
@@ -67,13 +70,95 @@ describe("SpreadingFrost / Frozen", () => {
     const result = resolveSpecialistAction(
       team,
       s,
-      { token: "A", soldierId: s.id, effectiveGrade: "A" },
+      { token: "B", soldierId: s.id, effectiveGrade: "B" },
       () => 0.5,
       () => {},
     );
     expect(result.acted).toBe(false);
     expect(result.skipReason).toBe("frozen");
     expect(isFrozen(s)).toBe(true);
+  });
+
+  it("party friendly fire glances off Frozen; Chill still ticks", () => {
+    const team = wardenTeam(13);
+    const s = soldierAt(team, 1)!;
+    applyFrozen(s, 1, 0);
+    const hp0 = s.currentHp;
+    const mage = team.roster.find((x) => x.archetype === "FireMage" && x.alive)!;
+    if (!team.activePartyIds.includes(mage.id)) {
+      team.activePartyIds[2] = mage.id;
+    }
+    mage.position = 3;
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "F", soldierId: mage.id, effectiveGrade: "F" },
+      () => 0.5,
+      () => {},
+    );
+    expect(s.currentHp).toBe(hp0);
+    expect(isFrozen(s)).toBe(true);
+  });
+
+  it("boss hits glance off Frozen; Chill DoT still ticks; cleanse skipped", () => {
+    const team = wardenTeam(11);
+    team.partyShield = { remaining: 0, active: false };
+    const s = soldierAt(team, 1)!;
+    applyDot(s, "Chill", 1, 3, true);
+    applyFrozen(s, 1, 0);
+    const hp0 = s.currentHp;
+
+    team.pendingBossAttackId = "NorthWind";
+    const logs: string[] = [];
+    resolveBossPhase(team, () => 0.5, (t) => logs.push(t));
+    expect(s.currentHp).toBe(hp0); // no boss damage through ice
+    expect(logs.some((l) => l.includes("encased in ice"))).toBe(true);
+    expect(
+      s.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
+    ).toBe(true);
+
+    // Fire Mage A front cleanse cannot strip Chill while frozen
+    const mage = team.roster.find((x) => x.archetype === "FireMage" && x.alive)!;
+    if (!team.activePartyIds.includes(mage.id)) {
+      team.activePartyIds[2] = mage.id;
+      mage.position = 2;
+    }
+    mage.position = 2;
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(
+      s.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
+    ).toBe(true);
+    expect(isFrozen(s)).toBe(true);
+
+    // Chill still ticks in DoT phase (frost chain also chips)
+    const hp1 = s.currentHp;
+    tickDots(team, () => {});
+    expect(s.currentHp).toBeLessThan(hp1);
+  });
+
+  it("A on a chain-Frozen seat cracks all chain ice (party thaw)", () => {
+    const team = wardenTeam();
+    applyFrozen(soldierAt(team, 1)!, 1, 1);
+    applyFrozen(soldierAt(team, 2)!, 1, 1);
+    const breaker = soldierAt(team, 1)!;
+    const result = resolveSpecialistAction(
+      team,
+      breaker,
+      { token: "A", soldierId: breaker.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(result.acted).toBe(true);
+    expect(result.iceBreak).toBe(true);
+    expect(isFrozen(soldierAt(team, 1)!)).toBe(false);
+    expect(isFrozen(soldierAt(team, 2)!)).toBe(false);
+    expect(result.effectFocusIds?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("spreads front chain 1→2→3 then shatters", () => {
@@ -167,7 +252,7 @@ describe("SpreadingFrost / Frozen", () => {
     }
   });
 
-  it("SpreadingFrost always damages the line and may freeze pos 1 or 2", () => {
+  it("SpreadingFrost always damages the line and freezes the frontmost living", () => {
     const team = wardenTeam(3);
     team.partyShield = { remaining: 0, active: false };
     const hpBefore = Object.fromEntries(
@@ -175,42 +260,71 @@ describe("SpreadingFrost / Frozen", () => {
     );
     team.pendingBossAttackId = "SpreadingFrost";
     const logs: string[] = [];
-    // random 0: freeze roll succeeds (< 0.65), seat pick = first of [1,2] = 1
-    resolveBossPhase(team, () => 0, (t) => logs.push(t));
+    resolveBossPhase(team, () => 0.9, (t) => logs.push(t));
     expect(logs.some((l) => l.includes("Spreading Frost"))).toBe(true);
     for (const s of livingParty(team)) {
       expect(hpBefore[s.id]! - s.currentHp).toBeGreaterThan(0);
     }
     expect(partyHasFrozen(team)).toBe(true);
     const frozen = livingParty(team).find(isFrozen)!;
-    expect(frozen.position === 1 || frozen.position === 2).toBe(true);
+    expect(frozen.position).toBe(1);
+    expect(logs.some((l) => l.includes("fails to lock"))).toBe(false);
   });
 
-  it("SpreadingFrost can miss the freeze while still dealing line damage", () => {
-    const team = wardenTeam(5);
+  it("SpreadingFrost freezes frontmost living when seats 1–2 are empty", () => {
+    const team = wardenTeam(4);
     team.partyShield = { remaining: 0, active: false };
-    const hpBefore = Object.fromEntries(
-      livingParty(team).map((s) => [s.id, s.currentHp]),
-    );
+    // Kill front two seats — freeze must land on next living (pos 3)
+    for (const pos of [1, 2] as const) {
+      const s = soldierAt(team, pos)!;
+      s.alive = false;
+      s.currentHp = 0;
+    }
+    expect(soldierAt(team, 1)).toBeUndefined();
+    expect(soldierAt(team, 3)?.alive).toBe(true);
+
     team.pendingBossAttackId = "SpreadingFrost";
     const logs: string[] = [];
-    // Freeze check uses random() >= 0.65 to miss — return 0.9 after voice rolls
-    let i = 0;
-    resolveBossPhase(
-      team,
-      () => {
-        // First rolls may be voice; keep returning high until freeze roll
-        i += 1;
-        return 0.9;
-      },
-      (t) => logs.push(t),
+    resolveBossPhase(team, () => 0.5, (t) => logs.push(t));
+    expect(logs.some((l) => l.includes("No one in seats 1–2"))).toBe(false);
+    expect(partyHasFrozen(team)).toBe(true);
+    const frozen = livingParty(team).find(isFrozen)!;
+    expect(frozen.position).toBe(3);
+    expect(logs.some((l) => l.includes("front of the line"))).toBe(true);
+  });
+
+  it("NorthWind hits front and applies Chill 4/3/2; SouthWind mirrors back", () => {
+    const team = wardenTeam(7);
+    team.partyShield = { remaining: 0, active: false };
+    team.pendingBossAttackId = "NorthWind";
+    resolveBossPhase(team, () => 0.5, () => {});
+    const d1 = soldierAt(team, 1)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
     );
-    expect(logs.some((l) => l.includes("Spreading Frost"))).toBe(true);
-    expect(logs.some((l) => l.includes("fails to lock"))).toBe(true);
-    expect(partyHasFrozen(team)).toBe(false);
-    for (const s of livingParty(team)) {
-      expect(hpBefore[s.id]! - s.currentHp).toBeGreaterThan(0);
-    }
+    const d2 = soldierAt(team, 2)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
+    );
+    const d3 = soldierAt(team, 3)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
+    );
+    expect(d1?.kind === "Dot" && d1.duration).toBe(4);
+    expect(d2?.kind === "Dot" && d2.duration).toBe(3);
+    expect(d3?.kind === "Dot" && d3.duration).toBe(2);
+
+    team.pendingBossAttackId = "SouthWind";
+    resolveBossPhase(team, () => 0.5, () => {});
+    const d6 = soldierAt(team, 6)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
+    );
+    const d5 = soldierAt(team, 5)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
+    );
+    const d4 = soldierAt(team, 4)!.statuses.find(
+      (st) => st.kind === "Dot" && st.type === "Chill",
+    );
+    expect(d6?.kind === "Dot" && d6.duration).toBe(4);
+    expect(d5?.kind === "Dot" && d5.duration).toBe(3);
+    expect(d4?.kind === "Dot" && d4.duration).toBe(2);
   });
 
   it("tickDots header includes Frozen and advances chain", () => {
@@ -272,12 +386,12 @@ describe("SpreadingFrost / Frozen", () => {
     return mage;
   }
 
-  it("FireMage A burns Frozen on front only", () => {
+  it("FireMage A does not thaw Frozen and cannot cleanse DoTs under ice", () => {
     const team = wardenTeam();
     const mage = seatMageMid(team);
     applyFrozen(soldierAt(team, 1)!, 1, 0);
     applyFrozen(soldierAt(team, 6)!, 6, 0);
-    expect(isFrozen(mage)).toBe(false);
+    applyDot(soldierAt(team, 1)!, "Chill", 1, 3, true);
 
     resolveSpecialistAction(
       team,
@@ -286,15 +400,22 @@ describe("SpreadingFrost / Frozen", () => {
       () => 0.5,
       () => {},
     );
-    expect(isFrozen(soldierAt(team, 1)!)).toBe(false);
+    expect(isFrozen(soldierAt(team, 1)!)).toBe(true);
     expect(isFrozen(soldierAt(team, 6)!)).toBe(true);
+    // Chill sealed under ice until A-break
+    expect(
+      soldierAt(team, 1)!.statuses.some(
+        (st) => st.kind === "Dot" && st.type === "Chill",
+      ),
+    ).toBe(true);
   });
 
-  it("FireMage B burns Frozen on back only", () => {
+  it("FireMage B cleanses Chill on unfrozen back seats; skips Frozen", () => {
     const team = wardenTeam();
     const mage = seatMageMid(team);
-    applyFrozen(soldierAt(team, 2)!, 2, 0);
-    applyFrozen(soldierAt(team, 5)!, 5, 0);
+    applyFrozen(soldierAt(team, 5)!, 2, 0);
+    applyDot(soldierAt(team, 5)!, "Chill", 1, 3, true);
+    applyDot(soldierAt(team, 6)!, "Chill", 1, 2, true); // unfrozen back seat
 
     resolveSpecialistAction(
       team,
@@ -303,7 +424,18 @@ describe("SpreadingFrost / Frozen", () => {
       () => 0.5,
       () => {},
     );
-    expect(isFrozen(soldierAt(team, 2)!)).toBe(true);
-    expect(isFrozen(soldierAt(team, 5)!)).toBe(false);
+    expect(isFrozen(soldierAt(team, 5)!)).toBe(true);
+    // Frozen seat keeps Chill
+    expect(
+      soldierAt(team, 5)!.statuses.some(
+        (st) => st.kind === "Dot" && st.type === "Chill",
+      ),
+    ).toBe(true);
+    // Unfrozen pos6 cleansed
+    expect(
+      soldierAt(team, 6)!.statuses.some(
+        (st) => st.kind === "Dot" && st.type === "Chill",
+      ),
+    ).toBe(false);
   });
 });

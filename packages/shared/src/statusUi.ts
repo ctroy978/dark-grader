@@ -15,6 +15,12 @@ const DOT_META: Record<
 > = {
   Fire: { icon: "🔥", short: "Fire", colorClass: "text-orange-400 border-orange-400/40 bg-orange-950/50" },
   Ice: { icon: "❄️", short: "Ice", colorClass: "text-sky-300 border-sky-400/40 bg-sky-950/50" },
+  /** Warden winds — distinct from Ice (demotion) and Frozen (lock). */
+  Chill: {
+    icon: "🌬️",
+    short: "Chill",
+    colorClass: "text-cyan-200 border-cyan-400/40 bg-cyan-950/40",
+  },
   Poison: { icon: "☠️", short: "Poison", colorClass: "text-lime-400 border-lime-500/40 bg-lime-950/50" },
   Slime: { icon: "🟢", short: "Slime", colorClass: "text-emerald-300 border-emerald-400/40 bg-emerald-950/40" },
 };
@@ -32,7 +38,9 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
     const untilNote =
       st.type === "Slime"
         ? "until cleansed (Fire Mage A/B)"
-        : `${st.duration} round(s) left`;
+        : st.type === "Chill"
+          ? `${st.duration} round(s) left · Fire Mage A/B cleanse · no token demotion`
+          : `${st.duration} round(s) left`;
     return {
       key: `dot-${st.type}-${index}`,
       icon: m.icon,
@@ -103,7 +111,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `frozen-${index}`,
       icon: "🧊",
       label: st.stage >= 2 ? "Frozen ⚠" : `Frozen ${st.stage}/2`,
-      title: `Frozen — cannot attack or be healed · ${until} · only Fire Mage burns this off (A front / B back)`,
+      title: `Frozen — cannot attack or be healed; boss hits glance off; DoTs keep ticking but cannot cleanse until free · ${until} · crack free with an A on a frozen hero; ignore → boss shatter`,
       colorClass: "text-cyan-200 border-cyan-400/50 bg-cyan-950/50",
     };
   }

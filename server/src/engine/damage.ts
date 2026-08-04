@@ -29,6 +29,12 @@ export function formatPartyHit(
 export type DamageOpts = {
   /** Friendly fire / self-backfire: ignore party shield and personal block */
   bypassAbsorb?: boolean;
+  /**
+   * Ice cocoon (Frozen): external damage glances off unless this is set.
+   * Use for frost chain chip, boss shatter, and status DoT ticks.
+   * Boss attacks, minions, and party friendly-fire stay blocked.
+   */
+  throughFrozen?: boolean;
 };
 
 /**
@@ -76,6 +82,13 @@ export function applyPartyDamage(
   opts?: DamageOpts,
 ): { hpLost: number; shieldAbsorbed: number; blockAbsorbed: number } {
   if (raw <= 0 || !soldier.alive) {
+    return { hpLost: 0, shieldAbsorbed: 0, blockAbsorbed: 0 };
+  }
+  // Frozen = ice shell: block external hits unless frost/DoT opts through
+  if (
+    !opts?.throughFrozen &&
+    soldier.statuses.some((st) => st.kind === "Frozen")
+  ) {
     return { hpLost: 0, shieldAbsorbed: 0, blockAbsorbed: 0 };
   }
   let remaining = Math.floor(raw);

@@ -4,9 +4,10 @@ import {
   OHM_REFLECT_CHANCE,
   RATTLE_NEIGHBOR_STUN_PENALTY,
   RATTLE_SPARK_STUN_CHANCE,
-  SPREADING_FROST_CHANCE,
   SPREADING_FROST_LINE_DAMAGE,
   THUNDERCALLER_BOSS_STUN_CHANCE,
+  WARDEN_WIND_CHILL_DURATION,
+  WARDEN_WIND_HIT,
   type DotType,
   type Minion,
   type Soldier,
@@ -22,8 +23,8 @@ import {
 import {
   applyDot,
   applyFrozen,
+  isFrozen,
   partyHasChainFrozen,
-  partyHasFrozen,
 } from "./dots.js";
 import {
   attackDef,
@@ -574,6 +575,9 @@ export function resolveBossPhase(
       ...(rage > 1 ? ["enraged"] : []),
       ...(boss.id === "rattle_captain" ? ["shock-flash"] : []),
       ...(attackId === "SpreadingFrost" ? ["ice-tint", "frost-flash"] : []),
+      ...(attackId === "NorthWind" || attackId === "SouthWind"
+        ? ["ice-tint", "frost-flash"]
+        : []),
     ],
   });
 
@@ -636,12 +640,27 @@ function performAttack(
   const victims = new Set<string>();
 
   const dmg = (base: number) => Math.floor((base + bonus) * mult);
-  const hit = (s: Soldier, amount: number) => {
+  /**
+   * Boss attack damage to a seat. Chain/soft Frozen = ice cocoon: no HP loss
+   * (frost chain chip + boss shatter still use applyPartyDamage directly).
+   * Returns hp lost, or -1 when ice absorbed the hit (caller may log specially).
+   */
+  const hit = (s: Soldier, amount: number): number => {
+    if (isFrozen(s)) {
+      return -1;
+    }
     const scaled = scaleBossDamageToSoldier(team, s, amount);
     const afterParry = applySpearmanBossDefense(s, scaled);
     const { hpLost } = applyPartyDamage(s, afterParry, team.partyShield);
     if (hpLost > 0) victims.add(s.id);
     return hpLost;
+  };
+  const logHit = (s: Soldier, hpLost: number) => {
+    if (hpLost < 0) {
+      log(`  ${s.name} is encased in ice — boss hit glances off!`);
+      return;
+    }
+    log(`  ${s.name} takes ${hpLost}`);
   };
 
   // Parameterized summons (Moss Mites, Bone Archers, future adds)
@@ -654,24 +673,58 @@ function performAttack(
   switch (attackId) {
     case "FrontSlam": {
       log(`${boss.name} uses Front Slam!`);
-      // Warden: heavier front tax (room-5 pressure without Cascade)
-      const warden = boss.id === "barrow_warden";
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
         if (!s) continue;
-        const base = warden
-          ? pos === 1
-            ? 15
-            : pos === 2
-              ? 11
-              : 7
-          : pos === 1
-            ? 12
-            : pos === 2
-              ? 9
-              : 5;
+        const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
+        logHit(s, hit(s, dmg(base)));
+      }
+      break;
+    }
+    case "NorthWind": {
+      // Warden front weather: hit ladder + Chill (3/2/1 duration on pos 1/2/3)
+      log(`${boss.name} looses the North Wind!`);
+      for (let i = 0; i < 3; i++) {
+        const pos = (i + 1) as 1 | 2 | 3;
+        const s = soldierAt(team, pos);
+        if (!s) continue;
+        const base = WARDEN_WIND_HIT[i]!;
+        const chillDur = WARDEN_WIND_CHILL_DURATION[i]!;
         const hpLost = hit(s, dmg(base));
-        log(`  ${s.name} takes ${hpLost}`);
+        applyDot(s, "Chill", 1, chillDur, true);
+        if (hpLost < 0) {
+          log(
+            `  ${s.name} is encased in ice — boss hit glances off! (still Chilled ${chillDur}r)`,
+          );
+        } else {
+          log(
+            `  ${s.name} takes ${hpLost} and is Chilled (${chillDur}r)`,
+          );
+        }
+      }
+      break;
+    }
+    case "SouthWind": {
+      // Warden back weather: same ladder mirrored on pos 6/5/4
+      log(`${boss.name} looses the South Wind!`);
+      const seats = [6, 5, 4] as const;
+      for (let i = 0; i < 3; i++) {
+        const pos = seats[i]!;
+        const s = soldierAt(team, pos);
+        if (!s) continue;
+        const base = WARDEN_WIND_HIT[i]!;
+        const chillDur = WARDEN_WIND_CHILL_DURATION[i]!;
+        const hpLost = hit(s, dmg(base));
+        applyDot(s, "Chill", 1, chillDur, true);
+        if (hpLost < 0) {
+          log(
+            `  ${s.name} is encased in ice — boss hit glances off! (still Chilled ${chillDur}r)`,
+          );
+        } else {
+          log(
+            `  ${s.name} takes ${hpLost} and is Chilled (${chillDur}r)`,
+          );
+        }
       }
       break;
     }
@@ -682,8 +735,7 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = pos === 1 ? 12 : pos === 2 ? 9 : 5;
-        const hpLost = hit(s, dmg(base));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(base)));
       }
       const magnet = team.magnetPosition;
       const seatStunRounds = rattleSeatStunDuration(
@@ -717,8 +769,7 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = pos === 1 ? 10 : pos === 2 ? 8 : 4;
-        const hpLost = hit(s, dmg(base));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(base)));
       }
       break;
     }
@@ -728,10 +779,9 @@ function performAttack(
       log(
         `${boss.name} uses ${attackId === "ArcAttack" ? "Arc Attack" : "Line Attack"}!`,
       );
-      const lineBase = boss.id === "barrow_warden" ? 9 : 7;
+      const lineBase = 7;
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(lineBase));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(lineBase)));
       }
       break;
     }
@@ -739,8 +789,7 @@ function performAttack(
       // Tutorial-tier: ~85% of LineAttack (7)
       log(`${boss.name} uses a light Line Attack!`);
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(6));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(6)));
       }
       break;
     }
@@ -751,6 +800,12 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = CASCADE_BASE[pos] ?? 2;
+        if (isFrozen(s)) {
+          log(
+            `  #${pos} ${s.name}: encased in ice — cascade glances off! [raw ${base}]`,
+          );
+          continue;
+        }
         const scaled = scaleBossDamageToSoldier(team, s, dmg(base));
         const afterParry = applySpearmanBossDefense(s, scaled);
         const { hpLost, shieldAbsorbed, blockAbsorbed } = applyPartyDamage(
@@ -778,6 +833,12 @@ function performAttack(
         const s = soldierAt(team, pos);
         if (!s) continue;
         const base = groundedBaseAt(magnet, pos);
+        if (isFrozen(s)) {
+          log(
+            `  #${pos} ${s.name}: encased in ice — shock glances off! [raw ${base}]`,
+          );
+          continue;
+        }
         const scaled = scaleBossDamageToSoldier(team, s, dmg(base));
         const afterParry = applySpearmanBossDefense(s, scaled);
         const { hpLost, shieldAbsorbed, blockAbsorbed } = applyPartyDamage(
@@ -827,8 +888,7 @@ function performAttack(
       for (const { pos, base } of targets) {
         const s = soldierAt(team, pos);
         if (!s) continue;
-        const hpLost = hit(s, dmg(base));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(base)));
       }
       break;
     }
@@ -839,7 +899,13 @@ function performAttack(
       const victim = magnetHardTarget(team);
       if (victim) {
         const hpLost = hit(victim, dmg(5));
-        log(`  Regenerative pulse hits ${victim.name} for ${hpLost}`);
+        if (hpLost < 0) {
+          log(
+            `  Regenerative pulse glances off ${victim.name}'s ice shell!`,
+          );
+        } else {
+          log(`  Regenerative pulse hits ${victim.name} for ${hpLost}`);
+        }
       }
       break;
     }
@@ -869,40 +935,36 @@ function performAttack(
       break;
     }
     case "SpreadingFrost": {
-      // Big frost wave across the line, then a chance to freeze front seat 1 or 2
+      // Freeze-focused: small line chip, always locks the frontmost living seat
+      // (not fixed pos 1–2 — dead front no longer skips the freeze lesson)
       log(`${boss.name} casts Spreading Frost!`);
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(SPREADING_FROST_LINE_DAMAGE));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(SPREADING_FROST_LINE_DAMAGE)));
       }
-      if (partyHasFrozen(team)) {
+      if (partyHasChainFrozen(team)) {
         log(`  Frost already grips the line — no new freeze locks on`);
         break;
       }
-      const frontSeats = ([1, 2] as const).filter((pos) => soldierAt(team, pos));
-      if (!frontSeats.length) {
-        log(`  No one in seats 1–2 to freeze`);
+      const frontLine = livingParty(team).sort(
+        (a, b) => (a.position ?? 99) - (b.position ?? 99),
+      );
+      // Prefer frontmost living; pool is the first two in line (for spread path)
+      const target = frontLine[0];
+      if (!target?.position) {
+        log(`  No one left to freeze`);
         break;
       }
-      // Chance nobody freezes — damage already landed
-      if (random() >= SPREADING_FROST_CHANCE) {
-        log(`  The ice fails to lock anyone solid`);
-        break;
-      }
-      const origin = frontSeats[Math.floor(random() * frontSeats.length)]!;
-      const target = soldierAt(team, origin);
-      if (!target) break;
+      const origin = target.position;
       applyFrozen(target, origin, 0);
       log(
-        `  ${target.name} (pos ${origin}) is FROZEN solid — cleanse or the ice spreads toward the center!`,
+        `  ${target.name} (pos ${origin}, front of the line) is FROZEN solid — land an A on a frozen hero to crack free, or the ice spreads and shatters!`,
       );
       break;
     }
     default: {
       log(`${boss.name} uses ${attackId}!`);
       for (const s of livingParty(team)) {
-        const hpLost = hit(s, dmg(8));
-        log(`  ${s.name} takes ${hpLost}`);
+        logHit(s, hit(s, dmg(8)));
       }
     }
   }

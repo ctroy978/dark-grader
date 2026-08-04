@@ -25,7 +25,10 @@ describe("bossPresentation", () => {
     expect(bossWindupTheme("RattleSpark")).toBe("shock");
     expect(bossWindupTheme("Grounded")).toBe("shock");
     expect(bossWindupTheme("SpreadingFrost")).toBe("frost");
+    expect(bossWindupTheme("NorthWind")).toBe("frost");
+    expect(bossWindupTheme("SouthWind")).toBe("frost");
     expect(bossThreatTier("SpreadingFrost")).toBe("heavy");
+    expect(bossThreatTier("NorthWind")).toBe("light");
   });
 
   it("gives longer wind-up to ultimate than light", () => {

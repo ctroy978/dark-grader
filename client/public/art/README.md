@@ -16,7 +16,7 @@ Served as: `/art/{key}/{pose}.png`
 | **Wind-up** | **`windup.png`** | **Boss telegraph only** — charge pose with telegraph SFX (not the strike) |
 | Acting | `attack.png` | Party casts, boss **impact** after wind-up |
 | Taking damage | `hit.png` | Getting hit |
-| **Frozen** | **`ice.png`** | **Party only** — while `Frozen` (Barrow Warden SpreadingFrost). Sticky until a Fire Mage burns it off (A front / B back). |
+| **Frozen** | **`ice.png`** | **Party only** — while `Frozen` (Barrow Warden SpreadingFrost). Sticky until an **A** on a frozen hero cracks all ice (or boss shatter). |
 | Fallen | `death.png` | Dead |
 
 **Boss art set (recommended):** `standing` + **`windup`** + `attack` + `hit`.  

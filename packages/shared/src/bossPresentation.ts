@@ -44,7 +44,7 @@ export function bossThreatTier(attackId: string): BossThreatTier {
     case "RattleSpark":
       return "light";
     default:
-      // FrontSlam, LineAttack, Light*, Regenerate, …
+      // FrontSlam, LineAttack, NorthWind, SouthWind, Light*, Regenerate, …
       return "light";
   }
 }
@@ -63,6 +63,8 @@ export function bossWindupTheme(attackId: string): BossWindupTheme {
     case "Grounded":
       return "shock";
     case "SpreadingFrost":
+    case "NorthWind":
+    case "SouthWind":
       return "frost";
     // FireCloud, Cascade, FrontSlam, LineAttack, CrushMagnet, Regenerate, …
     default:

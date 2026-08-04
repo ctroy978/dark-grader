@@ -188,23 +188,29 @@ Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / A
 | HP | **270** |
 | Theme | Frost / ice — dress rehearsal before Colossus |
 | Adds | **None in v1** (Grave Thrall + Dominated deferred — see §6–7) |
-| Attacks | `FrontSlam` (warden **15/11/7**), `LineAttack` (**9**), **`SpreadingFrost`** (w4), light `Regenerate` (w1) |
+| Attacks | **`NorthWind`** (12/9/5 + Chill 3/2/1 on 1–3), **`SouthWind`** (mirrored 6–5–4), **`SpreadingFrost`** (w3), light `Regenerate` (w1) |
 | Enrage | &lt;40% HP, **1.3×** |
 | Art key | `barrow_warden` |
 
-#### Signature — `SpreadingFrost` (line wave + optional front freeze → Shatter)
+See also **`docs/WARDEN_WINDS_PLAN.md`** (branch implementation).
 
-Separate status **`Frozen`** (not the token-downgrade Ice DoT). **Fire Mage only** burns it off (A front / B back) — not Healer, not Doomcaller.
+#### Winds — `NorthWind` / `SouthWind`
+
+Directional weather (not full-line nukes). Hit ladder **12/9/5**; apply **Chill** (tick 3, no demotion) with duration **4/3/2** from the cold face. Fire Mage A/B cleanses Chill. Re-apply **resets** duration.
+
+#### Signature — `SpreadingFrost` (small wave + always freeze → Shatter)
+
+Separate status **`Frozen`** (not Chill, not Ice DoT). **A on a frozen hero** cracks **all** chain ice. Fire Mage does **not** thaw Frozen.
 
 | Step | Rule |
 |------|------|
-| **Gate** | Do **not** *pick* if anyone is already `Frozen` (one chain at a time). If cast anyway, still does line damage. |
-| **Line damage** | Always hits the **whole living line** for **11** (enrage applies). This is the big part of the attack. |
-| **Freeze roll** | **65%** chance to freeze **pos 1 or pos 2** (pick among living front seats). **35%** nobody freezes — damage still landed. |
-| **While Frozen** | Cannot **attack** (token wasted). Cannot **be healed**. Each DoT phase: **3** cold chip, then spread or shatter. |
-| **Spread** | Each **DoT phase**: one seat toward center. Origin **1** → `1→2→3`; origin **2** → `2→3→4`. Skip dead seats. |
-| **Shatter** | After stage 2, next DoT phase: **18** on Frozen, **6** splash on others, clear Frozen. |
-| **Cleanse Frozen** | **FireMage only** (A front / B back). Healer and Doomcaller do **not** thaw. |
+| **Gate** | Do **not** *pick* if anyone is already chain-`Frozen` (one chain at a time). |
+| **Line damage** | **5** to whole living line (enrage applies). |
+| **Freeze** | **Always** freezes the **frontmost living** seat (line order, not fixed pos 1–2). |
+| **While Frozen** | Cannot **attack** (non-A waste). Cannot **be healed**. Each DoT phase: **3** cold chip, then spread or shatter. |
+| **Spread** | Each **DoT phase**: one seat toward center. Origin **1** → `1→2→3`; origin **2** → `2→3→4`. |
+| **Boss shatter** | After stage 2: **18** on Frozen, **6** splash, clear Frozen. |
+| **Party thaw** | Effective grade **A** on any chain-Frozen seat → crack all chain ice (FX: ice-break). |
 
 **Timeline example (freeze lands on pos 1):**
 

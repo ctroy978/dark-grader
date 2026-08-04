@@ -4,6 +4,7 @@ import {
   FROST_SHATTER_FROZEN_DAMAGE,
   FROST_SHATTER_SPLASH_DAMAGE,
   MAX_HOT_STREAMS_PER_SOLDIER,
+  MAX_PARTY_CHILL_STACKS,
   MAX_PARTY_FIRE_STACKS,
   MAX_PARTY_ICE_STACKS,
   MAX_PARTY_POISON_STACKS,
@@ -83,16 +84,16 @@ export function isSoftFrozen(soldier: Soldier): boolean {
 
 /**
  * Frost path from origin toward center (3 seats).
- * Warden freezes pos 1 or 2: 1→2→3, 2→3→4.
+ * Origin = frontmost living when cast (any seat). Front half walks back;
+ * back half walks forward.
+ * e.g. 1→2→3, 2→3→4, 3→4→5, 4→3→2, 5→4→3, 6→5→4.
  */
 export function frostChainPath(origin: number): readonly number[] {
-  if (origin === 1) return [1, 2, 3];
-  if (origin === 2) return [2, 3, 4];
-  if (origin === 6) return [6, 5, 4]; // legacy / future back-line freeze
-  if (origin === 5) return [5, 4, 3];
-  // Fallback: walk toward seat 3.5
-  const step = origin < 3.5 ? 1 : -1;
-  return [origin, origin + step, origin + 2 * step];
+  const o = Math.max(1, Math.min(6, Math.floor(origin)));
+  if (o <= 3) {
+    return [o, o + 1, o + 2].filter((p) => p >= 1 && p <= 6);
+  }
+  return [o, o - 1, o - 2].filter((p) => p >= 1 && p <= 6);
 }
 
 /**
@@ -122,6 +123,7 @@ export function tickFrozenChain(
         s,
         FROST_LOCKED_TICK_DAMAGE,
         team.partyShield,
+        { throughFrozen: true },
       );
       log(
         `  [Frost] ${s.name} freezes deeper: ${FROST_LOCKED_TICK_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -141,6 +143,7 @@ export function tickFrozenChain(
           s,
           FROST_SHATTER_FROZEN_DAMAGE,
           team.partyShield,
+          { throughFrozen: true },
         );
         log(
           `    ${s.name}: shatter ${FROST_SHATTER_FROZEN_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -150,6 +153,7 @@ export function tickFrozenChain(
           s,
           FROST_SHATTER_SPLASH_DAMAGE,
           team.partyShield,
+          { throughFrozen: true },
         );
         log(
           `    ${s.name}: ice shards ${FROST_SHATTER_SPLASH_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -176,7 +180,7 @@ export function tickFrozenChain(
   if (spreadTo) {
     applyFrozen(spreadTo, origin, nextStage);
     log(
-      `  [Frost] Ice spreads to ${spreadTo.name} (pos ${spreadTo.position}) — cleanse before it shatters!`,
+      `  [Frost] Ice spreads to ${spreadTo.name} (pos ${spreadTo.position}) — land an A on a frozen hero before it shatters!`,
     );
   } else {
     log(
@@ -198,8 +202,9 @@ export function tickFrozenChain(
  * Apply / stack a DoT on a party soldier.
  * @param fromBoss When true, DoT ramps in damage each tick (boss clouds / Fire minion on-hit).
  * Fire stacks capped at MAX_PARTY_FIRE_STACKS; Poison at MAX_PARTY_POISON_STACKS.
- * Ice / Slime never ramp; Ice stack cap 1; Slime never expires by duration.
- * Ice natural expiry → soft one-turn freeze (see tickDots).
+ * Ice / Slime / Chill never ramp; Ice/Chill stack cap 1; Slime never expires by duration.
+ * Ice natural expiry → soft one-turn freeze (see tickDots). Chill just ends.
+ * Chill re-apply **sets** duration (Warden seat ladder), not max-with-remaining.
  */
 export function applyDot(
   soldier: Soldier,
@@ -219,9 +224,12 @@ export function applyDot(
           ? Math.min(stacks, MAX_PARTY_SLIME_STACKS)
           : type === "Ice"
             ? Math.min(stacks, MAX_PARTY_ICE_STACKS)
-            : stacks;
-  // Slime + Ice are flat chip only — never boss-ramp intensity
-  const ramp = fromBoss && type !== "Slime" && type !== "Ice";
+            : type === "Chill"
+              ? Math.min(stacks, MAX_PARTY_CHILL_STACKS)
+              : stacks;
+  // Slime + Ice + Chill are flat chip only — never boss-ramp intensity
+  const ramp =
+    fromBoss && type !== "Slime" && type !== "Ice" && type !== "Chill";
   if (existing && existing.kind === "Dot") {
     if (type === "Fire") {
       existing.stacks = Math.min(
@@ -243,10 +251,17 @@ export function applyDot(
         MAX_PARTY_ICE_STACKS,
         existing.stacks + addStacks,
       );
+    } else if (type === "Chill") {
+      existing.stacks = Math.min(
+        MAX_PARTY_CHILL_STACKS,
+        existing.stacks + addStacks,
+      );
     } else {
       existing.stacks += addStacks;
     }
-    existing.duration = Math.max(existing.duration, duration);
+    // Chill: re-apply resets seat duration; others keep the longer remaining clock
+    existing.duration =
+      type === "Chill" ? duration : Math.max(existing.duration, duration);
     // Promote or keep ramping — intensity does not reset on re-apply
     if (ramp && existing.escalationStep == null) {
       existing.escalationStep = 1;
@@ -345,7 +360,7 @@ export function stripMarks(soldiers: Soldier[]): number {
   return removed;
 }
 
-/** FireMage only — burn off SpreadingFrost locks. */
+/** Clear Frozen on listed soldiers (any source). Returns count thawed. */
 export function thawFrozen(soldiers: Soldier[]): number {
   let thawed = 0;
   for (const s of soldiers) {
@@ -357,8 +372,26 @@ export function thawFrozen(soldiers: Soldier[]): number {
 }
 
 /**
- * Remove matching DoT types. Does **not** affect Frozen (FireMage thaw only)
+ * Party thaw for A-on-Frozen: clear **chain** Frozen on every living seat.
+ * Soft Ice-locks are left alone (they still clear on their own wasted claim).
+ * Returns soldier ids that lost chain Frozen (for focus / FX).
+ */
+export function crackAllChainFrozen(team: TeamState): string[] {
+  const cracked: string[] = [];
+  for (const s of livingParty(team)) {
+    if (!isChainFrozen(s)) continue;
+    s.statuses = s.statuses.filter(
+      (st) => !(st.kind === "Frozen" && !st.soft),
+    );
+    cracked.push(s.id);
+  }
+  return cracked;
+}
+
+/**
+ * Remove matching DoT types. Does **not** affect Frozen (A-break or soft skip)
  * or Marks (no dedicated strip class currently).
+ * **Frozen seats are skipped** — ice seals DoTs in; thaw first, then cleanse.
  */
 export function cleanseDots(
   soldiers: Soldier[],
@@ -366,6 +399,7 @@ export function cleanseDots(
 ): number {
   let removed = 0;
   for (const s of soldiers) {
+    if (isFrozen(s)) continue;
     const before = s.statuses.length;
     s.statuses = s.statuses.filter((st) => {
       if (st.kind === "Dot" && types.includes(st.type)) return false;
@@ -490,7 +524,9 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
       if (dot.kind !== "Dot") continue;
       const intensity = dotIntensity(dot);
       const perTick = DOT_STATS[dot.type].tick * dot.stacks * intensity;
-      const result = applyPartyDamage(soldier, perTick, team.partyShield);
+      const result = applyPartyDamage(soldier, perTick, team.partyShield, {
+        throughFrozen: true,
+      });
       const rampNote =
         dot.escalationStep != null ? ` · intensity ${intensity}` : "";
       const leftNote =
@@ -743,7 +779,9 @@ function distributePoison(
 
   for (const p of parts) {
     if (p.floor <= 0) continue;
-    const result = applyPartyDamage(p.soldier, p.floor, team.partyShield);
+    const result = applyPartyDamage(p.soldier, p.floor, team.partyShield, {
+      throughFrozen: true,
+    });
     log(`    ${p.soldier.name} (pos ${p.pos}): ${formatPartyHit(p.soldier, result)}`);
   }
 }

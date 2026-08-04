@@ -189,6 +189,13 @@ const CORE_CATALOG: AudioClipDef[] = [
     volume: 0.55,
   },
   {
+    id: "ice_break",
+    kind: "sfx",
+    text: "thick ice block cracking then shattering outward with crystalline shards and a bright cold whoosh, triumphant break-free, fantasy game, short, classroom safe, no voice",
+    durationSeconds: 1.1,
+    volume: 0.6,
+  },
+  {
     id: "dot_tick",
     kind: "sfx",
     text: "very subtle soft poison or fire status tick blip, quiet, short, no voice",

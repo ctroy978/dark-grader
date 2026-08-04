@@ -179,16 +179,16 @@ Uncovered seats take full damage even while cover is active.
 
 ---
 
-### FireMage — Wildfire AOE + boss Fire burn + Frozen thaw
+### FireMage — Wildfire AOE + boss Fire burn + cold weather cleanse
 
-**Job (as coded):** multi-target fire + short **Fire** burn on the boss. **Gap minions only from seat 1** (same gap rule as non-Archers; mid/back Wildfire hits boss only). **Only Fire Mage burns off Frozen** (SpreadingFrost). A/B also cleanse **Ice/Slime** on that half of the line. Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. **D/F** still punish the party (**C** does not).
+**Job (as coded):** multi-target fire + short **Fire** burn on the boss. **Gap minions only from seat 1** (same gap rule as non-Archers; mid/back Wildfire hits boss only). A/B cleanse **Chill / Ice / Slime** on that half of the line. **Does not** thaw chain **Frozen** — land an **A** on a frozen hero to crack all ice blocks (Warden). Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. **D/F** still punish the party (**C** does not).
 
 **AOE rules:** minions first when allowed, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots unused (no minions / not in seat 1 → single boss hit).
 
 | Grade | Targets | Direct each | Boss Fire | Also |
 |-------|---------|-------------|-----------|------|
-| **A** | ≤**3** | **9** | **1** stack, **2** rounds | **Front** (1–3): burn **Frozen** + cleanse **Ice/Slime** |
-| **B** | ≤**3** | **7** | **1** stack, **2** rounds | **Back** (4–6): burn **Frozen** + cleanse **Ice/Slime** |
+| **A** | ≤**3** | **9** | **1** stack, **2** rounds | **Front** (1–3): cleanse **Chill/Ice/Slime** |
+| **B** | ≤**3** | **7** | **1** stack, **2** rounds | **Back** (4–6): cleanse **Chill/Ice/Slime** |
 | **C** | ≤**2** | **6** | **1** stack, **2** rounds | No friendly fire |
 | **D** | **1** | **4** | — | **3** friendly fire to pos **1 and 2** (bypasses) |
 | **F** | — | — | — | No enemy hit; **3** damage to **entire** living party (bypasses) |
@@ -201,7 +201,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ### Healer — instant triage (no cleanse)
 
-**Job (as coded):** emergency HP ladder. Uncharged: **no** cleanse (Maiden is primary Fire/Poison; Fire Mage = Ice/Slime/Frozen). **Life Power** charge: **normal heal still applies**; Fire/Poison seats also **wash** (no purple bonus); clean seats get purple bonus. F heals the boss.
+**Job (as coded):** emergency HP ladder. Uncharged: **no** cleanse (Maiden is primary Fire/Poison; Fire Mage = Chill/Ice/Slime). **Life Power** charge: **normal heal still applies**; Fire/Poison seats also **wash** (no purple bonus); clean seats get purple bonus. F heals the boss.
 
 | Grade | Effect |
 |-------|--------|
@@ -304,7 +304,7 @@ Useful when weighing “who is just DPS?”
 | Archetype | A damage-ish | Notes |
 |-----------|--------------|--------|
 | Archer | **10** each ≤3 foes (12 vs minion) | Arrow Storm AOE |
-| FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + Frozen thaw (A front) |
+| FireMage | **9** each ≤3 foes + boss Fire 2r | Wildfire + Chill/Ice/Slime cleanse (A front) |
 | Thundercaller | 14 + stun/charge | Single target |
 | ShieldMaiden | 14 + cover + Fire/Poison cleanse | |
 | Necromancer | 12 + Life Power on support | |

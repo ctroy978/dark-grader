@@ -13,11 +13,12 @@ export type CombatPose =
 
 /**
  * Derive pose for a unit from the active presentation cue + live statuses.
- * Dead units always stay on death. Frozen sticks on ice.png until Fire Mage thaw.
+ * Dead units always stay on death. Frozen sticks on ice.png until A-break
+ * (or soft freeze clears) — including when focused by a heal/hymn cue.
  *
  * Rules (DD-style):
  * - Dead → death (sticky)
- * - Frozen → ice (sticky; overrides attack/hit while locked)
+ * - Frozen → ice (sticky; overrides attack/hit/heal calm while locked)
  * - Speaker / actor → attack (or claim = brief standing flex)
  * - Boss telegraph → windup (charge pose + telegraph SFX)
  * - Boss impact → attack
@@ -45,6 +46,8 @@ export function poseForUnit(
       return isSpeaker ? "standing" : "standing";
 
     case "action":
+      // A-break free — triumphant attack pose (status already cleared)
+      if (isSpeaker && fx.includes("ice-break")) return "attack";
       // Frozen skip (token waste) — ice pose, not a swing
       if (isSpeaker && fx.includes("party-frozen")) return "ice";
       // Party stun skip — reel, don't swing
@@ -158,6 +161,7 @@ export function poseForUnit(
 
     case "hurt":
     case "dot":
+      // Frost shatter (kind hurt + ice-break) and DoT ticks: focused seats flinch
       return inFocus || isSpeaker ? "hit" : "standing";
 
     case "death":
@@ -209,8 +213,13 @@ export function fxClassesForUnit(
       if (f === "fire-tint" || f === "fire-flash") return !isBoss ? "fx-fire-tint" : "";
       if (f === "ice-tint") return !isBoss ? "fx-ice-tint" : "";
       if (f === "slime-tint") return !isBoss ? "fx-slime-tint" : "";
+      if (f === "chill-tint") return !isBoss ? "fx-chill-tint" : "";
       if (f === "frost-flash" || f === "frost-shatter") {
         return !isBoss ? "fx-frost-flash" : "fx-frost-flash";
+      }
+      // A-on-Frozen party thaw — bright ice shatter (shards are a separate overlay)
+      if (f === "ice-break") {
+        return !isBoss ? "fx-ice-break" : "";
       }
       if (f === "shock-flash") return "fx-shock-flash";
       if (f === "hurt-flash" || f === "reflect-hit")

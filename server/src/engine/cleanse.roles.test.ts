@@ -205,7 +205,7 @@ describe("cleanse role split", () => {
     expect(v.currentHp).toBeGreaterThan(10);
   });
 
-  it("Fire Mage A front clears Ice/Slime and thaws Frozen; Healer does not thaw", () => {
+  it("Fire Mage A front clears Chill/Ice/Slime only when not Frozen", () => {
     const team = partyWith([
       { at: 1, archetype: "Vanguard" },
       { at: 2, archetype: "FireMage" },
@@ -216,6 +216,7 @@ describe("cleanse role split", () => {
     const mage = livingParty(team).find((s) => s.archetype === "FireMage")!;
     applyDot(front, "Ice", 1);
     applyDot(front, "Slime", 1);
+    applyDot(front, "Chill", 1, 3, true);
     front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
     mid.statuses.push({ kind: "Frozen", origin: 3, stage: 0 });
 
@@ -227,17 +228,38 @@ describe("cleanse role split", () => {
       () => {},
     );
 
-    expect(front.statuses.some((st) => st.kind === "Frozen")).toBe(false);
-    expect(mid.statuses.some((st) => st.kind === "Frozen")).toBe(false);
+    // Mage no longer melts Frozen; DoTs sealed under ice
+    expect(front.statuses.some((st) => st.kind === "Frozen")).toBe(true);
+    expect(mid.statuses.some((st) => st.kind === "Frozen")).toBe(true);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Ice"),
+    ).toBe(true);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Slime"),
+    ).toBe(true);
+    expect(
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
+    ).toBe(true);
+
+    // After A-break, Mage can cleanse
+    front.statuses = front.statuses.filter((st) => st.kind !== "Frozen");
+    mid.statuses = mid.statuses.filter((st) => st.kind !== "Frozen");
+    resolveSpecialistAction(
+      team,
+      mage,
+      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
     expect(
       front.statuses.some((st) => st.kind === "Dot" && st.type === "Ice"),
     ).toBe(false);
     expect(
-      front.statuses.some((st) => st.kind === "Dot" && st.type === "Slime"),
+      front.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
     ).toBe(false);
 
-    front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
     applyDot(front, "Fire", 1, undefined, true);
+    front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
     const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
     resolveSpecialistAction(
       team,

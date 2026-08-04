@@ -64,7 +64,17 @@ export const ATTACK_SCOUT: Record<string, AttackScoutInfo> = {
   SpreadingFrost: {
     name: "Spreading Frost",
     description:
-      "A hard frost wave across the whole line. May also freeze seat 1 or 2 — frozen soldiers cannot attack or be healed; the ice spreads toward the center and shatters if not burned off. Only a Fire Mage can clear Frozen (A = front, B = back). Seat Fire mid/back so they can still act. Only one freeze chain at a time.",
+      "A light frost wave (small damage to everyone) that always freezes the frontmost living hero (whoever leads the line now — not only seats 1–2). Frozen heroes cannot attack or be healed; boss hits glance off the ice; existing DoTs keep ticking but cannot be cleansed until free. The ice walks toward the center and shatters hard if ignored. Crack free: land an A on a frozen hero to break all ice blocks. Fire Mage cleanses Chill only after thaw. Only one freeze chain at a time.",
+  },
+  NorthWind: {
+    name: "North Wind",
+    description:
+      "Icy wind into the front of the line (hardest on seat 1). Applies Chill — a cold DoT that lasts longest on the front. Fire Mage can warm Chill off; it does not lock or demote tokens.",
+  },
+  SouthWind: {
+    name: "South Wind",
+    description:
+      "Icy wind into the back of the line (hardest on seat 6). Applies Chill on the rear seats. Same weather as North Wind, mirrored.",
   },
   Regenerate: {
     name: "Regenerate",

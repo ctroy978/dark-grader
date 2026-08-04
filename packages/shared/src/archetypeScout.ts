@@ -24,7 +24,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   ShieldMaiden:
     "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back, D self). F dumps cover.",
   FireMage:
-    "Hits several enemies with fire and can burn the boss. Gap minions only from seat 1 (like other non-Archers). Only class that burns off Frozen (A = front, B = back); those grades also clear Ice and Slime. D/F can hurt allies.",
+    "Hits several enemies with fire and can burn the boss. Gap minions only from seat 1 (like other non-Archers). A/B cleanse Chill, Ice, and Slime on half the line. Cannot melt hard Frozen — that needs an A on a frozen hero. D/F can hurt allies.",
   Healer:
     "Instant triage heals (A all, B two lowest, C one, D tiny all). F heals the boss. Back seat only. Uncharged: no cleanse (Maiden primary). With Necromancer Life Power: normal heal still applies; Fire/Poison seats also wash (no purple); clean seats get purple bonus.",
   Archer:
