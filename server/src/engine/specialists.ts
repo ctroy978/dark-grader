@@ -66,13 +66,15 @@ export function endPartyActionPhase(): void {
 
 /**
  * After Healer/Runesinger base action: purple rain cue.
- * Clean seats get bonus HP; cleansed seats get purple FX only (no heal).
+ * Base heal/HoT always applies first. Purple rain then:
+ * - clean seats → bonus HP
+ * - dirty seats (Fire/Poison washed) → purple FX only (no extra HP)
  */
 export type LifePowerFollowUp = {
   bonus: number;
-  /** Seats that received base heal/HoT — purple rain also adds bonus HP */
+  /** Clean seats — purple rain adds bonus HP (base heal/HoT already applied) */
   healTargetIds: string[];
-  /** Seats that got Fire/Poison strip instead of heal — purple FX, 0 HP */
+  /** Dirty seats washed of Fire/Poison — purple FX only, no purple bonus HP */
   cleanseTargetIds: string[];
   /** Support soldier id (Healer/Runesinger) — Life Power is stripped after pulse */
   supportId: string;
@@ -445,8 +447,8 @@ function fireMage(
 /**
  * Healer — instant triage (A all / B two lowest / C one / D tiny all / F boss).
  * Uncharged: heal only (Maiden is primary Fire/Poison strip).
- * Life Power charge: per target — if Fire/Poison, strip and **no heal**; else heal.
- * Purple rain follow-up: bonus HP on healed seats; FX on cleansed seats too.
+ * Life Power charge: base heal still applies to every target; dirty seats also
+ * wash Fire/Poison. Purple rain: bonus HP on clean seats only; wash FX on dirty.
  */
 function healer(
   soldier: Soldier,
@@ -476,19 +478,21 @@ function healer(
   const charged = soldier.statuses.some((st) => st.kind === "LifePower");
   let total = 0;
   let stripCount = 0;
+  /** Clean seats → purple bonus HP */
   const healIds: string[] = [];
+  /** Dirty seats washed → purple FX only */
   const cleanseIds: string[] = [];
 
   for (const t of targets) {
-    if (charged && hasFireOrPoison(t)) {
-      const n = cleanseDots([t], LIFE_POWER_CLEANSE);
-      stripCount += n;
+    const dirty = charged && hasFireOrPoison(t);
+    if (dirty) {
+      stripCount += cleanseDots([t], LIFE_POWER_CLEANSE);
       cleanseIds.push(t.id);
-      continue;
     }
+    // Base triage heal always lands — Life Power never cancels it.
     const got = healSoldier(t, amount);
     total += got;
-    if (t.alive) healIds.push(t.id);
+    if (t.alive && !dirty) healIds.push(t.id);
   }
 
   const who =
@@ -497,14 +501,11 @@ function healer(
       : g === "B"
         ? targets.map((t) => t.name).join(" + ") || "nobody"
         : targets[0]?.name ?? "nobody";
-  if (charged && cleanseIds.length) {
-    log(
-      `${label}: Life Power wash on ${who} — heals +${amount} (${total} HP)` +
-        `${stripCount ? `; strips Fire/Poison (${stripCount}, no heal on those seats)` : ""}`,
-    );
-  } else {
-    log(`${label}: heals ${who} +${amount} each (${total} total HP)`);
-  }
+  const wash =
+    stripCount > 0
+      ? `; Life Power wash Fire/Poison (${stripCount}, no purple bonus on those)`
+      : "";
+  log(`${label}: heals ${who} +${amount} each (${total} total HP)${wash}`);
   return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
 }
 
@@ -646,7 +647,7 @@ function necromancer(
     support.statuses.push({ kind: "LifePower", bonus });
     focus.push(support.id);
     log(
-      `${label}: drain ${r}; Life Power +${bonus} on ${support.name} (${support.archetype}) — next heal washes Fire/Poison (no HP) or mends clean seats`,
+      `${label}: drain ${r}; Life Power +${bonus} on ${support.name} (${support.archetype}) — next heal/hymn: normal mend still applies; dirty seats also wash Fire/Poison (no purple); clean seats get purple +${bonus}`,
     );
   } else {
     log(`${label}: drain ${r}; no Healer/Runesinger to empower`);
@@ -829,27 +830,31 @@ function runesinger(
   const charged = soldier.statuses.some((st) => st.kind === "LifePower");
 
   /**
-   * Life Power: dirty seats get Fire/Poison strip (no HoT); clean seats get hymn.
-   * Returns heal ids (HoT applied) and cleanse ids for purple rain.
+   * Life Power: base hymn HoT always applies; dirty seats also wash Fire/Poison.
+   * Purple rain: bonus on clean seats only; wash FX on dirty.
+   * Returns purple-bonus ids and cleanse ids (not "who got HoT").
    */
   const applyHymnHot = (
     targets: Soldier[],
     perTick: number,
-  ): { healIds: string[]; cleanseIds: string[]; stripCount: number } => {
+  ): { healIds: string[]; cleanseIds: string[]; stripCount: number; hotCount: number } => {
     const healIds: string[] = [];
     const cleanseIds: string[] = [];
     let stripCount = 0;
+    let hotCount = 0;
     for (const t of targets) {
       if (!t.alive) continue;
-      if (charged && hasFireOrPoison(t)) {
+      const dirty = charged && hasFireOrPoison(t);
+      if (dirty) {
         stripCount += cleanseDots([t], LIFE_POWER_CLEANSE);
         cleanseIds.push(t.id);
-        continue;
       }
+      // Base hymn always lands — Life Power never cancels it.
       applyHot(t, perTick, RUNESINGER_HOT_TICKS, "Runesinger");
-      healIds.push(t.id);
+      hotCount += 1;
+      if (!dirty) healIds.push(t.id);
     }
-    return { healIds, cleanseIds, stripCount };
+    return { healIds, cleanseIds, stripCount, hotCount };
   };
 
   if (g === "A") {
@@ -857,16 +862,16 @@ function runesinger(
       c.effectiveGrade = upgradeGrade(c.effectiveGrade, 2);
     }
     const targets = livingParty(team);
-    const { healIds, cleanseIds, stripCount } = applyHymnHot(
+    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
       targets,
       RUNESINGER_HOT_PER_TICK.A,
     );
     const wash =
       stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no hymn on those)`
+        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
         : "";
     log(
-      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${healIds.length})${wash}`,
+      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
     );
     return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
   }
@@ -878,16 +883,16 @@ function runesinger(
     const targets = livingParty(team).filter(
       (x) => x.position != null && x.position <= 3,
     );
-    const { healIds, cleanseIds, stripCount } = applyHymnHot(
+    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
       targets,
       RUNESINGER_HOT_PER_TICK.B,
     );
     const wash =
       stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no hymn on those)`
+        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
         : "";
     log(
-      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${healIds.length})${wash}`,
+      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
     );
     return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
   }
@@ -918,16 +923,16 @@ function runesinger(
         const targets = livingParty(team).filter(
           (x) => x.position != null && x.position >= 4,
         );
-        const { healIds, cleanseIds, stripCount } = applyHymnHot(
+        const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
           targets,
           RUNESINGER_HOT_PER_TICK.C,
         );
         const wash =
           stripCount > 0
-            ? `; Life Power wash Fire/Poison (${stripCount}, no hymn on those)`
+            ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
             : "";
         log(
-          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${healIds.length})${wash}`,
+          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
         );
         return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
       }
@@ -935,16 +940,16 @@ function runesinger(
     const targets = livingParty(team).filter(
       (x) => x.position != null && x.position >= 4,
     );
-    const { healIds, cleanseIds, stripCount } = applyHymnHot(
+    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
       targets,
       RUNESINGER_HOT_PER_TICK.C,
     );
     const wash =
       stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no hymn on those)`
+        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
         : "";
     log(
-      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${healIds.length})${wash}`,
+      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
     );
     return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
   }
@@ -956,7 +961,7 @@ function runesinger(
     );
     const wash =
       stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no self hymn)`
+        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on self)`
         : "";
     log(
       `${label}: soft hymn — self HoT +${RUNESINGER_HOT_PER_TICK.D}×${RUNESINGER_HOT_TICKS} (no rewrite)${wash}`,

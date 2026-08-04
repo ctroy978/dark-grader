@@ -495,7 +495,10 @@ export function resolveBossPhase(
 
   const rage = enrageMult(team, template);
   if (rage > 1) {
-    log(`${boss.name} is enraged! (below 40% HP — attacks hit harder)`);
+    const pctLabel = Math.round((template?.enrageHpPct ?? 0.4) * 100);
+    log(
+      `${boss.name} is enraged! (below ${pctLabel}% HP — attacks hit harder)`,
+    );
   }
 
   // Boss stun: boss and minions both skip (stun should feel like a full turn of safety)

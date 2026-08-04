@@ -201,7 +201,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ### Healer — instant triage (no cleanse)
 
-**Job (as coded):** emergency HP ladder. Uncharged: **no** cleanse (Maiden is primary Fire/Poison; Fire Mage = Ice/Slime/Frozen). **Life Power** charge: seats with Fire/Poison are **washed (no HP)**; clean seats heal + purple bonus. F heals the boss.
+**Job (as coded):** emergency HP ladder. Uncharged: **no** cleanse (Maiden is primary Fire/Poison; Fire Mage = Ice/Slime/Frozen). **Life Power** charge: **normal heal still applies**; Fire/Poison seats also **wash** (no purple bonus); clean seats get purple bonus. F heals the boss.
 
 | Grade | Effect |
 |-------|--------|
@@ -249,7 +249,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ### Necromancer — drain + Life Power (cleanse charge)
 
-**Job (as coded):** modest boss drain; **A–C** grant **Life Power** to the living **Healer or Runesinger**. On their **next** heal/hymn: seats with **Fire/Poison** get **stripped (no HP/HoT)**; clean seats get normal heal/HoT + purple **+N**. Purple rain FX on both. **Maiden remains primary one-token cleanse.** No stacking; until used. **No direct ally heal.**
+**Job (as coded):** modest boss drain; **A–C** grant **Life Power** to the living **Healer or Runesinger**. On their **next** heal/hymn: **normal mend still applies**; seats with **Fire/Poison** also **wash** (no purple bonus); clean seats get purple **+N**. Purple rain FX on both. **Maiden remains primary one-token cleanse.** No stacking; until used. **No direct ally heal.**
 
 | Grade | Effect |
 |-------|--------|

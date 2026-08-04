@@ -29,7 +29,7 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Explodes on the whole party (ignores shield)",
   },
   Healer: {
-    A: "Heal all living +14 each (no cleanse — Maiden strips Fire/Poison)",
+    A: "Heal all living +14 each",
     B: "Heal the two lowest-HP allies +14 each",
     C: "Heal the single lowest-HP ally +18",
     D: "Tiny full-party heal +3 each",
@@ -50,9 +50,9 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {
-    A: "Drain 12; Life Power +6 on Healer/Runesinger — their next heal washes Fire/Poison (no HP) or mends + purple",
-    B: "Drain 9; Life Power +4 on Healer/Runesinger (wash or mend)",
-    C: "Drain 6; Life Power +2 on Healer/Runesinger (wash or mend)",
+    A: "Drain 12; Life Power +6 on Healer/Runesinger — next heal/hymn still mends; dirty seats also wash (no purple); clean get purple",
+    B: "Drain 9; Life Power +4 on Healer/Runesinger (mend + wash or purple)",
+    C: "Drain 6; Life Power +2 on Healer/Runesinger (mend + wash or purple)",
     D: "Weak drain, self-damage (no Life Power)",
     F: "Backlash — hits highest-HP ally for 10",
   },

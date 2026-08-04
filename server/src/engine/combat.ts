@@ -534,7 +534,9 @@ export function commitRound(team: TeamState): TeamState {
             );
           }
           if (cleanseTargetIds.length) {
-            parts.push(`wash glow on ${cleanseTargetIds.length} (no HP)`);
+            parts.push(
+              `wash glow on ${cleanseTargetIds.length} (no purple bonus)`,
+            );
           }
           pushLog(
             team,

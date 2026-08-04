@@ -112,5 +112,7 @@ export function instantiateBoss(templateId: string): BossState {
     outgoingBuffRoundsLeft: 0,
     stunRoundsLeft: 0,
     nextAttackBonus: 0,
+    enrageHpPct: t.enrageHpPct,
+    enrageDamageMult: t.enrageDamageMult,
   };
 }

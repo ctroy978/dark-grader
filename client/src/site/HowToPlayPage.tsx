@@ -174,16 +174,17 @@ export default function HowToPlayPage() {
             <li>
               <strong className="text-parchment">Healer</strong> — instant triage
               (A all, B two lowest, C one, D tiny all). Uncharged: no cleanse.
-              With Necro Life Power: Fire/Poison seats wash (no HP).{" "}
+              With Necro Life Power: normal heal still applies; Fire/Poison seats
+              also wash (no purple bonus).{" "}
               <strong className="text-parchment">Back seat only</strong> — same
               slot as Runesinger (pick one support, not both).
             </li>
             <li>
               <strong className="text-parchment">Necromancer</strong> — drains
               the boss and grants <strong className="text-parchment">Life Power</strong>{" "}
-              to the Healer or Runesinger. Their next heal: Fire/Poison seats{" "}
-              <em>wash</em> (no HP); clean seats mend + purple. Maiden is still
-              the primary one-token cleanse.
+              to the Healer or Runesinger. Their next heal/hymn still mends;
+              Fire/Poison seats also <em>wash</em> (no purple); clean seats get
+              purple bonus. Maiden is still the primary one-token cleanse.
             </li>
             <li>
               <strong className="text-parchment">Vanguard / Spearman A–B</strong>{" "}
@@ -212,8 +213,8 @@ export default function HowToPlayPage() {
             <li>
               Healer and Runesinger share the back seat — only one of them on the
               line. Healer = instant triage heals; Runesinger = grade rewrite +
-              slow gold hymn HoT. Necromancer Life Power can wash or mend through
-              either.
+              slow gold hymn HoT. Necromancer Life Power adds wash/purple on top of
+              either’s normal mend.
             </li>
             <li>Ice, Slime, and Frozen → Fire Mage. Match the color on the portrait.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>

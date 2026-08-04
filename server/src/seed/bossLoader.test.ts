@@ -110,8 +110,8 @@ describe("boss TOML loader", () => {
       expect.arrayContaining(["Cascade", "PoisonCloud", "CrushMagnet"]),
     );
     expect(ash!.attacks.every((a) => a.name && a.description)).toBe(true);
-    expect(ash!.enrageBelowHpPct).toBe(0.4);
-    expect(ash!.enrageNote).toMatch(/Enrages below 40%/);
+    expect(ash!.enrageBelowHpPct).toBe(0.25);
+    expect(ash!.enrageNote).toMatch(/Enrages below 25%/);
 
     const herald = buildBossScout("cinder_herald");
     expect(herald!.minions).toHaveLength(1);

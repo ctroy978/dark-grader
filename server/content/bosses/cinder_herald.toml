@@ -8,7 +8,7 @@ traits = ["Fire", "Herald", "Summoner"]
 difficulty = "Standard"
 summary = "Summons Cinder Imps that leave Fire on hit. Fire Cloud burns the line; slam and line pressure — no cascade or poison."
 recommended_rounds = "8–12"
-enrage_hp_pct = 0.25
+enrage_hp_pct = 0.30
 enrage_damage_mult = 1.2
 
 grunt_pool = ["boss_herald_hiss_1", "boss_herald_hiss_2"]

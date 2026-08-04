@@ -53,10 +53,12 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
   if (st.kind === "Stun") {
     return {
       key: `stun-${index}`,
-      icon: "💫",
-      label: `Stun ${st.duration}`,
-      title: `Stunned — may lose their next attack`,
-      colorClass: "text-yellow-200 border-yellow-400/40 bg-yellow-950/40",
+      icon: "⚡",
+      label: "STUNNED",
+      title:
+        "Stunned — next token claim is wasted (attack skipped), then stun clears. Sitting out a round does not clear it.",
+      colorClass:
+        "text-yellow-100 border-yellow-300/70 bg-yellow-950/60 font-semibold",
     };
   }
   if (st.kind === "Dazed") {
@@ -125,7 +127,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `life-power-${index}`,
       icon: "💜",
       label: `Life +${st.bonus}`,
-      title: `Life Power — next Healer/Runesinger action: seats with Fire/Poison are cleansed (no heal); clean seats heal and get +${st.bonus} purple. Maiden remains primary strip. No stack; until used (Necromancer).`,
+      title: `Life Power — next Healer/Runesinger action still heals/hymns normally. Fire/Poison seats also wash (no purple bonus); clean seats get +${st.bonus} purple. Maiden remains primary strip. No stack; until used (Necromancer).`,
       colorClass: "text-fuchsia-200 border-fuchsia-400/50 bg-fuchsia-950/40",
     };
   }
@@ -166,6 +168,8 @@ export function bossIndicators(boss: {
   outgoingBuffRoundsLeft?: number;
   stunRoundsLeft?: number;
   nextAttackBonus?: number;
+  enrageHpPct?: number;
+  enrageDamageMult?: number;
 }): BossIndicator[] {
   const out: BossIndicator[] = [];
   for (const st of boss.statuses ?? []) {
@@ -181,14 +185,23 @@ export function bossIndicators(boss: {
       });
     }
   }
-  if (boss.maxHp > 0 && boss.currentHp / boss.maxHp <= 0.4) {
-    out.push({
-      key: "enrage",
-      icon: "💢",
-      label: "Enraged",
-      title: "Below 40% HP — attacks hit harder",
-      colorClass: "text-grade-f border-grade-f/50 bg-crimson/40",
-    });
+  {
+    const enragePct = boss.enrageHpPct ?? 0.4;
+    const enrageMult = boss.enrageDamageMult ?? 1.3;
+    if (
+      enrageMult > 1.001 &&
+      boss.maxHp > 0 &&
+      boss.currentHp / boss.maxHp <= enragePct
+    ) {
+      const pctLabel = Math.round(enragePct * 100);
+      out.push({
+        key: "enrage",
+        icon: "💢",
+        label: "Enraged",
+        title: `Below ${pctLabel}% HP — attacks hit harder`,
+        colorClass: "text-grade-f border-grade-f/50 bg-crimson/40",
+      });
+    }
   }
   if ((boss.curseRoundsLeft ?? 0) > 0 && (boss.curseDamageTakenMult ?? 1) > 1) {
     const pct = Math.round(((boss.curseDamageTakenMult ?? 1) - 1) * 100);
@@ -212,10 +225,11 @@ export function bossIndicators(boss: {
   if ((boss.stunRoundsLeft ?? 0) > 0) {
     out.push({
       key: "stun",
-      icon: "💫",
-      label: "Stunned",
-      title: "May skip its next attack",
-      colorClass: "text-yellow-200 border-yellow-400/40 bg-yellow-950/40",
+      icon: "⚡",
+      label: "STUNNED",
+      title: `Stunned — skips boss + minion attacks · ${boss.stunRoundsLeft} round(s)`,
+      colorClass:
+        "text-sky-100 border-sky-300/70 bg-sky-950/60 font-semibold",
     });
   }
   if ((boss.nextAttackBonus ?? 0) > 0) {

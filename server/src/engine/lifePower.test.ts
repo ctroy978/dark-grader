@@ -116,7 +116,7 @@ describe("Necromancer Life Power", () => {
     });
   });
 
-  it("charged Healer: clean seats heal; dirty seats cleanse with no HP", () => {
+  it("charged Healer: base heal on all; dirty seats also wash; purple only on clean", () => {
     const team = supportParty(true);
     const healer = livingParty(team).find((s) => s.archetype === "Healer")!;
     healer.statuses.push({ kind: "LifePower", bonus: 6 });
@@ -142,19 +142,19 @@ describe("Necromancer Life Power", () => {
     );
 
     for (const s of livingParty(team)) {
+      // Base triage heal always applies — Life Power does not cancel it.
+      expect(s.currentHp).toBe(10 + HEALER_HEAL.A);
       if (dirtyIds.has(s.id)) {
-        expect(s.currentHp).toBe(10); // no heal
         expect(
           s.statuses.some(
             (st) =>
               st.kind === "Dot" && (st.type === "Poison" || st.type === "Fire"),
           ),
         ).toBe(false);
-      } else {
-        expect(s.currentHp).toBe(10 + HEALER_HEAL.A);
       }
     }
 
+    // Purple bonus seats = clean only; washed seats get FX only.
     expect(result.lifePowerFollowUp?.healTargetIds.sort()).toEqual(
       clean.map((s) => s.id).sort(),
     );
@@ -231,7 +231,7 @@ describe("Necromancer Life Power", () => {
     }
   });
 
-  it("charged Runesinger washes poison instead of applying HoT", () => {
+  it("charged Runesinger: hymn HoT still applies; dirty seats also wash; purple only on clean", () => {
     const team = supportParty(false);
     const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
     rs.statuses.push({ kind: "LifePower", bonus: 4 });
@@ -261,11 +261,13 @@ describe("Necromancer Life Power", () => {
       expect(
         s.statuses.some((st) => st.kind === "Dot" && st.type === "Poison"),
       ).toBe(false);
-      expect(s.statuses.some((st) => st.kind === "Hot")).toBe(false);
+      // Base hymn always lands — Life Power does not cancel it.
+      expect(s.statuses.some((st) => st.kind === "Hot")).toBe(true);
     }
     expect(result.lifePowerFollowUp?.cleanseTargetIds.length).toBe(
       front.length,
     );
+    // All front were dirty → no purple bonus seats.
     expect(result.lifePowerFollowUp?.healTargetIds.length).toBe(0);
   });
 });

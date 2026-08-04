@@ -45,6 +45,51 @@ function hasIceDot(statuses?: StatusTag[]): boolean {
   return !!statuses?.some((st) => st.kind === "Dot" && st.type === "Ice");
 }
 
+/** Party Stun status (Rattle arc / Thundercaller F) — not boss stunRoundsLeft. */
+function hasStunStatus(statuses?: StatusTag[]): boolean {
+  return !!statuses?.some(
+    (st) => st.kind === "Stun" && st.duration > 0,
+  );
+}
+
+/**
+ * Persistent electrified card border while stunned.
+ * Yellow for party (Rattle shock); cyan for boss (Thundercaller hold).
+ * Readable at classroom distance — not only the under-card chip.
+ */
+function StunArcFx({ variant }: { variant: "party" | "boss" }) {
+  const boltCount = 6;
+  return (
+    <div
+      className={`stun-arc-fx stun-arc-fx--${variant}`}
+      aria-hidden
+    >
+      <div className="stun-arc-border" />
+      <div className="stun-arc-trace" />
+      <div className="stun-arc-rim stun-arc-rim--t" />
+      <div className="stun-arc-rim stun-arc-rim--b" />
+      <div className="stun-arc-rim stun-arc-rim--l" />
+      <div className="stun-arc-rim stun-arc-rim--r" />
+      <div className="stun-arc-bolts">
+        {Array.from({ length: boltCount }, (_, i) => (
+          <span
+            key={i}
+            className="stun-arc-bolt"
+            style={
+              {
+                "--bolt-i": i,
+                "--bolt-n": boltCount,
+                "--bolt-delay": `${(i % 6) * 0.18}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+      <div className="stun-arc-badge">STUN</div>
+    </div>
+  );
+}
+
 /**
  * Ice DoT: light frost-on-a-window overlay (not the full Frozen lock).
  * Soft crystals + rim frost; readable without covering the portrait.
@@ -584,6 +629,8 @@ export function CombatActor({
   maxHp,
   block,
   statuses,
+  /** Boss uses stunRoundsLeft (not party Stun status). */
+  stunned: stunnedProp,
   claimGrade,
   size = "md",
   showName = true,
@@ -605,6 +652,10 @@ export function CombatActor({
   maxHp: number;
   block?: number;
   statuses?: StatusTag[];
+  /**
+   * Explicit stun (boss stunRoundsLeft). Party stun also inferred from statuses.
+   */
+  stunned?: boolean;
   claimGrade?: Grade;
   size?: "sm" | "md" | "lg";
   showName?: boolean;
@@ -657,7 +708,15 @@ export function CombatActor({
       .filter((c) => c && c !== "fx-necro-blast" && c !== "fx-attack-flash")
       .join(" ");
   }
-  const fx = [cueFx, ...dotTintClasses(statuses)].filter(Boolean).join(" ");
+  const isStunned = !!stunnedProp || hasStunStatus(statuses);
+  const stunTint = isStunned
+    ? isBoss
+      ? "fx-stun-tint fx-stun-tint--boss"
+      : "fx-stun-tint fx-stun-tint--party"
+    : "";
+  const fx = [cueFx, ...dotTintClasses(statuses), stunTint]
+    .filter(Boolean)
+    .join(" ");
   const threat = threatTierFromCue(cue) ?? "light";
   const windupTheme = windupThemeFromCue(cue);
   const showBossWindup =
@@ -760,6 +819,8 @@ export function CombatActor({
   const showIceFrost =
     hasIceDot(statuses) &&
     !statuses?.some((st) => st.kind === "Frozen");
+  // Persistent electric border while stunned (party status or boss rounds left)
+  const showStunArc = isStunned && alive;
   // Boss: taller portrait box (was a short wide strip → only scalp with object-cover).
   // Party/minion: fixed height cards.
   const frameClass = isBoss
@@ -837,6 +898,9 @@ export function CombatActor({
           {/* After portrait so overlays sit on top of art (not under the PNG). */}
           {showIceFrost && <IceWindowFrostFx />}
           {showSlimeDrip && <SlimeDripFx />}
+          {showStunArc && (
+            <StunArcFx variant={isBoss ? "boss" : "party"} />
+          )}
         </div>
         <DamageFloatStack
           floats={hpFloats}

@@ -205,11 +205,18 @@ function PartySeatEffects({
     if (st.kind === "Dot") {
       text = `${st.type} ×${st.stacks}`;
     }
+    // Full word under the card — "Stun 1" was easy to miss mid-fight
+    if (st.kind === "Stun") {
+      text = "STUNNED";
+    }
     chips.push({
       key: c.key,
       text,
       title: c.title,
-      className: c.colorClass,
+      className:
+        st.kind === "Stun"
+          ? `${c.colorClass} font-extrabold tracking-wide ring-1 ring-yellow-300/50`
+          : c.colorClass,
     });
   }
   if (!chips.length) {
@@ -1273,6 +1280,13 @@ export default function CombatScreen({
                   className={`relative flex-1 min-w-0 overflow-visible rounded-lg border bg-navy-light/70 p-0.5 md:p-1 text-center transition ${
                     covered ? "unit-shield-ward" : ""
                   } ${
+                    s.alive &&
+                    s.statuses?.some(
+                      (st) => st.kind === "Stun" && st.duration > 0,
+                    )
+                      ? "seat-stunned"
+                      : ""
+                  } ${
                     !s.alive
                       ? "opacity-40 border-parchment/10 cursor-not-allowed"
                       : focused || isSpeaker
@@ -1495,12 +1509,14 @@ export default function CombatScreen({
           {view.boss ? (
             <div
               className={`relative w-full max-w-[14rem] md:max-w-[16rem] rounded-xl border p-2 text-center transition ${
-                focusSet.has("boss") ||
-                activeBeat?.kind === "boss" ||
-                activeBeat?.kind === "telegraph" ||
-                team.phase === "boss_telegraph"
-                  ? "border-grade-f ring-2 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light unit-focus-hostile"
-                  : "border-crimson/40 bg-gradient-to-b from-crimson/20 to-navy-light"
+                (view.boss.stunRoundsLeft ?? 0) > 0
+                  ? "boss-card-stunned bg-gradient-to-b from-sky-900/40 to-navy-light"
+                  : focusSet.has("boss") ||
+                      activeBeat?.kind === "boss" ||
+                      activeBeat?.kind === "telegraph" ||
+                      team.phase === "boss_telegraph"
+                    ? "border-grade-f ring-2 ring-crimson/50 bg-gradient-to-b from-crimson/50 to-navy-light unit-focus-hostile"
+                    : "border-crimson/40 bg-gradient-to-b from-crimson/20 to-navy-light"
               }`}
             >
               <CombatActor
@@ -1515,14 +1531,18 @@ export default function CombatScreen({
                 alive={view.boss.currentHp > 0}
                 currentHp={view.boss.currentHp}
                 maxHp={view.boss.maxHp}
+                statuses={view.boss.statuses}
+                stunned={(view.boss.stunRoundsLeft ?? 0) > 0}
                 size="lg"
                 subtitle={
-                  activeBeat?.kind === "boss"
-                    ? "Attacking!"
-                    : team.phase === "boss_telegraph" ||
-                        activeBeat?.kind === "telegraph"
-                      ? "Winding up…"
-                      : undefined
+                  (view.boss.stunRoundsLeft ?? 0) > 0
+                    ? "Stunned!"
+                    : activeBeat?.kind === "boss"
+                      ? "Attacking!"
+                      : team.phase === "boss_telegraph" ||
+                          activeBeat?.kind === "telegraph"
+                        ? "Winding up…"
+                        : undefined
                 }
                 hpFloats={hpFloats.boss}
               />

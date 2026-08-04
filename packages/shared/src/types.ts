@@ -231,6 +231,13 @@ export interface BossState {
   stunRoundsLeft: number;
   /** Next attack bonus damage (Runesinger F default) */
   nextAttackBonus: number;
+  /**
+   * Enrage when currentHp/maxHp ≤ this fraction (from boss TOML).
+   * Optional for older saves — UI falls back to 0.4 when missing.
+   */
+  enrageHpPct?: number;
+  /** Outgoing damage mult while enraged; ≤1 means no meaningful enrage */
+  enrageDamageMult?: number;
 }
 
 export type FightPhase =
