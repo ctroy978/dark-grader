@@ -35,7 +35,7 @@ describe("boss TOML loader", () => {
       "barrow_warden",
     ]);
     expect(colossus!.memories.map((memory) => memory.maxHp)).toEqual([
-      14, 18, 22, 26, 30,
+      18, 22, 26, 30, 34,
     ]);
   });
 
@@ -53,7 +53,7 @@ describe("boss TOML loader", () => {
     expect(mites?.summon).toMatchObject({
       minionId: "moss_mite",
       minionName: "Moss Mite",
-      maxHp: 7,
+      maxHp: 9,
       damage: 3,
       maxCount: 2,
       freeVolley: false,
@@ -86,7 +86,7 @@ describe("boss TOML loader", () => {
     expect(imps?.summon).toMatchObject({
       minionId: "cinder_imp",
       minionName: "Cinder Imp",
-      maxHp: 11,
+      maxHp: 14,
       damage: 3,
       maxCount: 2,
       freeVolley: false,
@@ -134,6 +134,9 @@ describe("boss TOML loader", () => {
     const grub = buildBossScout("moss_grub");
     expect(grub!.enrageBelowHpPct).toBeNull();
     expect(grub!.minions[0]?.name).toBe("Moss Mite");
+
+    const rattle = getBossTemplate("rattle_captain");
+    const ohms = rattle!.attacks.find((attack) => attack.id === "SummonOhms");
+    expect(ohms?.summon?.maxHp).toBe(9);
   });
 });
-

@@ -4,13 +4,13 @@
 
 id = "barrow_warden"
 name = "Barrow Warden"
-max_hp = 270
+max_hp = 210
 traits = ["Frost"]
 difficulty = "Hard"
 summary = "Weather and ice. North/South Wind chill the front or back; Spreading Frost always freezes someone up front — crack free with an A before it shatters."
 recommended_rounds = "10–14"
-enrage_hp_pct = 0.4
-enrage_damage_mult = 1.3
+enrage_hp_pct = 0.25
+enrage_damage_mult = 1.15
 
 grunt_pool = ["boss_warden_grunt_1", "boss_warden_grunt_2"]
 laugh_pool = ["boss_warden_laugh"]

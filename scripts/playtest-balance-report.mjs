@@ -1,5 +1,5 @@
 /**
- * Balance sweep for frontline redesign.
+ * Balance sweep for fixed-front-three targeting.
  * Usage: node scripts/playtest-balance-report.mjs
  * Requires: npm run build -w server
  */
@@ -257,7 +257,7 @@ function batch(label, arches, pool, boss, n = 20, smart = true) {
   return { wins, losses, timeouts, n, rows };
 }
 
-console.log("=== Frontline redesign balance report ===\n");
+console.log("=== Front-three targeting balance report ===\n");
 console.log("Smart magnet | typical pool (classroom-ish)\n");
 
 const bosses = [

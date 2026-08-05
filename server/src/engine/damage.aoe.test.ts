@@ -74,14 +74,12 @@ describe("hitEnemies aoe", () => {
   });
 });
 
-describe("gap rule (pos 1 + Archer only hit minions)", () => {
-  it("FireMage not in front hits boss only (minions untouched)", () => {
+describe("gap rule (fixed positions 1–3 + Archer hit minions)", () => {
+  it("FireMage in position 2 hits minions before the boss", () => {
     const team = teamWithAdds();
-    // party order: Vanguard=1, FireMage=2, Archer=3, …
     const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
     expect(mage.position).toBe(2);
     const bossBefore = team.boss!.currentHp;
-    const minionHp = team.minions.map((m) => m.currentHp);
     resolveSpecialistAction(
       team,
       mage,
@@ -89,14 +87,14 @@ describe("gap rule (pos 1 + Archer only hit minions)", () => {
       () => 0.5,
       () => {},
     );
-    expect(team.minions[0]!.currentHp).toBe(minionHp[0]);
-    expect(team.minions[1]!.currentHp).toBe(minionHp[1]);
+    expect(team.minions[0]!.currentHp).toBe(3);
+    expect(team.minions[1]!.currentHp).toBe(3);
     expect(team.boss!.currentHp).toBe(bossBefore - 9);
     const bossFire = team.boss!.statuses.find((s) => s.kind === "Dot" && s.type === "Fire");
     expect(bossFire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
   });
 
-  it("FireMage C has no friendly fire on the front", () => {
+  it("FireMage C in position 2 hits two minions without friendly fire", () => {
     const team = teamWithAdds();
     const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
     const front = soldierAt(team, 1)!;
@@ -113,36 +111,40 @@ describe("gap rule (pos 1 + Archer only hit minions)", () => {
     );
     expect(front.currentHp).toBe(hp1);
     expect(seat2.currentHp).toBe(hp2);
-    // Mid-line mage: boss only (gap rule), C dmg 6 + Fire
-    expect(team.boss!.currentHp).toBe(bossBefore - 6);
+    expect(team.minions.map((m) => m.currentHp)).toEqual([6, 6]);
+    expect(team.boss!.currentHp).toBe(bossBefore);
   });
 
-  it("FireMage in pos 1 wildfires adds and applies Fire to survivors + boss", () => {
+  it("a non-Archer in position 4 hits only the boss", () => {
     const team = teamWithAdds();
-    const mage = team.roster.find((s) => s.archetype === "FireMage" && s.position)!;
-    const front = soldierAt(team, 1)!;
-    // Swap mage into seat 1
-    const magePos = mage.position!;
-    mage.position = 1;
-    front.position = magePos;
+    const maiden = soldierAt(team, 4)!;
+    expect(maiden.archetype).toBe("ShieldMaiden");
     const bossBefore = team.boss!.currentHp;
+    const minionHp = team.minions.map((m) => m.currentHp);
     resolveSpecialistAction(
       team,
-      mage,
-      { token: "A", soldierId: mage.id, effectiveGrade: "A" },
+      maiden,
+      { token: "A", soldierId: maiden.id, effectiveGrade: "A" },
       () => 0.5,
       () => {},
     );
-    // 9 each to two archers → 3 left each; third hit boss 9 + Fire
-    expect(team.minions[0]!.currentHp).toBe(3);
-    expect(team.minions[1]!.currentHp).toBe(3);
-    expect(team.boss!.currentHp).toBe(bossBefore - 9);
-    for (const m of team.minions) {
-      const fire = m.statuses?.find((s) => s.kind === "Dot" && s.type === "Fire");
-      expect(fire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
+    expect(team.minions.map((m) => m.currentHp)).toEqual(minionHp);
+    expect(team.boss!.currentHp).toBe(bossBefore - 14);
+  });
+
+  it("does not collapse the back row forward when positions 1–3 die", () => {
+    const team = teamWithAdds();
+    for (const position of [1, 2, 3] as const) {
+      const soldier = soldierAt(team, position)!;
+      soldier.alive = false;
+      soldier.currentHp = 0;
     }
-    const bossFire = team.boss!.statuses.find((s) => s.kind === "Dot" && s.type === "Fire");
-    expect(bossFire).toMatchObject({ kind: "Dot", type: "Fire", stacks: 1, duration: 2 });
+    const back = soldierAt(team, 4)!;
+    const bossBefore = team.boss!.currentHp;
+    const minionHp = team.minions.map((m) => m.currentHp);
+    hitEnemies(team, 10, "single", 0, 0, back);
+    expect(team.minions.map((m) => m.currentHp)).toEqual(minionHp);
+    expect(team.boss!.currentHp).toBe(bossBefore - 10);
   });
 
   it("Vanguard in pos 1 can hit minions with single-target", () => {
@@ -153,10 +155,25 @@ describe("gap rule (pos 1 + Archer only hit minions)", () => {
     expect(team.minions[0]!.currentHp).toBe(0);
   });
 
-  it("Archer any seat arrow-storm one-shots bone archers (12 vs minion)", () => {
+  it("ordinary single-target overkill does not spill into the boss", () => {
+    const team = teamWithAdds();
+    const vanguard = soldierAt(team, 1)!;
+    team.minions = [
+      { id: "m1", name: "Mite", maxHp: 5, currentHp: 5, damage: 2 },
+    ];
+    const bossBefore = team.boss!.currentHp;
+    hitEnemies(team, 12, "single", 0, 0, vanguard);
+    expect(team.minions[0]!.currentHp).toBe(0);
+    expect(team.boss!.currentHp).toBe(bossBefore);
+  });
+
+  it("Archer in the back row can still hit minions", () => {
     const team = teamWithAdds();
     const archer = team.roster.find((s) => s.archetype === "Archer" && s.position)!;
-    expect(archer.position).not.toBe(1);
+    const seatFive = soldierAt(team, 5)!;
+    const archerPosition = archer.position!;
+    archer.position = 5;
+    seatFive.position = archerPosition;
     const bossBefore = team.boss!.currentHp;
     resolveSpecialistAction(
       team,

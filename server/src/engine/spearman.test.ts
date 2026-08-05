@@ -48,6 +48,15 @@ function spearTeam(seed = 11): TeamState {
 }
 
 describe("Spearman parry + front vulnerability", () => {
+  it("uses the reduced A–D Parry ladder", () => {
+    expect(SPEARMAN_PARRY_REDUCTION).toEqual({
+      A: 0.4,
+      B: 0.3,
+      C: 0.2,
+      D: 0.1,
+    });
+  });
+
   it("applySpearmanBossDefense reduces with Parry and amplifies front without", () => {
     const team = spearTeam();
     const sp = soldierAt(team, 1)!;
@@ -66,7 +75,7 @@ describe("Spearman parry + front vulnerability", () => {
     );
   });
 
-  it("A claim grants Parry and prefers minion in pos 1", () => {
+  it("A claim grants reduced Parry without Vanguard Last Stand", () => {
     const team = spearTeam();
     const sp = soldierAt(team, 1)!;
     team.minions = [
@@ -93,6 +102,49 @@ describe("Spearman parry + front vulnerability", () => {
       reduction: SPEARMAN_PARRY_REDUCTION.A,
     });
     expect(team.minions[0]!.currentHp).toBe(20 - 12);
+    expect(team.boss!.currentHp).toBe(bossBefore);
+    expect(
+      team.roster.some((soldier) =>
+        soldier.statuses.some((status) => status.kind === "LastStand"),
+      ),
+    ).toBe(false);
+  });
+
+  it("Penetrate carries only minion overkill into the boss", () => {
+    const team = spearTeam();
+    const sp = soldierAt(team, 1)!;
+    team.minions = [
+      { id: "m1", name: "Imp", maxHp: 5, currentHp: 5, damage: 2 },
+    ];
+    const bossBefore = team.boss!.currentHp;
+    const logs: string[] = [];
+    resolveSpecialistAction(
+      team,
+      sp,
+      { token: "A", soldierId: sp.id, effectiveGrade: "A" },
+      () => 0.5,
+      (text) => logs.push(text),
+    );
+    expect(team.minions[0]!.currentHp).toBe(0);
+    expect(team.boss!.currentHp).toBe(bossBefore - 7);
+    expect(logs.join(" ")).toMatch(/penetrates 7/);
+  });
+
+  it("F poke never penetrates", () => {
+    const team = spearTeam();
+    const sp = soldierAt(team, 1)!;
+    team.minions = [
+      { id: "m1", name: "Mite", maxHp: 1, currentHp: 1, damage: 2 },
+    ];
+    const bossBefore = team.boss!.currentHp;
+    resolveSpecialistAction(
+      team,
+      sp,
+      { token: "F", soldierId: sp.id, effectiveGrade: "F" },
+      () => 0.5,
+      () => {},
+    );
+    expect(team.minions[0]!.currentHp).toBe(0);
     expect(team.boss!.currentHp).toBe(bossBefore);
   });
 
@@ -125,7 +177,7 @@ describe("Spearman parry + front vulnerability", () => {
     team.pendingBossAttackId = "FrontSlam";
     resolveBoss(team);
     const lost = hp0 - sp.currentHp;
-    // 12 * 0.3 = 3.6 → 3 with floor; vuln would be floor(12*1.35)=16
+    // Reduced A Parry still applies for one boss window.
     expect(lost).toBe(Math.floor(12 * (1 - SPEARMAN_PARRY_REDUCTION.A)));
     expect(sp.statuses.some((st) => st.kind === "Parry")).toBe(false);
   });
@@ -140,7 +192,7 @@ describe("Spearman parry + front vulnerability", () => {
     expect(applySpearmanBossDefense(sp, 100)).toBe(100);
   });
 
-  it("hitEnemies from mid-line Spearman skips minions", () => {
+  it("Spearman in position 3 can hit minions", () => {
     const team = spearTeam();
     const sp = soldierAt(team, 1)!;
     const mid = soldierAt(team, 3)!;
@@ -159,7 +211,28 @@ describe("Spearman parry + front vulnerability", () => {
     ];
     const bossBefore = team.boss!.currentHp;
     hitEnemies(team, 10, "single", 0, 0, sp);
-    expect(team.minions[0]!.currentHp).toBe(15);
-    expect(team.boss!.currentHp).toBe(bossBefore - 10);
+    expect(team.minions[0]!.currentHp).toBe(5);
+    expect(team.boss!.currentHp).toBe(bossBefore);
+  });
+
+  it("Spearman in position 4 cannot hit or penetrate through minions", () => {
+    const team = spearTeam();
+    const sp = soldierAt(team, 1)!;
+    const back = soldierAt(team, 4)!;
+    sp.position = 4;
+    back.position = 1;
+    team.minions = [
+      { id: "m1", name: "Imp", maxHp: 5, currentHp: 5, damage: 2 },
+    ];
+    const bossBefore = team.boss!.currentHp;
+    resolveSpecialistAction(
+      team,
+      sp,
+      { token: "A", soldierId: sp.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+    expect(team.minions[0]!.currentHp).toBe(5);
+    expect(team.boss!.currentHp).toBe(bossBefore - 12);
   });
 });

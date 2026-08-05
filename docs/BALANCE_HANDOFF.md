@@ -1,6 +1,6 @@
 # Balance handoff — frontline redesign
 
-> Historical snapshot: Bone Colossus results and Frost Archer recommendations below predate the Bone Memory redesign. Rerun the balance report before tuning the new five-gate encounter.
+> Historical snapshot: the position-1 gap rule, Bone Colossus results, and Frost Archer recommendations below predate the fixed-front-three targeting and Bone Memory redesigns. Rerun the balance report before tuning current encounters.
 
 **Date:** 2026-08-02  
 **Branch:** `feature/frontline-spearman-redesign`  

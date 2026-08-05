@@ -274,9 +274,9 @@ export function cueAction(
         grade === "F"
           ? "Slip…"
           : grade === "A"
-            ? "Thrust!"
+            ? "Penetrate!"
             : grade === "B"
-              ? "Pierce!"
+              ? "Pierce through!"
               : "Stab!",
       durationMs: 700,
     },

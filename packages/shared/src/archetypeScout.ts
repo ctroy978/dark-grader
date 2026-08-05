@@ -20,17 +20,17 @@ export const ARCHETYPE_DISPLAY_NAMES: Record<Archetype, string> = {
 /** One-line role summary for lobby intel — what they do, not who else to bring. */
 const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
-    "Front leader. A/B grant Last Stand (next lethal hit leaves allies at 1 HP once). Also personal block on weaker grades and steady hits.",
+    "Defensive anchor. A/B grant Last Stand (next lethal hit leaves allies at 1 HP once), while every successful grade adds strong personal block and a steady hit.",
   ShieldMaiden:
     "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back, D self). F dumps cover.",
   FireMage:
-    "Hits several enemies with fire and can burn the boss. Gap minions only from seat 1 (like other non-Archers). A/B cleanse Chill, Ice, and Slime on half the line. Cannot melt hard Frozen — that needs an A on a frozen hero. D/F can hurt allies.",
+    "Hits several enemies with fire and can burn the boss. Seats 1–3 can rake gap minions; back seats hit the boss. A/B cleanse Chill, Ice, and Slime on half the line. Cannot melt hard Frozen — that needs an A on a frozen hero. D/F can hurt allies.",
   Healer:
     "Instant triage heals (A all, B two lowest, C one, D tiny all). F heals the boss. Back seat only. Uncharged: no cleanse (Maiden primary). With Necromancer Life Power: normal heal still applies; Fire/Poison seats also wash (no purple); clean seats get purple bonus.",
   Archer:
-    "Hits multiple foes with arrows; extra damage against minions. One of only two ways to clear the gap (with whoever is in seat 1). F can misfire.",
+    "Long Shot reaches gap minions from any seat, with multi-target volleys and extra minion damage. F can misfire.",
   Spearman:
-    "Front-line striker with Parry. A/B also grant Last Stand (A all living, B front). Seat 1 without parry takes extra boss heat.",
+    "Front-line striker with Penetrate: minion overkill carries into the boss. A–D grant modest Parry; seat 1 without Parry takes extra boss heat.",
   Necromancer:
     "Drains the boss and grants Life Power to the Healer or Runesinger. Their next heal/hymn still mends normally; Fire/Poison seats also wash (no purple bonus); clean seats get purple bonus. Maiden is still the primary one-token cleanse. Does not heal allies directly.",
   Thundercaller:

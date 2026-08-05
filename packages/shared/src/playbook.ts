@@ -8,10 +8,10 @@ export function describeGradeEffect(archetype: Archetype, grade: Grade): string 
 
 const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
   Vanguard: {
-    A: "Last Stand on all living (next lethal → 1 HP once) + hit 11 + small self block",
-    B: "Last Stand on front (1–3) + hit 9 + small self block",
-    C: "Personal block (3) + light hit (6) — self only",
-    D: "+1 personal block + light hit (4)",
+    A: "Last Stand on all living (next lethal → 1 HP once) + hit 11 + 8 self block",
+    B: "Last Stand on front (1–3) + hit 9 + 6 self block",
+    C: "Personal block (5) + light hit (6) — self only",
+    D: "+3 personal block + light hit (4)",
     F: "No block; weak hit (2)",
   },
   ShieldMaiden: {
@@ -22,8 +22,8 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {
-    A: "Wildfire ≤3 (9) + boss Fire; front: cleanse Chill/Ice/Slime — gap minions only from seat 1 (Frozen needs an A on the frozen hero)",
-    B: "Wildfire ≤3 (7) + boss Fire; back: cleanse Chill/Ice/Slime — gap minions only from seat 1 (Frozen needs an A on the frozen hero)",
+    A: "Wildfire ≤3 (9) + boss Fire; front: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss (Frozen needs an A on the frozen hero)",
+    B: "Wildfire ≤3 (7) + boss Fire; back: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss (Frozen needs an A on the frozen hero)",
     C: "Wildfire ≤2 foes (6 each) + boss Fire burn — no friendly fire",
     D: "Ember 1 foe (4); friendly fire pos 1–2 (ignores shield)",
     F: "Explodes on the whole party (ignores shield)",
@@ -36,17 +36,17 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Backlash — heals the boss (+8)",
   },
   Archer: {
-    A: "Arrow Storm ≤3 foes (10; +2 vs minions) — can hit the gap from any seat",
-    B: "Arrow Storm ≤3 foes (8; +1 vs minions) — gap from any seat",
-    C: "Arrow Storm ≤2 foes (6; +1 vs minions) — gap from any seat",
-    D: "Single shot (4; +1 vs minions) — gap from any seat",
+    A: "Long Shot: Arrow Storm ≤3 foes (10; +2 vs minions) — hits the gap from any seat",
+    B: "Long Shot: Arrow Storm ≤3 foes (8; +1 vs minions) — gap from any seat",
+    C: "Long Shot: Arrow Storm ≤2 foes (6; +1 vs minions) — gap from any seat",
+    D: "Long Shot: single shot (4; +1 vs minions) — gap from any seat",
     F: "Misfire — tiny hit + may hurt an ally",
   },
   Spearman: {
-    A: "Last Stand on all living + thrust 12 + parry 70% (front w/o parry is vulnerable)",
-    B: "Last Stand on front (1–3) + thrust 10 + parry 50%",
-    C: "Thrust 7 + parry 30% boss dmg this round",
-    D: "Thrust 5 + parry 15% boss dmg this round",
+    A: "Penetrate thrust 12 + parry 40% (minion overkill carries into boss)",
+    B: "Penetrate thrust 10 + parry 30%",
+    C: "Penetrate thrust 7 + parry 20% boss dmg this round",
+    D: "Penetrate thrust 5 + parry 10% boss dmg this round",
     F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {

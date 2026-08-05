@@ -35,7 +35,7 @@ describe("Vanguard Last Stand + personal block", () => {
       () => {},
     );
 
-    expect(vg.block).toBe(4);
+    expect(vg.block).toBe(8);
     for (const s of livingParty(team)) {
       expect(s.statuses.some((st) => st.kind === "LastStand")).toBe(true);
     }
@@ -52,6 +52,8 @@ describe("Vanguard Last Stand + personal block", () => {
       () => 0.5,
       () => {},
     );
+
+    expect(vg.block).toBe(6);
 
     for (const s of livingParty(team)) {
       const has = s.statuses.some((st) => st.kind === "LastStand");
@@ -96,7 +98,7 @@ describe("Vanguard Last Stand + personal block", () => {
       () => {},
     );
 
-    expect(vg.block).toBe(3);
+    expect(vg.block).toBe(5);
     for (const s of livingParty(team)) {
       expect(s.statuses.some((st) => st.kind === "LastStand")).toBe(false);
       if (s.id !== vg.id) expect(s.block).toBe(0);

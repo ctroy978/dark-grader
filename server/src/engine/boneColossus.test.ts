@@ -38,15 +38,15 @@ describe("Bone Colossus memories", () => {
       charge: 0,
       maxCharge: 2,
     });
-    expect(memory?.maxHp).toBe(14);
+    expect(memory?.maxHp).toBe(18);
     expect(team.boss?.damageFloor).toBe(Math.ceil(230 * 0.84));
     expect(team.boneColossus?.memoriesResolved).toBe(0);
   });
 
   it("enforces the current HP gate until the memory breaks", () => {
     const team = readyTeam();
-    const midline = team.roster.find((soldier) => soldier.position === 2)!;
-    hitEnemies(team, 999, "single", 0, 0, midline);
+    const backline = team.roster.find((soldier) => soldier.position === 5)!;
+    hitEnemies(team, 999, "single", 0, 0, backline);
     expect(team.boss?.currentHp).toBe(team.boss?.damageFloor);
 
     const memory = activeBoneMemory(team)!;

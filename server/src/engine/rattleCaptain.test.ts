@@ -60,7 +60,7 @@ describe("Rattle Captain", () => {
     expect(t!.attackIds).not.toContain("Cascade");
     expect(t!.attackIds).toContain("SummonOhms");
     expect(t!.attackIds).not.toContain("FrontSlam");
-    expect(t!.maxHp).toBe(210);
+    expect(t!.maxHp).toBe(200);
   });
 
   it("is on the default campaign path", () => {

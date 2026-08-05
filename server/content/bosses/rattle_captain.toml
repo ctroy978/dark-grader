@@ -4,14 +4,14 @@
 id = "rattle_captain"
 name = "Rattle Captain"
 # Room 4 should step up past Cinder (170 HP, enrage 30% ×1.2).
-max_hp = 210
+max_hp = 200
 traits = ["Shock", "StunImmune", "Summoner"]
 difficulty = "Standard"
 summary = "Rattle Captain's attacks focus on whoever stands over the token magnet. Spark jolts the front of the line and often stuns the fighter under the magnet for their next turn. Grounded is her big one — a surge that hits hardest on the magnet seat and fades as it travels along the line, sometimes stunning nearby seats too. She calls Ohms into the gap; they sometimes raise a short reflect field that bounces hits back at attackers."
 recommended_rounds = "8–12"
 # Enrages earlier and harder than Cinder so the room curve steps up
-enrage_hp_pct = 0.40
-enrage_damage_mult = 1.35
+enrage_hp_pct = 0.35
+enrage_damage_mult = 1.25
 
 grunt_pool = ["boss_rattle_spark_1", "boss_rattle_spark_2"]
 laugh_pool = ["boss_rattle_laugh"]
@@ -119,7 +119,7 @@ bubble_lines = ["Ohms!", "Fill the gap!", "Sparks!"]
 use_laugh = true
 minion_id = "ohm"
 minion_name = "Ohm"
-minion_max_hp = 8
+minion_max_hp = 9
 minion_damage = 4
 minion_max_count = 2
 free_volley = false

@@ -125,7 +125,7 @@ Cascade / FireMage FF left for a later pass if needed.
 | HP | **120–140** (start **130**) |
 | Enrage | None (or &lt;20% @ 1.1× only if needed) |
 | Attacks | Light `LineAttack` (**6**), light `FrontSlam` (**10 / 8 / 4** seats 1–3); **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
-| Adds | **Moss Mite** ×0–2 — **7 HP**, **3 dmg** + **Slime** on hit (flat **2**/tick, **until cleansed**, stack cap **1**, no ramp, **no token slow**); max 2; open with 1 |
+| Adds | **Moss Mite** ×0–2 — **9 HP**, **3 dmg** + **Slime** on hit (flat **2**/tick, **until cleansed**, stack cap **1**, no ramp, **no token slow**); max 2; open with 1 |
 | Feel | Clear in **5–8** rounds when attentive; **1–2 deaths** expected if students sleep or ignore mites |
 | Art key | `moss_grub`, mites `moss_mite` |
 
@@ -156,7 +156,7 @@ Optional later: slight HP drop to 180–190 if room 1→2 still too steep.
 | | |
 |--|--|
 | HP | **170** |
-| Adds | **Cinder Imp** — **11 HP**, **3 dmg** + **1 Fire** on hit; max 2; open with 1; summon when gap empty; **no free-volley** |
+| Adds | **Cinder Imp** — **14 HP**, **3 dmg** + **1 Fire** on hit; max 2; open with 1; summon when gap empty; **no free-volley** |
 | Attacks | `FrontSlam`, `LineAttack`, **`FireCloud`** (party **Fire** DoT), `SummonCinderImps`; **no Cascade**, poison, or regen |
 | Enrage | &lt;40% HP, **1.2×** |
 | Feel | First **real** add fight; fire burn pressure; magnet on Archer/Fire when imps up |
@@ -173,8 +173,9 @@ Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / A
 | | |
 |--|--|
 | HP | **~180–200** |
-| Adds | 1–2 **Bone Scrap** weak adds (below imp tier) **or** single tougher scrap |
+| Adds | **Ohm** — **9 HP**, **4 dmg**; max 2; may raise Reflect after its volley |
 | Attacks | **CrushMagnet high weight**; Slam; low Cascade; little Regen |
+| Enrage | &lt;35% HP, **1.25×** |
 | Feel | Practice adds + magnet drama without full final kit |
 
 ---
@@ -185,11 +186,11 @@ Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / A
 
 | | |
 |--|--|
-| HP | **270** |
+| HP | **210** |
 | Theme | Frost / ice — dress rehearsal before Colossus |
 | Adds | **None in v1** (Grave Thrall + Dominated deferred — see §6–7) |
 | Attacks | **`NorthWind`** (12/9/5 + Chill 3/2/1 on 1–3), **`SouthWind`** (mirrored 6–5–4), **`SpreadingFrost`** (w3), light `Regenerate` (w1) |
-| Enrage | &lt;40% HP, **1.3×** |
+| Enrage | &lt;25% HP, **1.15×** |
 | Art key | `barrow_warden` |
 
 See also **`docs/WARDEN_WINDS_PLAN.md`** (branch implementation).

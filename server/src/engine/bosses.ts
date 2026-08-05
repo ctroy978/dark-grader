@@ -131,7 +131,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
   SummonMossMites: {
     minionId: "moss_mite",
     minionName: "Moss Mite",
-    maxHp: 7,
+    maxHp: 9,
     damage: 3,
     maxCount: 2,
     freeVolley: false,
@@ -143,7 +143,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
   SummonCinderImps: {
     minionId: "cinder_imp",
     minionName: "Cinder Imp",
-    maxHp: 11,
+    maxHp: 14,
     damage: 3,
     maxCount: 2,
     freeVolley: false,
@@ -155,7 +155,7 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
   SummonOhms: {
     minionId: "ohm",
     minionName: "Ohm",
-    maxHp: 8,
+    maxHp: 9,
     damage: 4,
     maxCount: 2,
     freeVolley: false,

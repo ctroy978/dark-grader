@@ -74,7 +74,7 @@ export interface ParryStatus {
 }
 
 /**
- * Vanguard / Spearman Last Stand — next lethal hit leaves the soldier at 1 HP
+ * Vanguard Last Stand — next lethal hit leaves the soldier at 1 HP
  * once, then the ward is consumed. Cleared after the boss phase if unused.
  */
 export interface LastStandStatus {

@@ -120,7 +120,7 @@ This section is for design review — update it when abilities change.
 | Magnet | Only control: raise claim odds on one living position (1–6) |
 | Claim rules | **Magnet always claims one token** (which grade is random among the drop). Remaining tokens: living party **except magnet**, weighted by proximity (adjacent 2× far). Each soldier ≤1 token. |
 | Resolve order | Claims → **Runesinger first** (rewrites tokens) → other claimers **front → back** → DoTs → boss |
-| Enemy damage | **Gap rule:** only **pos 1** and **Archers** hit minions; others boss-only. **Minions hard-focus the magnet**; 2nd+ minion shot ×1.5 |
+| Enemy damage | **Gap rule:** fixed positions **1–3** hit minions first; positions **4–6** hit the boss only. **Archers** can hit minions from any seat. **Minions hard-focus the magnet**; 2nd+ minion shot ×1.5 |
 | Party damage bonus | Legacy field; Runesinger no longer uses it (token rewrite instead) |
 | Party cover | **No free open.** Shield Maiden claim raises one-round cover (self + most endangered); size by grade; **F** dumps; expires after boss phase |
 | Personal block | Vanguard; absorbs boss/minion/DoT damage after grant; leftover **expires after boss phase** |
@@ -149,17 +149,17 @@ Full campaign roster = **21**. Names match art gender (see `server/src/seed/name
 
 ### Vanguard — Last Stand + personal block + hit
 
-**Job (as coded):** front leader. **A/B** grant **Last Stand** (next lethal hit → **1 HP** once). Small personal block still applies; leftover block/wards expire after the boss phase.
+**Job (as coded):** defensive anchor. **A/B** grant **Last Stand** (next lethal hit → **1 HP** once). Strong personal block applies on A–D; leftover block/wards expire after the boss phase.
 
 | Grade | Effect |
 |-------|--------|
-| **A** | **Last Stand** on **all** living; +**4** personal block; hit **11** |
-| **B** | **Last Stand** on **front** (1–3); +**3** personal block; hit **9** |
-| **C** | +**3** personal block; hit **6** |
-| **D** | +**1** personal block; hit **4** |
+| **A** | **Last Stand** on **all** living; +**8** personal block; hit **11** |
+| **B** | **Last Stand** on **front** (1–3); +**6** personal block; hit **9** |
+| **C** | +**5** personal block; hit **6** |
+| **D** | +**3** personal block; hit **4** |
 | **F** | No block; hit **2** |
 
-Gap rule: can hit minions only from pos 1.
+Gap rule: positions 1–3 hit minions first; positions 4–6 hit the boss.
 
 ---
 
@@ -181,9 +181,9 @@ Uncovered seats take full damage even while cover is active.
 
 ### FireMage — Wildfire AOE + boss Fire burn + cold weather cleanse
 
-**Job (as coded):** multi-target fire + short **Fire** burn on the boss. **Gap minions only from seat 1** (same gap rule as non-Archers; mid/back Wildfire hits boss only). A/B cleanse **Chill / Ice / Slime** on that half of the line. **Does not** thaw chain **Frozen** — land an **A** on a frozen hero to crack all ice blocks (Warden). Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. **D/F** still punish the party (**C** does not).
+**Job (as coded):** multi-target fire + short **Fire** burn on the boss. Seats **1–3** rake gap minions first; seats **4–6** hit the boss only. A/B cleanse **Chill / Ice / Slime** on that half of the line. **Does not** thaw chain **Frozen** — land an **A** on a frozen hero to crack all ice blocks (Warden). Does **not** cleanse Fire/Poison (**Shield Maiden**) or Marks. **D/F** still punish the party (**C** does not).
 
-**AOE rules:** minions first when allowed, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Empty slots unused (no minions / not in seat 1 → single boss hit).
+**AOE rules:** minions first when allowed, then boss; A/B hit **up to 3** living enemies, C **up to 2**, D **1**. Back-row non-Archers use one boss hit.
 
 | Grade | Targets | Direct each | Boss Fire | Also |
 |-------|---------|-------------|-----------|------|
@@ -215,9 +215,9 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Archer — Arrow Storm AOE (minion bonus)
+### Archer — Long Shot + Arrow Storm AOE
 
-**Job (as coded):** multi-target volleys so one good token can clear the gap without parking the whole drop on DPS. Lower per-target damage than the old single-target kit; small **minion bonus** so adds die first.
+**Job (as coded):** **Long Shot** reaches minions from any seat. Multi-target volleys let one good token clear the gap without parking the whole drop on DPS; a small minion bonus helps adds die first.
 
 **AOE rules:** same as FireMage — minions first, then boss; A/B ≤**3**, C ≤**2**, D **1**.
 
@@ -231,17 +231,17 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Spearman — Last Stand + thrust + Parry
+### Spearman — Penetrate + thrust + Parry
 
-**Job (as coded):** front-line striker. **A/B** also grant **Last Stand** (A all / B front). **A–D** grant **Parry** (reduce boss damage to self this round). **Pos 1 without Parry** takes **×1.35** boss damage. Parry + unused Last Stand expire after the boss phase.
+**Job (as coded):** line breaker. On A–D, **Penetrate** carries minion overkill into the boss. **A–D** also grant modest **Parry** (reduce boss damage to self this round). **Pos 1 without Parry** takes **×1.35** boss damage. Parry expires after the boss phase.
 
-| Grade | Thrust | Parry | Last Stand |
-|-------|--------|-------|------------|
-| **A** | **12** | **70%** | **All** living |
-| **B** | **10** | **50%** | **Front** (1–3) |
-| **C** | **7** | **30%** | — |
-| **D** | **5** | **15%** | — |
-| **F** | **2** | **None** | — |
+| Grade | Thrust | Parry | Penetrate |
+|-------|--------|-------|-----------|
+| **A** | **12** | **40%** | Minion overkill → boss |
+| **B** | **10** | **30%** | Minion overkill → boss |
+| **C** | **7** | **20%** | Minion overkill → boss |
+| **D** | **5** | **10%** | Minion overkill → boss |
+| **F** | **2** | **None** | No |
 
 **2** Spearmen in the roster.
 
@@ -309,7 +309,7 @@ Useful when weighing “who is just DPS?”
 | ShieldMaiden | 14 + cover + Fire/Poison cleanse | |
 | Necromancer | 12 + Life Power on support | |
 | Vanguard | 11 + Last Stand A/B | |
-| Spearman | **12** ST + Last Stand A/B + parry | |
+| Spearman | **12** ST + Penetrate + modest parry | |
 | Runesinger | 0 direct | Token rewrite + hymn HoT |
 | Healer | 0 direct | Instant triage (no cleanse) |
 

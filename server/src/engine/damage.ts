@@ -241,12 +241,20 @@ export function applyCharge(soldier: Soldier, amount: number): void {
 
 /**
  * True when this actor may damage gap minions.
- * Only the front seat (pos 1) and Archers can hit minions; others hit boss only.
+ * Fixed seats 1–3 and Archers can hit minions; other actors hit the boss only.
  * No actor → unrestricted (legacy / internal callers).
  */
 export function actorCanHitMinions(actor?: Soldier | null): boolean {
   if (!actor) return true;
-  return actor.position === 1 || actor.archetype === "Archer";
+  return (
+    (actor.position != null && actor.position <= 3) ||
+    actor.archetype === "Archer"
+  );
+}
+
+export interface HitEnemiesOptions {
+  /** Carry single-target overkill from a slain minion into the boss. */
+  penetrateMinionOverkill?: boolean;
 }
 
 /** Apply boss damage while respecting an encounter HP gate. */
@@ -277,6 +285,7 @@ export function damageBoss(
  *
  * @param minionBonus Extra damage when the hit lands on a minion (not boss).
  * @param actor If set, consumes their Charge bonus; also applies the gap rule.
+ * @param options Explicit exceptions such as Spearman Penetrate.
  */
 export function hitEnemies(
   team: TeamState,
@@ -285,13 +294,14 @@ export function hitEnemies(
   extraBounces = 0,
   minionBonus = 0,
   actor?: Soldier | null,
+  options: HitEnemiesOptions = {},
 ): string {
   const charge = consumeCharge(actor);
   const bonus = (team.partyDamageBonus || 0) + charge;
   const parts: string[] = [];
   const canMinions = actorCanHitMinions(actor);
 
-  const applyToBoss = (amount: number) => {
+  const applyToBoss = (amount: number, verb?: string) => {
     if (!team.boss || team.boss.currentHp <= 0) return false;
     let raw = amount;
     // Mutual resistance: Thundercaller ↔ Rattle Captain
@@ -303,7 +313,7 @@ export function hitEnemies(
     }
     const mult = team.boss.curseDamageTakenMult || 1;
     const result = damageBoss(team, Math.floor(raw * mult));
-    parts.push(`${result.damage} to ${team.boss.name}`);
+    parts.push(`${verb ? `${verb} ` : ""}${result.damage} to ${team.boss.name}`);
     if (result.warded) {
       parts.push(`${team.boss.damageFloorLabel ?? "Bone Ward"} holds`);
     }
@@ -311,12 +321,15 @@ export function hitEnemies(
   };
 
   /** Hit first living minion (or a specific one for aoe). */
-  const applyToMinion = (amount: number, minionId?: string) => {
-    if (!canMinions) return false;
+  const applyToMinion = (
+    amount: number,
+    minionId?: string,
+  ): { hit: boolean; overkill: number } => {
+    if (!canMinions) return { hit: false, overkill: 0 };
     const m = minionId
       ? team.minions.find((x) => x.id === minionId && x.currentHp > 0)
       : team.minions.find((x) => x.currentHp > 0);
-    if (!m) return false;
+    if (!m) return { hit: false, overkill: 0 };
     // Ohm Reflect: immune; bounce a slice of intended damage to the attacker
     if (minionHasReflect(m)) {
       parts.push(`0 to ${m.name} (reflect)`);
@@ -329,9 +342,11 @@ export function hitEnemies(
           parts.push(`reflect glances off ${actor.name}`);
         }
       }
-      return true;
+      return { hit: true, overkill: 0 };
     }
-    const dmg = Math.min(m.currentHp, amount);
+    const hpBefore = m.currentHp;
+    const dmg = Math.min(hpBefore, amount);
+    const overkill = Math.max(0, amount - hpBefore);
     m.currentHp -= dmg;
     parts.push(`${dmg} to ${m.name}`);
     if (m.currentHp <= 0) {
@@ -340,13 +355,21 @@ export function hitEnemies(
       noteMinionSlain(team);
     }
     // Do not remove yet — presentation needs the corpse for the kill beat
-    return true;
+    return { hit: true, overkill: m.currentHp <= 0 ? overkill : 0 };
   };
 
   if (mode === "single") {
     const vsBoss = Math.max(0, Math.floor(baseDamage + bonus));
     const vsMinion = Math.max(0, Math.floor(baseDamage + bonus + minionBonus));
-    if (!applyToMinion(vsMinion)) applyToBoss(vsBoss);
+    const minionResult = applyToMinion(vsMinion);
+    if (!minionResult.hit) {
+      applyToBoss(vsBoss);
+    } else if (
+      options.penetrateMinionOverkill &&
+      minionResult.overkill > 0
+    ) {
+      applyToBoss(minionResult.overkill, "penetrates");
+    }
     return parts.join("; ") || "no target";
   }
 
@@ -365,7 +388,7 @@ export function hitEnemies(
       if (hits >= maxTargets) break;
       const amount = base + minionBonus + chargeLeft;
       chargeLeft = 0;
-      if (applyToMinion(amount, id)) hits += 1;
+      if (applyToMinion(amount, id).hit) hits += 1;
     }
     // Non-gap actors: one boss hit only (no multi-hit on boss for leftover AOE slots)
     if (

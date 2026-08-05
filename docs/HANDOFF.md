@@ -141,13 +141,17 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - Friendly fire **bypasses** shield + personal block  
 
 ### Personal block (Vanguard)
-- **Personal only** (no party-wide pad). A–D personal block + hit; F weak hit  
+- **Personal only** (no party-wide pad). A–D block **8 / 6 / 5 / 3** + hit; F weak hit
 - Absorbs boss/minion/DoT damage after grant; leftover expires **after the boss phase**
 
 ### Gap rule + minions (frontline redesign)
-- **Only pos 1 and Archers** may damage minions (`actorCanHitMinions` / `hitEnemies`). Everyone else hits the boss only.  
-- **Minions always target the magnet seat** (hard focus). **2nd+ minion shot** in the same volley uses `MULTI_MINION_FOCUS_MULT`.  
+- Fixed positions **1–3** damage minions first. Positions **4–6** hit the boss only; dead front seats do not collapse the rule forward.
+- **Archer Long Shot** can damage minions from any seat. Ordinary single-target overkill does not spill.
+- **Spearman Penetrate** carries A–D minion overkill into the boss; Parry is **40 / 30 / 20 / 10%** and Last Stand is Vanguard-exclusive.
+- **Minions always target the magnet seat** (hard focus). **2nd+ minion shot** in the same volley uses `MULTI_MINION_FOCUS_MULT`.
 - Boss outgoing damage tables still from TOML / cascade bases (further retune after playtest).
+
+**Automated baseline (2026-08-05, typical pool):** Cinder Herald balanced **8/20**, Rattle Captain balanced **10/20**, Bone Colossus balanced **4/20**, and no-Archer Colossus **5/16**. Treat these as regression markers, not final classroom targets; live token choices are smarter than the script.
 
 ### DoTs (color split)
 - Fire **4** (stacks max **2**, per seat, intensity ramps) / Ice **3**/tick × **3**r flat / Poison splash **8** × stacks × intensity (stacks max **2**, intensity max **3**, party splash) / Slime **2** until cleansed — `DOT_STATS`  
@@ -161,7 +165,7 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
 - **Cascade** raw pos1→6 = 16,13,10,7,4,2  
 - **Bone Colossus:** five ordered Bone Memories reuse prior boss death art; two party opportunities each; destruction grants **Exposed +50%**, detonation fires the signature effect with no exposure
-- **HP gates:** **84% / 68% / 52% / 36% / 20%**, then a short Final Stand; memory HP currently **14 / 18 / 22 / 26 / 30** for later tuning
+- **HP gates:** **84% / 68% / 52% / 36% / 20%**, then a short Final Stand; memory HP currently **18 / 22 / 26 / 30 / 34** for later tuning
 - Stun: `stunRoundsLeft` skips the boss and pauses Bone Memory charge/detonation
 - Boss HP: Ash **210**, Bone Colossus **230**
 
@@ -172,9 +176,9 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 | Archetype | Role |
 |-----------|------|
 | **Vanguard** | Personal block + hit (self only) |
-| **Spearman** | ST thrust; A–D **Parry** vs boss; pos 1 without parry takes extra boss damage |
+| **Spearman** | ST thrust; A–D **Penetrate** + modest Parry; pos 1 without Parry takes extra boss damage |
 | **ShieldMaiden** | Hit + one-round cover on self + most-likely-to-die; no free open; F dumps |
-| **FireMage** | Wildfire AOE + boss Fire; gap minions seat 1 only; A/B Frozen thaw + Ice/Slime; D/F friendly fire (C clean) |
+| **FireMage** | Wildfire AOE + boss Fire; seats 1–3 rake minions, back hits boss; A/B Frozen thaw + Ice/Slime; D/F friendly fire (C clean) |
 | **Healer** | Heal + cleanse **Fire/Poison**; F boss heal |
 | **Archer** | Arrow Storm + minion bonus; can hit gap from any seat |
 | **Necromancer** | Drain + heal lowest; F hit highest-HP ally |
@@ -300,7 +304,7 @@ Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunt
 | Specialists / abilities | `specialists.ts`, `playbook.ts`, `README.md` abilities |
 | Runesinger first + Charge + party stun | `combat.ts` action order, `specialists.ts`, `damage.ts` (`applyCharge`/`consumeCharge`) |
 | Boss DoTs | `dots.ts`, `types.ts` `BossState.statuses` |
-| Frontline redesign | branch `feature/frontline-spearman-redesign`; gap/parry/cover/rez |
+| Front-three targeting | branch `frontline-targeting-redesign`; fixed rows, Long Shot, Penetrate, Vanguard block |
 | Progressive presentation | `presentation.ts` (shared+server), `CombatScreen.tsx` |
 | DoT chips / future body FX | `statusUi.ts`, `StatusChips.tsx`; ramp on `DotInstance.escalationStep` |
 | Outcome / stun audio-visual | `CombatScreen.tsx`, `audio.ts`, `bosses.ts`, `poses.ts` |

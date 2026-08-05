@@ -174,7 +174,7 @@ export const INTER_ROOM_CAMP_HEAL_MISSING_PCT = 0.3;
 /**
  * Spearman kit (Phase 2).
  * Parry reduces boss damage to self this round; front without parry takes extra boss heat.
- * Minion preference uses the shared gap rule (pos 1 or Archer).
+ * Minion preference uses the shared gap rule (fixed seats 1–3 or Archer).
  */
 export const SPEARMAN_DAMAGE: Record<Grade, number> = {
   A: 12,
@@ -186,10 +186,10 @@ export const SPEARMAN_DAMAGE: Record<Grade, number> = {
 
 /** Boss damage reduction fraction while Parry is up (A–D only; F/no claim = none). */
 export const SPEARMAN_PARRY_REDUCTION: Record<Exclude<Grade, "F">, number> = {
-  A: 0.7,
-  B: 0.5,
-  C: 0.3,
-  D: 0.15,
+  A: 0.4,
+  B: 0.3,
+  C: 0.2,
+  D: 0.1,
 };
 
 /** Boss damage multiplier for Spearman in pos 1 with no active Parry. */
@@ -243,12 +243,12 @@ export const NECRO_DRAIN: Record<Exclude<Grade, "F">, number> = {
   D: 4,
 };
 
-/** Vanguard personal block by grade (C–D identity; A–B still get a little self pad). */
+/** Vanguard personal block by grade; reliable self-defense is the class identity. */
 export const VANGUARD_PERSONAL_BLOCK: Record<Grade, number> = {
-  A: 4,
-  B: 3,
-  C: 3,
-  D: 1,
+  A: 8,
+  B: 6,
+  C: 5,
+  D: 3,
   F: 0,
 };
 

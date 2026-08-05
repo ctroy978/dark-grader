@@ -359,15 +359,15 @@ Boss HP targets: **~280–320** for early rooms (≈ 8–14 rounds with mixed gr
 
 ### 6.3 Archetype × grade effects (concrete)
 
-**Vanguard** (block absorbs before personal HP; block lasts until next own action or end of boss phase — *decide*: **block is a one-round absorb pool applied to this soldier only**.)
+**Vanguard** (personal block absorbs before HP and expires after the boss phase.)
 
 | Grade | Effect |
 |-------|--------|
-| A | Gain **12 block**. Deal **12** boss (or add) damage. |
-| B | Gain **9 block**. Deal **10** damage. |
-| C | Gain **6 block**. Deal **7** damage. |
-| D | Gain **3 block**. No attack. |
-| F | No block. No attack. |
+| A | Grant Last Stand to all living. Gain **8 block**. Deal **11** damage. |
+| B | Grant Last Stand to positions 1–3. Gain **6 block**. Deal **9** damage. |
+| C | Gain **5 block**. Deal **6** damage. |
+| D | Gain **3 block**. Deal **4** damage. |
+| F | No block. Deal **2** damage. |
 
 **Shield Maiden** (fight start: party shield = `1d6`, range 1–6).
 
@@ -468,7 +468,7 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 - Then Shield Maidens fight as normal attackers (still use their token table).
 
 ### 6.6 Targeting priority
-While any minion is alive, **all party damage abilities hit minions first** (lowest id / leftmost), overflow to boss only if the ability is explicitly multi-target and kills the add mid-resolution (v1: full ability damage to first living add, no overflow unless ability is chain-type).
+Fixed positions **1–3** hit living minions first (lowest id / leftmost); positions **4–6** hit the boss only. Dead front seats do not cause back seats to inherit minion access. Archers ignore the row restriction through **Long Shot**. Ordinary single-target damage does not spill; explicit AOE/chain attacks retain authored extra targets, and Spearman **Penetrate** carries A–D minion overkill into the boss.
 
 ### 6.7 Sample boss: Bone Colossus
 

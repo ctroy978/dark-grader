@@ -41,7 +41,7 @@ describe("SpreadingFrost / Frozen", () => {
   it("loads Barrow Warden frost kit from TOML", () => {
     const w = getBossTemplate("barrow_warden");
     expect(w).toBeDefined();
-    expect(w!.maxHp).toBe(270);
+    expect(w!.maxHp).toBe(210);
     expect(w!.traits).toContain("Frost");
     expect(w!.attackIds).toEqual(
       expect.arrayContaining([

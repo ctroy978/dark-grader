@@ -154,7 +154,7 @@ describe("campaign progression", () => {
     expect(team.boss?.maxHp).toBe(170);
     expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
     expect(team.minions[0]?.name).toBe("Cinder Imp");
-    expect(team.minions[0]?.maxHp).toBe(11);
+    expect(team.minions[0]?.maxHp).toBe(14);
     expect(team.minions[0]?.damage).toBe(3);
     expect(team.minions[0]?.onHitDot).toEqual({ type: "Fire", stacks: 1 });
 
@@ -177,6 +177,7 @@ describe("campaign progression", () => {
     expect(team.boss?.id).toBe("moss_grub");
     expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
     expect(team.minions[0]?.name).toBe("Moss Mite");
+    expect(team.minions[0]?.maxHp).toBe(9);
     expect(team.minions[0]?.onHitDot).toEqual({ type: "Slime", stacks: 1 });
   });
 

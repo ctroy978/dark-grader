@@ -369,7 +369,7 @@ function shieldMaiden(
 
 /**
  * FireMage — Wildfire AOE + boss Fire burn.
- * Gap rule: minions only from seat 1 (same as non-Archers); mid/back = boss only.
+ * Gap rule: fixed seats 1–3 hit minions first; back seats hit the boss.
  * A/B: cleanse Chill/Ice/Slime on half the line (A front, B back).
  * Does not thaw chain Frozen (A on a frozen hero cracks ice). Does not clear Fire/Poison.
  * Targets: A/B ≤3, C ≤2, D 1. C has no friendly fire; D/F still punish the party.
@@ -419,7 +419,7 @@ function fireMage(
   );
   const bossHpBefore = team.boss?.currentHp ?? 0;
 
-  // Gap rule applied inside hitEnemies (pos 1 or Archer only → minions)
+  // Gap rule applied inside hitEnemies (fixed seats 1–3 or Archer → minions)
   const r = hitEnemies(team, t.dmg, "aoe", t.targets, 0, soldier);
 
   const burnBits: string[] = [];
@@ -596,8 +596,8 @@ function archer(
 }
 
 /**
- * Spearman — single-target thrust + A–D Parry (boss damage reduce this round).
- * Gap rule: pos 1 prefers minions via hitEnemies; front without Parry is vulnerable
+ * Spearman — single-target thrust + A–D Parry and Penetrate.
+ * Fixed seats 1–3 prefer minions; front without Parry is vulnerable
  * to boss hits (see applySpearmanBossDefense).
  */
 function spearman(
@@ -612,18 +612,6 @@ function spearman(
   soldier.statuses = soldier.statuses.filter((st) => st.kind !== "Parry");
   const parts: string[] = [];
 
-  // A/B — Last Stand (same ladder as Vanguard)
-  if (g === "A") {
-    const n = grantLastStand(livingParty(team));
-    parts.push(`Last Stand on all (${n})`);
-  } else if (g === "B") {
-    const front = livingParty(team).filter(
-      (s) => s.position != null && s.position <= 3,
-    );
-    const n = grantLastStand(front);
-    parts.push(`Last Stand on front (${n})`);
-  }
-
   if (g !== "F") {
     const reduction = SPEARMAN_PARRY_REDUCTION[g];
     soldier.statuses.push({ kind: "Parry", reduction });
@@ -633,7 +621,9 @@ function spearman(
     parts.push("no parry");
   }
 
-  const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
+  const r = hitEnemies(team, dmg, "single", 0, 0, soldier, {
+    penetrateMinionOverkill: g !== "F",
+  });
   parts.push(`thrust hits for ${r}`);
   log(`${label}: ${parts.join("; ")}`);
 }
