@@ -341,6 +341,39 @@ function MaidenEnergyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
 }
 
 /**
+ * Cleanse wash — a cool white/cyan lift that strips grime upward.
+ * Runs on every ally actually cleansed; the Maiden caster gets it as well.
+ */
+function CleanseWashFx() {
+  const moteCount = 12;
+  return (
+    <div className="cleanse-wash-fx" aria-hidden>
+      <div className="cleanse-wash-sheen" />
+      <div className="cleanse-wash-ring cleanse-wash-ring--a" />
+      <div className="cleanse-wash-ring cleanse-wash-ring--b" />
+      <div className="cleanse-wash-column" />
+      <div className="cleanse-wash-motes">
+        {Array.from({ length: moteCount }, (_, i) => (
+          <span
+            key={i}
+            className="cleanse-wash-mote"
+            style={
+              {
+                "--mote-x": `${8 + ((i * 37 + 9) % 84)}%`,
+                "--mote-y": `${52 + ((i * 19) % 42)}%`,
+                "--mote-delay": `${(i % 6) * 0.055}s`,
+                "--mote-drift": `${-14 + (i % 5) * 7}px`,
+                "--mote-size": `${3 + (i % 3) * 2}px`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Fire Mage — red/orange anime explosion.
  * charge: pulsing core that grows until cast
  * blast / impact: outward fireburst on caster + hit targets
@@ -766,15 +799,17 @@ export function CombatActor({
 }) {
   const speaking = cue?.bubble?.speakerId === unitId;
   const inFocus = cue?.focusIds?.includes(unitId) ?? false;
+  const isCleanseTarget = cue?.cleanseTargetIds?.includes(unitId) ?? false;
   const isBoss = portrait.role === "boss";
   // Soft ally seats on a necro cast: real heals (legacy siphon) or Life Power buff.
   // Same cue often has necro-blast for the drain — skip hit.png / purple impact.
   const partyHurtFx =
-    (cue?.fx?.includes("hurt-flash") ?? false) ||
-    (cue?.fx?.includes("shock-flash") ?? false) ||
-    (cue?.fx?.includes("fire-tint") ?? false) ||
-    (cue?.fx?.includes("fire-flash") ?? false) ||
-    (cue?.fx?.includes("party-stunned") ?? false);
+    !isCleanseTarget &&
+    ((cue?.fx?.includes("hurt-flash") ?? false) ||
+      (cue?.fx?.includes("shock-flash") ?? false) ||
+      (cue?.fx?.includes("fire-tint") ?? false) ||
+      (cue?.fx?.includes("fire-flash") ?? false) ||
+      (cue?.fx?.includes("party-stunned") ?? false));
   const lifePowerBuffSeat =
     portrait.role === "party" &&
     inFocus &&
@@ -840,6 +875,7 @@ export function CombatActor({
   const showMaidenImpact =
     !speaking &&
     inFocus &&
+    !isCleanseTarget &&
     (cue?.fx?.includes("maiden-blast") ?? false);
   const showFireCharge =
     speaking && (cue?.fx?.includes("fire-charge") ?? false);
@@ -848,7 +884,12 @@ export function CombatActor({
   const showFireImpact =
     !speaking &&
     inFocus &&
+    !isCleanseTarget &&
     (cue?.fx?.includes("fire-blast") ?? false);
+  const showCleanseWash =
+    (isCleanseTarget ||
+      (speaking && (cue?.fx?.includes("maiden-cleanse") ?? false))) &&
+    (cue?.fx?.includes("cleanse-glow") ?? false);
   const showNecroCharge =
     speaking && (cue?.fx?.includes("necro-charge") ?? false);
   const showNecroBlast =
@@ -976,6 +1017,7 @@ export function CombatActor({
           {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
           {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
           {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
+          {showCleanseWash && <CleanseWashFx />}
           {showFireCharge && <FireBurstFx mode="charge" />}
           {showFireBlast && <FireBurstFx mode="blast" />}
           {showFireImpact && <FireBurstFx mode="impact" />}

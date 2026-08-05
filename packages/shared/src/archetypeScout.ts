@@ -22,7 +22,7 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   Vanguard:
     "Defensive anchor. A/B grant Last Stand (next lethal hit leaves allies at 1 HP once), while every successful grade adds strong personal block and a steady hit.",
   ShieldMaiden:
-    "Strikes hard, one-round cover on herself and the ally most likely to die, and cleanses Fire/Poison (A all, B front, C back, D self). F dumps cover.",
+    "Raises one-round cover on herself and the ally most likely to die. If her scope has Fire/Poison, she cleanses instead of attacking (A all, B front, C back, D self); otherwise she strikes hard. F dumps cover.",
   FireMage:
     "Hits several enemies with fire and can burn the boss. Seats 1–3 can rake gap minions; back seats hit the boss. A/B cleanse Chill, Ice, and Slime on half the line. Cannot melt hard Frozen — that needs an A on a frozen hero. D/F can hurt allies.",
   Healer:

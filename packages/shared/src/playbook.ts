@@ -15,10 +15,10 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "No block; weak hit (2)",
   },
   ShieldMaiden: {
-    A: "Strike 14 + cover 8; cleanse Fire/Poison on all",
-    B: "Strike 11 + cover 6; cleanse Fire/Poison on front (1–3)",
-    C: "Strike 9 + cover 4; cleanse Fire/Poison on back (4–6)",
-    D: "Strike 7 + cover 3; cleanse Fire/Poison on self",
+    A: "Cover 8; cleanse Fire/Poison on all instead of striking, otherwise strike 14",
+    B: "Cover 6; cleanse Fire/Poison on front (1–3) instead of striking, otherwise strike 11",
+    C: "Cover 4; cleanse Fire/Poison on back (4–6) instead of striking, otherwise strike 9",
+    D: "Cover 3; cleanse Fire/Poison on self instead of striking, otherwise strike 7",
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {

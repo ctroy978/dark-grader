@@ -88,6 +88,31 @@ function hasFireOrPoison(s: Soldier): boolean {
   );
 }
 
+/** Remove matching DoTs and retain the seats that visibly changed. */
+function cleanseDotsWithTargets(
+  soldiers: Soldier[],
+  types: DotType[],
+): { removed: number; targetIds: string[] } {
+  const before = new Map(
+    soldiers.map((soldier) => [
+      soldier.id,
+      soldier.statuses.filter(
+        (status) => status.kind === "Dot" && types.includes(status.type),
+      ).length,
+    ]),
+  );
+  const removed = cleanseDots(soldiers, types);
+  const targetIds = soldiers
+    .filter((soldier) => {
+      const after = soldier.statuses.filter(
+        (status) => status.kind === "Dot" && types.includes(status.type),
+      ).length;
+      return after < (before.get(soldier.id) ?? 0);
+    })
+    .map((soldier) => soldier.id);
+  return { removed, targetIds };
+}
+
 export type SpecialistResolveResult = {
   /** False when stun / frozen / death skipped the attack — do not play attack cue. */
   acted: boolean;
@@ -98,6 +123,8 @@ export type SpecialistResolveResult = {
    * (e.g. Thundercaller F aims at an ally who shakes the stun off).
    */
   effectFocusIds?: string[];
+  /** Party seats that actually had one or more DoTs removed by this action. */
+  cleanseTargetIds?: string[];
   /**
    * Healer/Runesinger spent a heal while holding Life Power — combat applies
    * bonus heals and a second purple-rain cue after the base action beat.
@@ -172,16 +199,17 @@ export function resolveSpecialistAction(
   }
 
   let effectFocusIds: string[] = [];
+  let cleanseTargetIds: string[] = [];
   let lifePowerFollowUp: LifePowerFollowUp | undefined;
   switch (soldier.archetype) {
     case "Vanguard":
       vanguard(soldier, g, team, log, label);
       break;
     case "ShieldMaiden":
-      shieldMaiden(soldier, g, team, random, log, label);
+      cleanseTargetIds = shieldMaiden(soldier, g, team, random, log, label);
       break;
     case "FireMage":
-      fireMage(soldier, g, team, log, label);
+      cleanseTargetIds = fireMage(soldier, g, team, log, label);
       break;
     case "Healer":
       lifePowerFollowUp = healer(soldier, g, team, log, label);
@@ -207,6 +235,7 @@ export function resolveSpecialistAction(
   return {
     acted: true,
     ...(effectFocusIds.length ? { effectFocusIds } : {}),
+    ...(cleanseTargetIds.length ? { cleanseTargetIds } : {}),
     ...(lifePowerFollowUp ? { lifePowerFollowUp } : {}),
   };
 }
@@ -316,7 +345,7 @@ function shieldMaiden(
   _random: () => number,
   log: LogFn,
   label: string,
-): void {
+): string[] {
   if (g === "F") {
     if (team.partyShield.active && team.partyShield.remaining > 0) {
       team.partyShield = { remaining: 0, active: false, coveredIds: [] };
@@ -324,7 +353,7 @@ function shieldMaiden(
     } else {
       log(`${label}: no shield to short (nothing happens)`);
     }
-    return;
+    return [];
   }
 
   const dmg = MAIDEN_DAMAGE[g];
@@ -341,7 +370,8 @@ function shieldMaiden(
 
   // Fire/Poison cleanse: A all / B front / C back / D self only
   const maidenCleanse: DotType[] = ["Fire", "Poison"];
-  let cleanseNote = "";
+  let cleanseTargetIds: string[] = [];
+  let cleansedCount = 0;
   if (g === "A" || g === "B" || g === "C" || g === "D") {
     const seats =
       g === "A"
@@ -351,20 +381,24 @@ function shieldMaiden(
           : g === "C"
             ? livingParty(team).filter((s) => s.position != null && s.position >= 4)
             : [soldier]; // D — always cleanse herself
-    const n = cleanseDots(seats, maidenCleanse);
-    if (n) {
-      cleanseNote =
-        g === "D"
-          ? `; cleanses Fire/Poison on self (${n})`
-          : `; cleanses Fire/Poison (${n})`;
-    }
+    const result = cleanseDotsWithTargets(seats, maidenCleanse);
+    cleansedCount = result.removed;
+    cleanseTargetIds = result.targetIds;
   }
 
-  const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
   const allyName = ally ? ally.name : "nobody";
-  log(
-    `${label}: attacks for ${r}; cover ${coverHp} on self + ${allyName} (this round)${cleanseNote}`,
-  );
+  if (cleanseTargetIds.length) {
+    const scope = g === "D" ? " on self" : "";
+    log(
+      `${label}: cleanses Fire/Poison${scope} (${cleansedCount}); no attack; cover ${coverHp} on self + ${allyName} (this round)`,
+    );
+  } else {
+    const r = hitEnemies(team, dmg, "single", 0, 0, soldier);
+    log(
+      `${label}: attacks for ${r}; cover ${coverHp} on self + ${allyName} (this round)`,
+    );
+  }
+  return cleanseTargetIds;
 }
 
 /**
@@ -380,7 +414,7 @@ function fireMage(
   team: TeamState,
   log: LogFn,
   label: string,
-): void {
+): string[] {
   /** Chill + Ice + Slime — Fire/Poison are Shield Maiden; chain Frozen is A-break. */
   const mageCleanse: DotType[] = ["Chill", "Ice", "Slime"];
 
@@ -399,7 +433,7 @@ function fireMage(
       );
     }
     log(`${label}: EXPLOSION (ignores shield/block)! ${hits.join("; ")}`);
-    return;
+    return [];
   }
 
   const table: Record<
@@ -453,17 +487,18 @@ function fireMage(
         ? livingParty(team).filter((s) => s.position && s.position <= 3)
         : livingParty(team).filter((s) => s.position && s.position >= 4);
     const side = g === "A" ? "front" : "back";
-    const n = cleanseDots(seats, mageCleanse);
+    const result = cleanseDotsWithTargets(seats, mageCleanse);
+    const n = result.removed;
     const extras: string[] = [];
     if (n) extras.push(`cleansed Chill/Ice/Slime (${n})`);
     const extraNote = extras.length ? `; ${side}: ${extras.join(", ")}` : "";
     log(`${label}: Wildfire ${r}${burnNote}${extraNote}`);
-    return;
+    return result.targetIds;
   }
   if (g === "C") {
     // Solid mid grade: multi-hit + boss Fire, no friendly fire
     log(`${label}: Wildfire ${r}${burnNote}`);
-    return;
+    return [];
   }
   // D — single-target ember, no burn, friendly fire front (Frozen ice still blocks)
   const hits: string[] = [];
@@ -483,6 +518,7 @@ function fireMage(
   log(
     `${label}: ember ${r}; friendly fire (ignores shield/block): ${hits.join("; ") || "nobody"}`,
   );
+  return [];
 }
 
 /**

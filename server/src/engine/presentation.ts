@@ -144,17 +144,25 @@ export function cueAction(
     hitFocusIds?: string[];
     /** Minion names slain this action — shown in the bubble */
     slainNames?: string[];
+    /** Party seats that actually had one or more DoTs removed this action. */
+    cleanseTargetIds?: string[];
   },
 ): void {
   // One of the claimers may also "speak" during the attack
   const playVo = maybePlayVo(random, 0.28);
   const hitFocus = opts?.hitFocusIds?.filter(Boolean) ?? [];
   const slain = opts?.slainNames?.filter(Boolean) ?? [];
+  const cleanseTargets = [
+    ...new Set(opts?.cleanseTargetIds?.filter(Boolean) ?? []),
+  ];
   // Focus attacker + whatever they affected (enemies, allies, boss heals).
   // Do NOT default empty focus to boss — party-only F effects must land on the party.
   const focusIds = [
     soldierId,
     ...hitFocus.filter((id) => id !== soldierId),
+    ...cleanseTargets.filter(
+      (id) => id !== soldierId && !hitFocus.includes(id),
+    ),
   ];
 
   let text = actionBubbleText(archetype, grade);
@@ -315,6 +323,7 @@ export function cueAction(
   pushCue(team, {
     kind: "action",
     focusIds,
+    ...(cleanseTargets.length ? { cleanseTargetIds: cleanseTargets } : {}),
     grade,
     bubble: {
       speakerId: soldierId,

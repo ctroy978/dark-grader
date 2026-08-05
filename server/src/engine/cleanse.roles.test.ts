@@ -84,7 +84,10 @@ describe("cleanse role split", () => {
     applyDot(v, "Ice", 1);
 
     const maiden = livingParty(team).find((s) => s.archetype === "ShieldMaiden")!;
-    resolveSpecialistAction(
+    const enemyHpBefore =
+      team.boss!.currentHp +
+      team.minions.reduce((total, minion) => total + minion.currentHp, 0);
+    const result = resolveSpecialistAction(
       team,
       maiden,
       { token: "A", soldierId: maiden.id, effectiveGrade: "A" },
@@ -99,6 +102,39 @@ describe("cleanse role split", () => {
     expect(types).not.toContain("Fire");
     expect(types).toContain("Slime");
     expect(types).toContain("Ice");
+    expect(result.cleanseTargetIds).toEqual([v.id]);
+    const enemyHpAfter =
+      team.boss!.currentHp +
+      team.minions.reduce((total, minion) => total + minion.currentHp, 0);
+    expect(enemyHpAfter).toBe(enemyHpBefore);
+    expect(team.partyShield.active).toBe(true);
+  });
+
+  it("Shield Maiden attacks when her cleanse scope is already clear", () => {
+    const team = partyWith([
+      { at: 1, archetype: "Vanguard" },
+      { at: 2, archetype: "ShieldMaiden" },
+      { at: 3, archetype: "Archer" },
+    ]);
+    const maiden = livingParty(team).find((s) => s.archetype === "ShieldMaiden")!;
+    const enemyHpBefore =
+      team.boss!.currentHp +
+      team.minions.reduce((total, minion) => total + minion.currentHp, 0);
+
+    const result = resolveSpecialistAction(
+      team,
+      maiden,
+      { token: "A", soldierId: maiden.id, effectiveGrade: "A" },
+      () => 0.5,
+      () => {},
+    );
+
+    const enemyHpAfter =
+      team.boss!.currentHp +
+      team.minions.reduce((total, minion) => total + minion.currentHp, 0);
+    expect(result.cleanseTargetIds).toBeUndefined();
+    expect(enemyHpAfter).toBeLessThan(enemyHpBefore);
+    expect(team.partyShield.active).toBe(true);
   });
 
   it("Shield Maiden D cleanses only herself, not allies", () => {
@@ -220,7 +256,7 @@ describe("cleanse role split", () => {
     front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });
     mid.statuses.push({ kind: "Frozen", origin: 3, stage: 0 });
 
-    resolveSpecialistAction(
+    const frozenResult = resolveSpecialistAction(
       team,
       mage,
       { token: "A", soldierId: mage.id, effectiveGrade: "A" },
@@ -240,11 +276,12 @@ describe("cleanse role split", () => {
     expect(
       front.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
     ).toBe(true);
+    expect(frozenResult.cleanseTargetIds).toBeUndefined();
 
     // After A-break, Mage can cleanse
     front.statuses = front.statuses.filter((st) => st.kind !== "Frozen");
     mid.statuses = mid.statuses.filter((st) => st.kind !== "Frozen");
-    resolveSpecialistAction(
+    const cleanseResult = resolveSpecialistAction(
       team,
       mage,
       { token: "A", soldierId: mage.id, effectiveGrade: "A" },
@@ -257,6 +294,7 @@ describe("cleanse role split", () => {
     expect(
       front.statuses.some((st) => st.kind === "Dot" && st.type === "Chill"),
     ).toBe(false);
+    expect(cleanseResult.cleanseTargetIds).toEqual([front.id]);
 
     applyDot(front, "Fire", 1, undefined, true);
     front.statuses.push({ kind: "Frozen", origin: 1, stage: 0 });

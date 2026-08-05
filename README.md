@@ -163,16 +163,16 @@ Gap rule: positions 1–3 hit minions first; positions 4–6 hit the boss.
 
 ---
 
-### ShieldMaiden — striker + cover + Fire/Poison cleanse
+### ShieldMaiden — conditional striker + cover + Fire/Poison cleanse
 
-**Job (as coded):** hit + one-round cover (self + most endangered) + **cleanse Fire/Poison** (moved from Healer). **No free opening shield.**
+**Job (as coded):** one-round cover (self + most endangered), plus either a hit or **Fire/Poison cleanse** (moved from Healer). If her cleanse scope contains Fire/Poison, the cleanse **replaces** her hit; otherwise she attacks. **No free opening shield.**
 
 | Grade | Hit | Cover | Cleanse Fire/Poison |
 |-------|-----|-------|---------------------|
-| **A** | **14** | **8** | **All** living |
-| **B** | **11** | **6** | **Front** (1–3) |
-| **C** | **9** | **4** | **Back** (4–6) |
-| **D** | **7** | **3** | **Self** only |
+| **A** | **14 if no cleanse** | **8** | **All** living |
+| **B** | **11 if no cleanse** | **6** | **Front** (1–3) |
+| **C** | **9 if no cleanse** | **4** | **Back** (4–6) |
+| **D** | **7 if no cleanse** | **3** | **Self** only |
 | **F** | — | Dump cover to **0** | — |
 
 Uncovered seats take full damage even while cover is active.

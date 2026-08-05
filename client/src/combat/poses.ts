@@ -6,6 +6,8 @@ export type CombatPose =
   | "standing"
   | "windup"
   | "attack"
+  /** Shield Maiden only — cleanse.png when she actually strips a DoT. */
+  | "cleanse"
   | "hit"
   | "death"
   /** SpreadingFrost lock — ice.png (party) while Frozen status is active */
@@ -46,6 +48,8 @@ export function poseForUnit(
       return isSpeaker ? "standing" : "standing";
 
     case "action":
+      // Shield Maiden uses her dedicated cleanse.png only when a strip landed.
+      if (isSpeaker && fx.includes("maiden-cleanse")) return "cleanse";
       // A-break free — triumphant attack pose (status already cleared)
       if (isSpeaker && fx.includes("ice-break")) return "attack";
       // Frozen skip (token waste) — ice pose, not a swing
@@ -62,6 +66,8 @@ export function poseForUnit(
       if (isSpeaker) return "attack";
       // Focused non-speaker: flinch on strikes; soft heal/hymn/buff recipients stay calm
       if (inFocus) {
+        // Cleansed allies receive a soft wash, never an attack impact / hit pose.
+        if (cue.cleanseTargetIds?.includes(unitId)) return "standing";
         // Necro Life Power empower (or purple rain spend) — never hit.png
         if (
           fx.some((f) => f === "life-power-grant" || f === "life-power-blast")
@@ -206,8 +212,14 @@ export function fxClassesForUnit(
     (unitId === "boss" && cue.focusIds?.includes("boss"));
   if (!focused) return "";
   const isBoss = unitId === "boss";
+  const cleanseTarget = cue.cleanseTargetIds?.includes(unitId) ?? false;
   return cue.fx
     .map((f) => {
+      // A cleanse target shares the actor's cue, but must not inherit its
+      // offensive class blast/tint. Only the dedicated wash paints this seat.
+      if (cleanseTarget) {
+        return f === "cleanse-glow" && !isBoss ? "fx-cleanse-glow" : "";
+      }
       // Victim tints — party only (boss impact/wind-up glow is separate)
       if (f === "poison-tint") return !isBoss ? "fx-poison-tint" : "";
       if (f === "fire-tint" || f === "fire-flash") return !isBoss ? "fx-fire-tint" : "";
@@ -232,6 +244,12 @@ export function fxClassesForUnit(
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";
+      if (f === "cleanse-glow") return !isBoss ? "fx-cleanse-glow" : "";
+      if (f === "maiden-cleanse") {
+        return cue.bubble?.speakerId === unitId && !isBoss
+          ? "fx-cleanse-cast"
+          : "";
+      }
       if (f === "life-power-grant" || f === "life-power-blast") {
         return !isBoss ? "fx-life-power-glow" : "";
       }

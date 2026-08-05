@@ -72,6 +72,8 @@ export type PresentationCue = {
   id: string;
   kind: string;
   focusIds?: string[];
+  /** Party seats that actually lost one or more DoTs on this action beat. */
+  cleanseTargetIds?: string[];
   bubble?: {
     speakerId?: string;
     speakerName?: string;

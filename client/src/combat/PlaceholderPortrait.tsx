@@ -8,6 +8,7 @@ import type { CombatPose } from "./poses";
  *
  *   /art/vanguard/standing.png
  *   /art/vanguard/ice.png        (party Frozen / SpreadingFrost)
+ *   /art/shieldmaiden/cleanse.png (Maiden successful cleanse only)
  *   /art/ash_wraith/windup.png   (boss charge pose)
  *   /art/ash_wraith/attack.png
  *
@@ -110,6 +111,13 @@ function poseTransform(pose: CombatPose): {
         opacity: 1,
         filter: "brightness(1.15)",
       };
+    case "cleanse":
+      return {
+        body: "translate(0, -2)",
+        arm: "rotate(-48 70 55)",
+        opacity: 1,
+        filter: "brightness(1.12) saturate(0.9)",
+      };
     case "hit":
       return {
         body: "translate(-3, 2) rotate(-8)",
@@ -177,12 +185,16 @@ export function PlaceholderPortrait({
       : ARCHETYPE_MARK[kind.archetype] ?? "?";
 
   const artKey = artKeyFor(kind);
-  const imgSrc = artUrlFor(artKey, assetPose ?? pose);
+  const requestedAssetPose = assetPose ?? pose;
+  const [resolvedAssetPose, setResolvedAssetPose] =
+    useState<CombatPose>(requestedAssetPose);
+  const imgSrc = artUrlFor(artKey, resolvedAssetPose);
   // Prefer real PNG; fall back to SVG if missing or failed to load
   const [useImg, setUseImg] = useState(true);
   useEffect(() => {
+    setResolvedAssetPose(requestedAssetPose);
     setUseImg(true);
-  }, [imgSrc]);
+  }, [artKey, requestedAssetPose]);
 
   // Boss art is often a tall bust; party combat uses short cards with object-top.
   // Codex / full-body art (e.g. Spearman) should use contain so the figure isn't cropped to black.
@@ -227,7 +239,15 @@ export function PlaceholderPortrait({
           alt=""
           className={imgFit}
           style={{ filter: t.filter, opacity: t.opacity }}
-          onError={() => setUseImg(false)}
+          onError={() => {
+            // cleanse.png is an optional Maiden-only pose. Until it lands,
+            // retain real character art by falling back to attack.png.
+            if (resolvedAssetPose === "cleanse") {
+              setResolvedAssetPose("attack");
+              return;
+            }
+            setUseImg(false);
+          }}
           draggable={false}
         />
         {pose === "hit" && (

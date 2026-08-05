@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Grade, TeamState } from "@dungeon-grades/shared";
 import {
+  commitRound,
   createTeam,
+  placeMagnet,
   selectParty,
   startFight,
 } from "./combat.js";
+import { applyDot } from "./dots.js";
 import { cueAction, ensurePlayback } from "./presentation.js";
 import {
   beginPartyActionPhase,
@@ -173,5 +176,95 @@ describe("F-token presentation targets (real cast, correct panels)", () => {
     // No phantom boss focus when only the party was hurt
     expect(act.focusIds).not.toContain("boss");
     expect(act.fx).toContain("fire-blast");
+  });
+});
+
+describe("cleanse presentation targets", () => {
+  it("tags the Maiden cast and only the allies whose DoTs were removed", () => {
+    const team = createTeam("cleanse-fx", "CLNFX", "Cleanse FX", 19);
+    selectParty(team, [
+      "vanguard_1",
+      "shieldmaiden_1",
+      "firemage_1",
+      "archer_1",
+      "thundercaller_1",
+      "healer_1",
+    ]);
+    startFight(team, "ash_wraith", Array<Grade>(30).fill("A"));
+
+    const target = team.roster.find((s) => s.id === "vanguard_1")!;
+    const untouched = team.roster.find((s) => s.id === "archer_1")!;
+    applyDot(target, "Fire", 1, undefined, true);
+    applyDot(target, "Poison", 1, undefined, true);
+    applyDot(untouched, "Ice", 1);
+
+    const maiden = team.roster.find((s) => s.id === "shieldmaiden_1")!;
+    placeMagnet(team, maiden.position!);
+    commitRound(team);
+
+    const action = team.playback.find(
+      (cue) =>
+        cue.kind === "action" && cue.bubble?.speakerId === "shieldmaiden_1",
+    );
+    expect(action).toBeDefined();
+    expect(action!.cleanseTargetIds).toEqual([target.id]);
+    expect(action!.focusIds).toContain(target.id);
+    expect(action!.focusIds).not.toContain(untouched.id);
+    expect(action!.fx).toContain("cleanse-glow");
+    expect(action!.fx).toContain("maiden-cleanse");
+    expect(action!.fx).not.toContain("attack-flash");
+    expect(action!.fx).not.toContain("maiden-blast");
+    expect(
+      team.playback.some(
+        (cue) =>
+          cue.kind === "telegraph" &&
+          cue.bubble?.speakerId === "shieldmaiden_1",
+      ),
+    ).toBe(false);
+    expect(
+      target.statuses.some(
+        (status) =>
+          status.kind === "Dot" &&
+          (status.type === "Fire" || status.type === "Poison"),
+      ),
+    ).toBe(false);
+    expect(
+      untouched.statuses.some(
+        (status) => status.kind === "Dot" && status.type === "Ice",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps the normal Maiden attack presentation when nothing can be cleared", () => {
+    const team = createTeam("attack-fx", "ATKFX", "Attack FX", 23);
+    selectParty(team, [
+      "vanguard_1",
+      "shieldmaiden_1",
+      "firemage_1",
+      "archer_1",
+      "thundercaller_1",
+      "healer_1",
+    ]);
+    startFight(team, "ash_wraith", Array<Grade>(30).fill("A"));
+
+    const maiden = team.roster.find((s) => s.id === "shieldmaiden_1")!;
+    placeMagnet(team, maiden.position!);
+    commitRound(team);
+
+    const action = team.playback.find(
+      (cue) =>
+        cue.kind === "action" && cue.bubble?.speakerId === "shieldmaiden_1",
+    );
+    expect(action).toBeDefined();
+    expect(action!.cleanseTargetIds).toBeUndefined();
+    expect(action!.fx).toContain("attack-flash");
+    expect(action!.fx).toContain("maiden-blast");
+    expect(
+      team.playback.some(
+        (cue) =>
+          cue.kind === "telegraph" &&
+          cue.bubble?.speakerId === "shieldmaiden_1",
+      ),
+    ).toBe(true);
   });
 });

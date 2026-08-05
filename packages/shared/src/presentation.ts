@@ -73,6 +73,8 @@ export interface PresentationCue {
     | "system";
   /** Party soldier id, minion id, or "boss" */
   focusIds?: string[];
+  /** Party seats that actually lost one or more DoTs on this action beat. */
+  cleanseTargetIds?: string[];
   /** Comic speech bubble (keep text short) */
   bubble?: {
     speakerId?: string;

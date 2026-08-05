@@ -480,8 +480,14 @@ export function commitRound(team: TeamState): TeamState {
         stunned: s.statuses.some((st) => st.kind === "Stun"),
       }));
 
-      const { acted, skipReason, effectFocusIds, lifePowerFollowUp, iceBreak } =
-        resolveSpecialistAction(
+      const {
+        acted,
+        skipReason,
+        effectFocusIds,
+        cleanseTargetIds,
+        lifePowerFollowUp,
+        iceBreak,
+      } = resolveSpecialistAction(
           team,
           soldier,
           claim,
@@ -617,16 +623,46 @@ export function commitRound(team: TeamState): TeamState {
         fx.push("life-power-grant");
       }
       if (bossStunnedNow) fx.push("boss-stunned");
-      cueAction(
-        team,
-        soldier.id,
-        soldier.name,
-        soldier.archetype,
-        claim.effectiveGrade,
-        random,
-        fx,
-        { hitFocusIds, slainNames },
-      );
+      if (cleanseTargetIds?.length) {
+        fx.push("cleanse-glow");
+        if (soldier.archetype === "ShieldMaiden") fx.push("maiden-cleanse");
+      }
+      const maidenCleanseOnly =
+        soldier.archetype === "ShieldMaiden" &&
+        (cleanseTargetIds?.length ?? 0) > 0;
+      if (maidenCleanseOnly) {
+        // A successful Maiden cleanse replaces her strike. Keep it as its own
+        // calm action beat: cleanse.png + wash + the newly raised cover reveal.
+        pushCue(team, {
+          kind: "action",
+          focusIds: [
+            soldier.id,
+            ...cleanseTargetIds!.filter((id) => id !== soldier.id),
+          ],
+          cleanseTargetIds,
+          grade: claim.effectiveGrade,
+          bubble: {
+            speakerId: soldier.id,
+            speakerName: soldier.name,
+            side: "party",
+            text: "Cleanse + cover!",
+          },
+          fx: ["cleanse-glow", "maiden-cleanse"],
+          sfxId: resolveSfxId(["heal", "act_healer"]) ?? "heal",
+          durationMs: 1100,
+        });
+      } else {
+        cueAction(
+          team,
+          soldier.id,
+          soldier.name,
+          soldier.archetype,
+          claim.effectiveGrade,
+          random,
+          fx,
+          { hitFocusIds, slainNames, cleanseTargetIds },
+        );
+      }
       if (brokenMemory) cueMemoryBroken(team, brokenMemory);
 
       // Life Power purple rain: bonus HP on heal seats; FX on cleanse seats too.

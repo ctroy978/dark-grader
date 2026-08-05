@@ -1496,6 +1496,159 @@ body {
 }
 
 /*
+ * Successful cleanse — cool white/cyan wash on seats that actually lost a DoT.
+ * Kept distinct from green healing and the Maiden's silver attack shockwave.
+ */
+.fx-cleanse-glow,
+.fx-cleanse-cast {
+  filter: drop-shadow(0 0 10px rgba(185, 245, 255, 0.82))
+    drop-shadow(0 0 20px rgba(90, 210, 235, 0.42));
+}
+.fx-cleanse-glow .portrait-frame,
+.fx-cleanse-cast .portrait-frame {
+  animation: cleanse-frame-flash 0.85s ease-out;
+  border-color: rgba(205, 250, 255, 0.78);
+  box-shadow:
+    0 0 0 2px rgba(225, 255, 255, 0.65),
+    0 0 18px rgba(125, 225, 245, 0.58),
+    inset 0 0 18px rgba(205, 250, 255, 0.16);
+}
+.cleanse-wash-fx {
+  pointer-events: none;
+  position: absolute;
+  inset: -22% -14%;
+  z-index: 7;
+  overflow: visible;
+  mix-blend-mode: screen;
+}
+.cleanse-wash-sheen {
+  position: absolute;
+  inset: 12% 8%;
+  border-radius: 44%;
+  background: linear-gradient(
+    180deg,
+    transparent 5%,
+    rgba(225, 255, 255, 0.22) 40%,
+    rgba(130, 235, 250, 0.42) 72%,
+    transparent 100%
+  );
+  animation: cleanse-sheen-rise 0.78s ease-out both;
+}
+.cleanse-wash-column {
+  position: absolute;
+  left: 23%;
+  right: 23%;
+  bottom: 8%;
+  height: 78%;
+  border-radius: 50%;
+  background: linear-gradient(
+    0deg,
+    rgba(100, 220, 245, 0.35),
+    rgba(240, 255, 255, 0.58) 52%,
+    transparent 100%
+  );
+  filter: blur(5px);
+  animation: cleanse-column-lift 0.82s ease-out both;
+}
+.cleanse-wash-ring {
+  position: absolute;
+  left: 50%;
+  top: 63%;
+  width: 52%;
+  height: 20%;
+  margin-left: -26%;
+  margin-top: -10%;
+  border: 2px solid rgba(220, 255, 255, 0.88);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(105, 225, 245, 0.65);
+  animation: cleanse-ring-rise 0.72s ease-out both;
+}
+.cleanse-wash-ring--b {
+  animation-delay: 0.12s;
+  opacity: 0.72;
+}
+.cleanse-wash-motes {
+  position: absolute;
+  inset: 5% 5%;
+}
+.cleanse-wash-mote {
+  position: absolute;
+  left: var(--mote-x);
+  top: var(--mote-y);
+  width: var(--mote-size);
+  height: var(--mote-size);
+  border-radius: 50%;
+  background: rgba(238, 255, 255, 0.95);
+  box-shadow:
+    0 0 5px rgba(220, 255, 255, 0.95),
+    0 0 10px rgba(90, 220, 245, 0.7);
+  animation: cleanse-mote-lift 0.72s ease-out var(--mote-delay) both;
+}
+@keyframes cleanse-frame-flash {
+  0% {
+    filter: brightness(1.35) saturate(0.72);
+  }
+  55% {
+    filter: brightness(1.18) saturate(0.88);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+@keyframes cleanse-sheen-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(24%) scaleY(0.35);
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-25%) scaleY(1.2);
+  }
+}
+@keyframes cleanse-column-lift {
+  0% {
+    opacity: 0;
+    transform: translateY(24%) scaleX(0.55);
+  }
+  40% {
+    opacity: 0.78;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28%) scaleX(1.15);
+  }
+}
+@keyframes cleanse-ring-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.45);
+  }
+  32% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(1.55);
+  }
+}
+@keyframes cleanse-mote-lift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 12px) scale(0.35);
+  }
+  28% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--mote-drift), -62px) scale(0.8);
+  }
+}
+
+/*
  * Fire Mage — red/orange anime explosion.
  * Charge: pulsing core that grows over the telegraph (~0.9s).
  * Blast / impact: outward fireburst (cousin to maiden beam, warmer palette).
