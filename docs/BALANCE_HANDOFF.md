@@ -1,5 +1,7 @@
 # Balance handoff — frontline redesign
 
+> Historical snapshot: Bone Colossus results and Frost Archer recommendations below predate the Bone Memory redesign. Rerun the balance report before tuning the new five-gate encounter.
+
 **Date:** 2026-08-02  
 **Branch:** `feature/frontline-spearman-redesign`  
 **Status:** Redesign Phases 0–8 implemented; **typical-pool mid/late rooms are too hard**. Soften tomorrow — do not re-litigate kit fantasy.

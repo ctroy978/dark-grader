@@ -107,6 +107,7 @@ function fallbackTemplateFromBoss(team: TeamState): BossTemplate {
       weight: 2,
       bubble_lines: [],
     })),
+    memories: [],
     audio: [],
   };
 }
@@ -586,6 +587,7 @@ export function resolveBossPhase(
   let minionShotIndex = 0;
   for (const minion of [...team.minions]) {
     if (minion.currentHp <= 0) continue;
+    if (minion.memory) continue;
     const target = magnetHardTarget(team);
     if (!target) break;
     let dmg = Math.floor(

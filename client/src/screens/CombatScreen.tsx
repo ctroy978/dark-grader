@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   ARCHETYPE_ICONS,
   GRADE_COLORS,
@@ -6,6 +13,7 @@ import {
   gradeRiskNote,
   statusToChip,
   type DotType,
+  type BoneMemoryState,
   type Grade,
   type StatusTag,
 } from "@dungeon-grades/shared";
@@ -46,6 +54,42 @@ import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
 
 const FLOAT_MS = 950;
+
+const MEMORY_THEME: Record<
+  BoneMemoryState["theme"],
+  { border: string; bar: string; text: string; tether: string }
+> = {
+  slime: {
+    border: "border-emerald-400/60 bg-emerald-950/35",
+    bar: "bg-emerald-400",
+    text: "text-emerald-200",
+    tether: "#34d399",
+  },
+  poison: {
+    border: "border-lime-400/60 bg-lime-950/35",
+    bar: "bg-lime-400",
+    text: "text-lime-200",
+    tether: "#a3e635",
+  },
+  fire: {
+    border: "border-orange-400/60 bg-orange-950/35",
+    bar: "bg-orange-400",
+    text: "text-orange-200",
+    tether: "#fb923c",
+  },
+  shock: {
+    border: "border-yellow-300/60 bg-yellow-950/35",
+    bar: "bg-yellow-300",
+    text: "text-yellow-100",
+    tether: "#fde047",
+  },
+  frost: {
+    border: "border-cyan-300/60 bg-cyan-950/35",
+    bar: "bg-cyan-300",
+    text: "text-cyan-100",
+    tether: "#67e8f9",
+  },
+};
 
 /** Snapshot of unit HP for floating combat numbers (diff per presentation beat). */
 function hpMapFromView(t: EnrichedTeam): Map<string, number> {
@@ -299,6 +343,7 @@ function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
     minions: t.minions.map((m) => ({
       ...m,
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+      memory: m.memory ? { ...m.memory } : undefined,
     })),
     partyShield: {
       ...t.partyShield,
@@ -306,6 +351,7 @@ function snapshotCombatants(t: EnrichedTeam): EnrichedTeam {
         ? [...t.partyShield.coveredIds]
         : [],
     },
+    boneColossus: t.boneColossus ? { ...t.boneColossus } : null,
     lastClaims: [],
   };
 }
@@ -339,6 +385,10 @@ function applyBoardReveal(
               statuses: (base.boss.statuses ?? []).map((st) => ({ ...st })),
               // Freeze pre-resolve stun so Drop Tokens does not flash a later stun
               stunRoundsLeft: base.boss.stunRoundsLeft ?? 0,
+              curseDamageTakenMult: base.boss.curseDamageTakenMult,
+              curseRoundsLeft: base.boss.curseRoundsLeft,
+              damageFloor: base.boss.damageFloor,
+              damageFloorLabel: base.boss.damageFloorLabel,
             }
           : final.boss,
       minions: base.minions.map((m) => ({
@@ -352,6 +402,9 @@ function applyBoardReveal(
           : [],
       },
       magnetStunRoundsLeft: base.magnetStunRoundsLeft ?? 0,
+      boneColossus: base.boneColossus
+        ? { ...base.boneColossus }
+        : base.boneColossus,
     };
   }
   const byId = new Map(reveal.soldiers.map((s) => [s.id, s]));
@@ -381,11 +434,16 @@ function applyBoardReveal(
             // Prefer per-cue stun; fall back to pre-resolve (never post-drop final)
             stunRoundsLeft:
               reveal.boss.stunRoundsLeft ?? base.boss?.stunRoundsLeft ?? 0,
+            curseDamageTakenMult: reveal.boss.curseDamageTakenMult,
+            curseRoundsLeft: reveal.boss.curseRoundsLeft,
+            damageFloor: reveal.boss.damageFloor,
+            damageFloorLabel: reveal.boss.damageFloorLabel,
           }
         : final.boss,
     minions: reveal.minions.map((m) => ({
       ...m,
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+      memory: m.memory ? { ...m.memory } : undefined,
     })),
     partyShield: {
       ...reveal.partyShield,
@@ -395,6 +453,9 @@ function applyBoardReveal(
     },
     magnetStunRoundsLeft:
       reveal.magnetStunRoundsLeft ?? base.magnetStunRoundsLeft ?? 0,
+    boneColossus: reveal.boneColossus
+      ? { ...reveal.boneColossus }
+      : reveal.boneColossus,
   };
 }
 
@@ -1183,7 +1244,10 @@ export default function CombatScreen({
 
       {showBossTelegraphBanner && (
         <div className="shrink-0 bg-crimson/90 text-parchment text-center py-1.5 px-3 text-sm font-bold tracking-wide animate-pulse">
-          ⚠ {team.boss?.name ?? "Boss"} is about to attack!
+          ⚠{" "}
+          {team.pendingBossAttackId === "BoneMemoryDetonation"
+            ? "BONE MEMORY DETONATION!"
+            : `${team.boss?.name ?? "Boss"} is about to attack!`}
         </div>
       )}
       {(team.phase === "victory" || team.phase === "defeat") && !playing && (
@@ -1478,15 +1542,21 @@ export default function CombatScreen({
               view.minions.map((m) => {
                 const focused = focusSet.has(m.id);
                 const dead = m.currentHp <= 0;
+                const memory = m.memory;
+                const memoryTheme = memory ? MEMORY_THEME[memory.theme] : null;
                 const reflecting = m.statuses?.some(
                   (st) => st.kind === "Reflect" && st.duration > 0,
                 );
                 return (
                   <div
                     key={m.id}
-                    className={`relative rounded-lg border px-1.5 py-1.5 min-w-[4.5rem] max-w-[6rem] transition ${
+                    className={`relative rounded-lg border px-1.5 py-1.5 transition ${
+                      memory ? "bone-memory-card min-w-[8rem] max-w-[9rem]" : "min-w-[4.5rem] max-w-[6rem]"
+                    } ${
                       dead
                         ? "opacity-40 border-parchment/10"
+                        : memoryTheme
+                          ? memoryTheme.border
                         : reflecting
                           ? "seat-stunned bg-navy-light"
                           : focused
@@ -1494,20 +1564,66 @@ export default function CombatScreen({
                             : "border-parchment/20 bg-navy-light/60"
                     }`}
                   >
+                    {memoryTheme && !dead && (
+                      <div
+                        className="bone-memory-tether hidden md:block"
+                        style={{ "--memory-tether": memoryTheme.tether } as CSSProperties}
+                        aria-hidden
+                      />
+                    )}
                     <CombatActor
                       unitId={m.id}
                       name={m.name}
-                      portrait={{ role: "minion", name: m.name }}
+                      portrait={{
+                        role: "minion",
+                        name: m.name,
+                        artKey: memory?.artKey,
+                      }}
+                      assetPose={memory ? "death" : undefined}
                       cue={activeBeat}
                       alive={!dead}
                       currentHp={m.currentHp}
                       maxHp={m.maxHp}
                       statuses={m.statuses}
                       size="sm"
-                      subtitle={dead ? "fallen" : `ATK ${m.damage ?? 7}`}
+                      subtitle={
+                        dead
+                          ? "fallen"
+                          : memory
+                            ? `Memory ${memory.phaseIndex + 1} of 5`
+                            : `ATK ${m.damage ?? 7}`
+                      }
                       showStatuses
                       hpFloats={hpFloats[m.id]}
                     />
+                    {memory && !dead && (
+                      <div className="mt-1.5 border-t border-parchment/15 pt-1">
+                        <div className={`text-[9px] font-bold ${memoryTheme?.text ?? "text-parchment"}`}>
+                          {memory.signatureName}
+                        </div>
+                        <div className="mt-1 flex gap-1" aria-label={`Charge ${memory.charge} of ${memory.maxCharge}`}>
+                          {Array.from({ length: memory.maxCharge }, (_, index) => (
+                            <span
+                              key={index}
+                              className={`h-1.5 flex-1 rounded-full border border-parchment/20 ${
+                                index < memory.charge
+                                  ? memoryTheme?.bar ?? "bg-rune"
+                                  : "bg-navy"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className={`mt-1 text-[9px] font-extrabold tracking-wide ${
+                          memory.charge >= memory.maxCharge - 1
+                            ? "text-grade-f animate-pulse"
+                            : "text-parchment-dim"
+                        }`}>
+                          {memory.charge >= memory.maxCharge - 1
+                            ? "DETONATES THIS ROUND"
+                            : `${memory.maxCharge - memory.charge} turns remain`}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1630,6 +1746,30 @@ export default function CombatScreen({
                 hpFloats={hpFloats.boss}
               />
               <BossStatusRow boss={view.boss} />
+              {(view.boss.curseRoundsLeft ?? 0) > 0 &&
+                (view.boss.curseDamageTakenMult ?? 1) > 1 && (
+                  <div className="mt-2 rounded-md border border-purple-300/70 bg-purple-950/70 px-2 py-1 text-xs font-black tracking-widest text-purple-100 animate-pulse">
+                    EXPOSED · DAMAGE +
+                    {Math.round(
+                      ((view.boss.curseDamageTakenMult ?? 1) - 1) * 100,
+                    )}
+                    %
+                  </div>
+                )}
+              {(view.boss.damageFloor ?? 0) > 0 && (
+                <div className="mt-2 rounded-md border border-parchment/20 bg-black/25 px-2 py-1 text-[10px] text-parchment-dim">
+                  <strong className="text-parchment">Bone Ward</strong>
+                  {" · "}HP floor {view.boss.damageFloor}
+                  {view.boneColossus && (
+                    <span>{` · ${view.boneColossus.memoriesResolved}/5 broken`}</span>
+                  )}
+                </div>
+              )}
+              {view.boneColossus?.finalStand && (
+                <div className="mt-2 rounded-md border border-grade-f/60 bg-crimson/45 px-2 py-1 text-[10px] font-black tracking-widest text-grade-f animate-pulse">
+                  FINAL STAND
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-parchment-dim">No boss</div>

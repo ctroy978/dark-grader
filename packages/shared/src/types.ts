@@ -231,6 +231,32 @@ export interface Minion {
    * (no back-to-back fields). Cleared when the skip is consumed.
    */
   reflectCooldown?: boolean;
+  /** Bone Colossus: a charging remnant of an earlier campaign boss. */
+  memory?: BoneMemoryState;
+}
+
+export interface BoneMemoryState {
+  phaseIndex: number;
+  sourceBossId: string;
+  sourceBossName: string;
+  artKey: string;
+  signatureAttackId: string;
+  signatureName: string;
+  theme: "slime" | "poison" | "fire" | "shock" | "frost";
+  charge: number;
+  maxCharge: number;
+  gateHpPct: number;
+  detonationDamage: number;
+  detonationSfx?: string;
+}
+
+export interface BoneColossusEncounterState {
+  memoriesResolved: number;
+  nextMemoryIndex: number;
+  activeMemoryId: string | null;
+  spawnAfterBossRound: number | null;
+  finalStand: boolean;
+  lastOutcome: "destroyed" | "detonated" | null;
 }
 
 export interface BossState {
@@ -263,6 +289,9 @@ export interface BossState {
   enrageHpPct?: number;
   /** Outgoing damage mult while enraged; ≤1 means no meaningful enrage */
   enrageDamageMult?: number;
+  /** Lowest HP this boss can reach while a phase gate is active. */
+  damageFloor?: number;
+  damageFloorLabel?: string;
 }
 
 export type FightPhase =
@@ -324,6 +353,8 @@ export interface TeamState {
   noSummonBeforeRound?: number;
   boss: BossState | null;
   minions: Minion[];
+  /** Present only during the Bone Colossus five-memory encounter. */
+  boneColossus?: BoneColossusEncounterState | null;
   phase: FightPhase;
   round: number;
   log: RoundLogEntry[];

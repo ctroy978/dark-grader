@@ -75,6 +75,19 @@ export function buildBossScout(templateId: string): BossScout | null {
     });
   }
 
+  for (const memory of t.memories) {
+    minions.push({
+      id: `bone_memory_${memory.sourceBossId}`,
+      name: `${memory.sourceBossName} Memory`,
+      maxHp: memory.maxHp,
+      damage: memory.detonationDamage,
+      maxCount: 1,
+      opensFight: memory === t.memories[0],
+      freeVolley: false,
+      note: `Charges ${memory.signatureName} over ${memory.maxCharge} party opportunities. Destroy it to break the Bone Ward and expose the Colossus.`,
+    });
+  }
+
   const enrages =
     t.enrageDamageMult > 1.001 && t.enrageHpPct > 0 && t.enrageHpPct < 1;
   const pctLabel = Math.round(t.enrageHpPct * 100);

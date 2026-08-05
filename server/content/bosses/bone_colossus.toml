@@ -5,10 +5,10 @@
 id = "bone_colossus"
 name = "Bone Colossus"
 max_hp = 230
-traits = ["Undead", "Enrage"]
+traits = ["Undead", "Bone Memories", "Enrage"]
 difficulty = "Hard"
-summary = "Summons Frost Archers (Ice DoT → one-turn freeze if left). Cascade, poison, and magnet crush — enrages when low."
-recommended_rounds = "10–16"
+summary = "Raises five charging memories of earlier bosses. Break each memory to expose the Colossus before its signature attack detonates."
+recommended_rounds = "12–18"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.3
 
@@ -123,34 +123,67 @@ sfx = "boss_bone_crush"
 bubble_lines = ["The magnet dies!", "There!", "Crush the glow!"]
 use_grunt = true
 
-[[attacks]]
-id = "SummonBoneArchers"
-weight = 3
-sfx = "boss_bone_summon"
-bubble_lines = ["Rise, archers!", "Frost volley!", "Fill the gap!"]
-use_laugh = true
-minion_id = "bone_archer"
-minion_name = "Frost Archer"
-minion_max_hp = 12
-minion_damage = 4
-minion_max_count = 2
-free_volley = true
-open_count = 0
-minion_shot_sfx = "minion_bone_archer"
-minion_shot_bubble = "Frost!"
-minion_on_hit_dot = "Ice"
-minion_on_hit_dot_stacks = 1
+[[memories]]
+source_boss_id = "moss_grub"
+source_boss_name = "Moss Grub"
+art_key = "moss_grub"
+max_hp = 14
+max_charge = 2
+signature_attack_id = "MemorySlimeBurst"
+signature_name = "Slime Burst"
+theme = "slime"
+gate_hp_pct = 0.84
+detonation_damage = 4
+detonation_sfx = "boss_grub_slam"
 
-[[attacks]]
-id = "PoisonCloud"
-weight = 3
-sfx = "boss_bone_poison"
-bubble_lines = ["Breathe deep…", "Poison!", "Choke!"]
-use_laugh = true
+[[memories]]
+source_boss_id = "ash_wraith"
+source_boss_name = "Ash Wraith"
+art_key = "ash_wraith"
+max_hp = 18
+max_charge = 2
+signature_attack_id = "PoisonCloud"
+signature_name = "Poison Cloud"
+theme = "poison"
+gate_hp_pct = 0.68
+detonation_damage = 5
+detonation_sfx = "boss_ash_poison"
 
-[[attacks]]
-id = "Regenerate"
-weight = 1
-sfx = "boss_bone_regen"
-bubble_lines = ["Bones mend…", "Not yet."]
-use_grunt = true
+[[memories]]
+source_boss_id = "cinder_herald"
+source_boss_name = "Cinder Herald"
+art_key = "cinder_herald"
+max_hp = 22
+max_charge = 2
+signature_attack_id = "FireCloud"
+signature_name = "Fire Cloud"
+theme = "fire"
+gate_hp_pct = 0.52
+detonation_damage = 6
+detonation_sfx = "boss_herald_fire"
+
+[[memories]]
+source_boss_id = "rattle_captain"
+source_boss_name = "Rattle Captain"
+art_key = "rattle_captain"
+max_hp = 26
+max_charge = 2
+signature_attack_id = "Grounded"
+signature_name = "Grounded"
+theme = "shock"
+gate_hp_pct = 0.36
+detonation_damage = 14
+detonation_sfx = "boss_rattle_spark_1"
+
+[[memories]]
+source_boss_id = "barrow_warden"
+source_boss_name = "Barrow Warden"
+art_key = "barrow_warden"
+max_hp = 30
+max_charge = 2
+signature_attack_id = "SpreadingFrost"
+signature_name = "Spreading Frost"
+theme = "frost"
+gate_hp_pct = 0.20
+detonation_damage = 8
+detonation_sfx = "boss_warden_frost"

@@ -20,16 +20,23 @@ describe("boss TOML loader", () => {
     expect(colossus).toBeDefined();
     expect(colossus!.maxHp).toBe(230);
     expect(colossus!.attackIds).toContain("Cascade");
-    expect(colossus!.attackIds).toContain("SummonBoneArchers");
+    expect(colossus!.attackIds).not.toContain("SummonBoneArchers");
     expect(colossus!.audio.length).toBeGreaterThan(3);
     expect(colossus!.gruntPool.length).toBeGreaterThan(0);
     const cascade = colossus!.attacks.find((a) => a.id === "Cascade");
     expect(cascade?.weight).toBe(4);
     expect(cascade?.bubble_lines?.length).toBeGreaterThan(0);
-    const summon = colossus!.attacks.find((a) => a.id === "SummonBoneArchers");
-    expect(summon?.summon?.minionName).toBe("Frost Archer");
-    expect(summon?.summon?.maxHp).toBe(12);
-    expect(summon?.summon?.freeVolley).toBe(true);
+    expect(colossus!.memories).toHaveLength(5);
+    expect(colossus!.memories.map((memory) => memory.sourceBossId)).toEqual([
+      "moss_grub",
+      "ash_wraith",
+      "cinder_herald",
+      "rattle_captain",
+      "barrow_warden",
+    ]);
+    expect(colossus!.memories.map((memory) => memory.maxHp)).toEqual([
+      14, 18, 22, 26, 30,
+    ]);
   });
 
   it("loads Moss Grub tutorial kit with threatening mites", () => {
@@ -90,14 +97,14 @@ describe("boss TOML loader", () => {
     });
   });
 
-  it("loads Frost Archer shot SFX from Colossus summon row", () => {
+  it("loads the two-turn Bone Memory cadence", () => {
     const colossus = getBossTemplate("bone_colossus");
-    const summon = colossus!.attacks.find((a) => a.id === "SummonBoneArchers");
-    expect(summon?.summon).toMatchObject({
-      minionId: "bone_archer",
-      shotSfx: "minion_bone_archer",
-      shotBubble: "Frost!",
-      onHitDot: { type: "Ice", stacks: 1 },
+    expect(colossus!.memories.every((memory) => memory.maxCharge === 2)).toBe(true);
+    expect(colossus!.memories[0]).toMatchObject({
+      sourceBossId: "moss_grub",
+      signatureAttackId: "MemorySlimeBurst",
+      theme: "slime",
+      gateHpPct: 0.84,
     });
   });
 
@@ -129,5 +136,4 @@ describe("boss TOML loader", () => {
     expect(grub!.minions[0]?.name).toBe("Moss Mite");
   });
 });
-
 

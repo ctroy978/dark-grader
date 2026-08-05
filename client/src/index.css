@@ -5220,6 +5220,42 @@ body {
   }
 }
 
+/* Bone Colossus memories: one shared charging language, themed per prior boss. */
+.bone-memory-card {
+  isolation: isolate;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--memory-tether, #d7c38a) 28%, transparent);
+}
+
+.bone-memory-card .portrait-frame:not([data-art-key="moss_grub"]) img {
+  object-position: center calc(100% + 20px);
+}
+
+.bone-memory-tether {
+  --memory-tether: #d7c38a;
+  position: absolute;
+  z-index: -1;
+  top: 48%;
+  left: 92%;
+  width: clamp(5rem, 9vw, 9rem);
+  height: 3px;
+  transform-origin: left center;
+  transform: rotate(-4deg);
+  background: linear-gradient(90deg, var(--memory-tether), transparent);
+  filter: drop-shadow(0 0 5px var(--memory-tether));
+  animation: bone-memory-tether-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes bone-memory-tether-pulse {
+  from {
+    opacity: 0.38;
+    transform: rotate(-4deg) scaleX(0.9);
+  }
+  to {
+    opacity: 0.95;
+    transform: rotate(-4deg) scaleX(1.08);
+  }
+}
+
 @keyframes unit-focus {
   0%,
   100% {

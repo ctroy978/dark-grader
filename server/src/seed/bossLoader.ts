@@ -64,6 +64,20 @@ export interface BossAttackDef {
   summon?: BossSummonDef;
 }
 
+export interface BossMemoryDef {
+  sourceBossId: string;
+  sourceBossName: string;
+  artKey: string;
+  maxHp: number;
+  maxCharge: number;
+  signatureAttackId: string;
+  signatureName: string;
+  theme: "slime" | "poison" | "fire" | "shock" | "frost";
+  gateHpPct: number;
+  detonationDamage: number;
+  detonationSfx?: string;
+}
+
 export interface BossTemplate {
   id: string;
   name: string;
@@ -79,6 +93,7 @@ export interface BossTemplate {
   laughPool: string[];
   telegraphSfx?: string;
   attacks: BossAttackDef[];
+  memories: BossMemoryDef[];
   /** Extra ElevenLabs clips declared in this boss file */
   audio: AudioClipDef[];
 }
@@ -124,6 +139,19 @@ interface RawBossToml {
     minion_shot_sfx?: string;
     /** Comic bubble when this add volleys */
     minion_shot_bubble?: string;
+  }>;
+  memories?: Array<{
+    source_boss_id: string;
+    source_boss_name: string;
+    art_key?: string;
+    max_hp: number;
+    max_charge?: number;
+    signature_attack_id: string;
+    signature_name: string;
+    theme: BossMemoryDef["theme"];
+    gate_hp_pct: number;
+    detonation_damage: number;
+    detonation_sfx?: string;
   }>;
 }
 
@@ -204,6 +232,19 @@ function parseBossFile(filePath: string): BossTemplate {
     durationSeconds: c.duration_seconds,
     volume: c.volume,
   }));
+  const memories: BossMemoryDef[] = (raw.memories ?? []).map((memory) => ({
+    sourceBossId: memory.source_boss_id,
+    sourceBossName: memory.source_boss_name,
+    artKey: memory.art_key ?? memory.source_boss_id,
+    maxHp: memory.max_hp,
+    maxCharge: Math.max(1, memory.max_charge ?? 2),
+    signatureAttackId: memory.signature_attack_id,
+    signatureName: memory.signature_name,
+    theme: memory.theme,
+    gateHpPct: Math.max(0, Math.min(1, memory.gate_hp_pct)),
+    detonationDamage: Math.max(0, memory.detonation_damage),
+    detonationSfx: memory.detonation_sfx,
+  }));
 
   return {
     id: raw.id,
@@ -220,6 +261,7 @@ function parseBossFile(filePath: string): BossTemplate {
     laughPool: raw.laugh_pool ?? [],
     telegraphSfx: raw.telegraph_sfx,
     attacks,
+    memories,
     audio,
   };
 }

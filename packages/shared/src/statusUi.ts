@@ -229,8 +229,8 @@ export function bossIndicators(boss: {
     const pct = Math.round(((boss.curseDamageTakenMult ?? 1) - 1) * 100);
     out.push({
       key: "curse",
-      icon: "☠️",
-      label: `Cursed +${pct}%`,
+      icon: "💥",
+      label: `Exposed +${pct}%`,
       title: `Takes ${pct}% more damage · ${boss.curseRoundsLeft} round(s)`,
       colorClass: "text-purple-300 border-purple-400/40 bg-purple-950/50",
     });

@@ -1,4 +1,9 @@
-import type { Grade, StatusTag } from "./types.js";
+import type {
+  BoneColossusEncounterState,
+  BoneMemoryState,
+  Grade,
+  StatusTag,
+} from "./types.js";
 
 /**
  * Combatant HP / status snapshot for progressive presentation.
@@ -23,6 +28,10 @@ export interface BoardReveal {
      * stun does not appear on the boss until their action reveal.
      */
     stunRoundsLeft?: number;
+    curseDamageTakenMult?: number;
+    curseRoundsLeft?: number;
+    damageFloor?: number;
+    damageFloorLabel?: string;
   } | null;
   minions: Array<{
     id: string;
@@ -31,6 +40,8 @@ export interface BoardReveal {
     maxHp: number;
     damage?: number;
     statuses?: StatusTag[];
+    kind?: string;
+    memory?: BoneMemoryState;
   }>;
   partyShield: {
     remaining: number;
@@ -39,6 +50,8 @@ export interface BoardReveal {
   };
   /** Progressive magnet lock (Rattle Captain shock). */
   magnetStunRoundsLeft?: number;
+  /** Progressive Bone Colossus phase state. */
+  boneColossus?: BoneColossusEncounterState | null;
 }
 
 /**

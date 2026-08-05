@@ -45,6 +45,10 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
           maxHp: team.boss.maxHp,
           statuses: (team.boss.statuses ?? []).map((st) => ({ ...st })),
           stunRoundsLeft: team.boss.stunRoundsLeft ?? 0,
+          curseDamageTakenMult: team.boss.curseDamageTakenMult,
+          curseRoundsLeft: team.boss.curseRoundsLeft,
+          damageFloor: team.boss.damageFloor,
+          damageFloorLabel: team.boss.damageFloorLabel,
         }
       : null,
     minions: team.minions.map((m) => ({
@@ -54,6 +58,8 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       maxHp: m.maxHp,
       damage: m.damage,
       statuses: (m.statuses ?? []).map((st) => ({ ...st })),
+      kind: m.kind,
+      memory: m.memory ? { ...m.memory } : undefined,
     })),
     partyShield: {
       remaining: team.partyShield.remaining,
@@ -61,6 +67,7 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       coveredIds: team.partyShield.coveredIds ?? [],
     },
     magnetStunRoundsLeft: team.magnetStunRoundsLeft ?? 0,
+    boneColossus: team.boneColossus ? { ...team.boneColossus } : null,
   };
 }
 

@@ -160,9 +160,10 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 ### Bosses
 - TOML in `server/content/bosses/` + mechanics in `bosses.ts`  
 - **Cascade** raw pos1→6 = 16,13,10,7,4,2  
-- **Frost Archer** minions (`bone_archer`): **12 HP / 4 dmg**  
-- Stun: `stunRoundsLeft` skips **boss + minions**  
-- Boss HP (balance A+): Ash **210**, Bone Colossus **230**; Regenerate heals **10**
+- **Bone Colossus:** five ordered Bone Memories reuse prior boss death art; two party opportunities each; destruction grants **Exposed +50%**, detonation fires the signature effect with no exposure
+- **HP gates:** **84% / 68% / 52% / 36% / 20%**, then a short Final Stand; memory HP currently **14 / 18 / 22 / 26 / 30** for later tuning
+- Stun: `stunRoundsLeft` skips the boss and pauses Bone Memory charge/detonation
+- Boss HP: Ash **210**, Bone Colossus **230**
 
 ---
 

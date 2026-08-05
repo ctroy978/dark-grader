@@ -49,7 +49,7 @@ moss_grub
 | 3 | `cinder_herald` | **Primary add lesson** | Imps (real) |
 | 4 | `rattle_captain` | Practice + magnet tax | Light scraps |
 | 5 | `barrow_warden` | Dress rehearsal + grade signatures | Grave thrall (conditional) |
-| 6 | `bone_colossus` | Final exam | Frost Archers (full; id `bone_archer`) |
+| 6 | `bone_colossus` | Final exam | Five gated Bone Memories |
 
 **Shipped today:** `moss_grub`, `ash_wraith`, `cinder_herald`, `rattle_captain` (kit), `barrow_warden` (frost v1), `bone_colossus`.  
 **Default in code today:** 4 rooms **Moss Grub → Ash → Cinder Herald → Colossus** (full 6 selectable via teacher).
@@ -100,15 +100,15 @@ Attentive magnet, mixed “typical” classroom pool unless noted.
 | 5 Warden | 45–65% | 25–40% | rare |
 | 6 Colossus | 35–55% **if pool is good** | &lt; 20% weak pool | rare |
 
-**A+ package (already shipped for Ash / Colossus):**
+**A+ package (historical Ash / pre-memory Colossus tuning):**
 
 | Knob | Value |
 |------|--------|
 | Ash `max_hp` | **210** |
-| Colossus `max_hp` | **230** (glass summoner) |
-| Frost Archer | **12 HP / 4 dmg** |
-| Regenerate heal | **10** |
-| Boss stun | Skips **boss + minions** |
+| Colossus `max_hp` | **230** |
+| Bone Memories | Five gated phases; HP and detonation damage ramp |
+| Exposure | Memory break grants +50% incoming damage through one full party round |
+| Boss stun | Pauses harassment and memory charge |
 
 Cascade / FireMage FF left for a later pass if needed.
 
@@ -162,7 +162,7 @@ Optional later: slight HP drop to 180–190 if room 1→2 still too steep.
 | Feel | First **real** add fight; fire burn pressure; magnet on Archer/Fire when imps up |
 | Art key | `cinder_herald`, imps `cinder_imp` |
 
-Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / Archer). Fire Cloud teaches **🔥 Fire** chips (distinct from Ash/Colossus poison).
+Primary home for learning minions-first (`hitEnemies`) + party AOE (FireMage / Archer). Fire Cloud teaches **🔥 Fire** chips (distinct from Ash poison and its later Bone Memory callback).
 
 ---
 
@@ -227,13 +227,17 @@ Separate status **`Frozen`** (not Chill, not Ice DoT). **A on a frozen hero** cr
 
 ### 5.6 Room 6 — Bone Colossus (`bone_colossus`) — **shipped**
 
-**Teaching sentence:** “Everything at once — clear frost archers before Ice hardens into a lock.”
+**Teaching sentence:** “Break each charging memory to expose the Colossus before its old attack detonates.”
 
 | | |
 |--|--|
 | HP | **230** |
-| Adds | Frost Archers **12/4** + **Ice** on hit (flat **3**/tick × **3**r, stack cap **1**, no ramp); free-volley when full; natural Ice expiry → **soft Frozen 1 turn** (attack blocked, heals OK, no spread/shatter) |
-| Attacks | Full kit: Cascade, Crush, Slam, Line, Poison, Regen, Summon |
+| Memories | Moss Grub → Ash Wraith → Cinder Herald → Rattle Captain → Barrow Warden; one at a time, each using the previous boss `death.png` |
+| Charge | Two party opportunities. Shared audio beats: awaken → charge → critical. Surviving the final opportunity detonates the memory instead of a Colossus attack |
+| Gates | Each memory protects one descending HP segment. Breaking it opens the next gate and exposes the Colossus for remaining actions plus one full party round |
+| Failure | Detonation fires the memory's signature effect, advances the gate, and immediately raises the next memory with no exposure |
+| Attacks | During buildup: Cascade, Crush, Slam, and Line harassment. No Frost Archers, Poison Cloud, or Regenerate |
+| Final | After the fifth memory, the last gate falls and a short enraged Final Stand begins |
 | Enrage | &lt;40% HP, **1.3×** |
 | Stun | Boss **and** minions skip |
 
@@ -389,7 +393,7 @@ Defer full particles; prefer CSS/class tints + short cue FX driven by status + p
 | Barrow Warden | `barrow_warden` |
 | Grave Thrall | `grave_thrall` |
 | Bone Colossus | `bone_colossus` (exists) |
-| Frost Archer | `bone_archer` (exists; display name Frost Archer) |
+| Frost Archer | `bone_archer` (legacy asset; no longer used by Bone Colossus) |
 
 Poses: `standing`, `attack`, `hit`, `death` (death optional for adds).
 

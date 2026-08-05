@@ -18,7 +18,7 @@
 |--------|--------|
 | **Chill** | New DoT: tick **3**, stack cap 1, **no** token demotion, **no** soft-freeze on expiry. Re-apply **sets** duration (seat ladder). Fire Mage A/B cleanses. Not Ice. |
 | **Frozen** (chain) | Always applied by Spreading Frost. Blocks attack; heal block **kept**. **Not** Fire Mage thaw. **A** on a chain-Frozen seat **cracks all chain Frozen** (party thaw). Boss shatter if ignored. |
-| **Ice** | Unchanged (Colossus archers). |
+| **Ice** | Engine behavior retained; Colossus archers are retired by the Bone Memory redesign. |
 
 | Cleanse | Who |
 |---------|-----|

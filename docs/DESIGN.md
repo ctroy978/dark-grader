@@ -355,7 +355,7 @@ Numbers below are **frozen for v1 implementation**. Tune after classroom playtes
 | F | Backfire / chaos | 0 boss dmg, party risk |
 
 Boss HP targets: **~280–320** for early rooms (≈ 8–14 rounds with mixed grades).  
-**Bone Colossus** sample: **300 HP**.
+**Bone Colossus** sample: **230 HP**.
 
 ### 6.3 Archetype × grade effects (concrete)
 
@@ -456,7 +456,7 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 | DoT | Tick damage | Default duration | Special |
 |-----|-------------|------------------|---------|
 | **Fire** | **4** / tick | **3** rounds | High pressure; Fire Mage cannot cleanse |
-| **Ice** | **3** / tick | **3** rounds | Flat; claim downgrade while up. Natural expiry → soft Frozen 1 turn (attack blocked, heals OK). Frost Archer arrows. |
+| **Ice** | **3** / tick | **3** rounds | Flat; claim downgrade while up. Natural expiry → soft Frozen 1 turn (attack blocked, heals OK). Retained for legacy encounters. |
 | **Poison** | **3** / tick | **4** rounds | Damage split: magnet **30%**, adjacent **20%** each, remaining **30%** split among the other three (equal shares). Tick total = 3 × stacks. |
 | **Slime** | **2** / tick | **Until cleansed** | Flat chip only (no token slow). Stack cap 1. Fire Mage A/B or Doomcaller strip. Moss Mite on-hit. |
 
@@ -474,19 +474,20 @@ While any minion is alive, **all party damage abilities hit minions first** (low
 
 | Field | Value |
 |-------|-------|
-| Max HP | 340 |
-| Traits | Undead, Enrage (&lt;40% HP → +25% damage) |
-| Attacks (pool) | FrontSlam, LineAttack, CrushMagnet, SummonBoneArchers, PoisonCloud, Regenerate (weighted; regen rare) |
+| Max HP | 230 |
+| Traits | Undead, Bone Memories, Enrage (&lt;40% HP → 1.3× damage) |
+| Harassment pool | FrontSlam, LineAttack, Cascade, CrushMagnet |
+| Memory order | Moss Grub → Ash Wraith → Cinder Herald → Rattle Captain → Barrow Warden |
+| Memory gates | 84% → 68% → 52% → 36% → 20% boss HP floors |
 
 | Attack | Effect |
 |--------|--------|
 | FrontSlam | **14** damage split across positions **1–2** (7 each), shield first |
 | LineAttack | **5** to all positions |
-| Regenerate | Boss heals **15** |
-| SummonBoneArchers | Spawn **2** archers (HP **12**, attack **4**, magnet-biased) if fewer than 2 adds |
-| PoisonCloud | Apply **Poison** (1 stack, duration 4) to positions **2–4** |
+| Cascade | **6** damage to all positions |
+| CrushMagnet | **13** damage to the magnet holder |
 
-Adds attack after boss action: each add hits one soldier with weight magnet 40%, adjacent 20% each, others equal remainder.
+One memory rises at a time using that boss's `death.png`. The party gets two action windows before it detonates its signature attack in place of the Colossus's turn. Breaking a memory lowers the HP floor and exposes the boss for the remaining actions plus one full party round; detonation lowers the floor without exposure and raises the next memory immediately. After all five resolve, the 20% floor falls for a short Final Stand. Boss stun pauses both harassment and memory charge. Universal awaken, charge, and critical audio beats communicate the timer across all five phases.
 
 ### 6.8 Inter-room healing
 Only **Vanguards** still alive: once between rooms, each living Vanguard grants **+20% of max HP** heal to positions that will be front-line *or* party-wide **+15%** once (pick one rule for v1: **party-wide 20% of each soldier’s max HP if ≥1 living Vanguard**).

@@ -54,7 +54,7 @@ const ARCHETYPE_MARK: Record<Archetype, string> = {
 export type PortraitKind =
   | { role: "party"; archetype: Archetype }
   | { role: "boss"; bossId?: string }
-  | { role: "minion"; name?: string };
+  | { role: "minion"; name?: string; artKey?: string };
 
 /** Folder name under client/public/art/ for this portrait. */
 export function artKeyFor(kind: PortraitKind): string {
@@ -64,6 +64,7 @@ export function artKeyFor(kind: PortraitKind): string {
     return id || "boss";
   }
   // Minions: named units map to art folders under public/art/
+  if (kind.artKey) return kind.artKey;
   const n = kind.name?.toLowerCase().replace(/\s+/g, "_") ?? "minion";
   // Display name is Frost Archer; art folder / id stays bone_archer
   if (
@@ -144,6 +145,7 @@ function poseTransform(pose: CombatPose): {
 export function PlaceholderPortrait({
   kind,
   pose,
+  assetPose,
   className = "",
   /**
    * How the PNG fills the frame.
@@ -155,6 +157,8 @@ export function PlaceholderPortrait({
 }: {
   kind: PortraitKind;
   pose: CombatPose;
+  /** Load this pose asset while retaining the live animation pose/filter. */
+  assetPose?: CombatPose;
   className?: string;
   fit?: "cover" | "contain";
 }) {
@@ -173,7 +177,7 @@ export function PlaceholderPortrait({
       : ARCHETYPE_MARK[kind.archetype] ?? "?";
 
   const artKey = artKeyFor(kind);
-  const imgSrc = artUrlFor(artKey, pose);
+  const imgSrc = artUrlFor(artKey, assetPose ?? pose);
   // Prefer real PNG; fall back to SVG if missing or failed to load
   const [useImg, setUseImg] = useState(true);
   useEffect(() => {

@@ -717,6 +717,7 @@ export function CombatActor({
   name,
   portrait,
   pose: poseOverride,
+  assetPose,
   cue,
   alive = true,
   currentHp,
@@ -740,6 +741,7 @@ export function CombatActor({
   portrait: PortraitKind;
   /** Force pose (e.g. tests); otherwise derived from cue + alive */
   pose?: CombatPose;
+  assetPose?: CombatPose;
   cue?: PresentationCue | null;
   alive?: boolean;
   currentHp: number;
@@ -1005,6 +1007,7 @@ export function CombatActor({
           <PlaceholderPortrait
             kind={portrait}
             pose={pose}
+            assetPose={assetPose}
             className={
               isBoss
                 ? "w-full aspect-[5/6] h-auto"

@@ -21,7 +21,6 @@ import {
 } from "./dots.js";
 import { healSoldier, livingParty, soldierAt } from "./damage.js";
 import { resolveSpecialistAction } from "./specialists.js";
-import { getBossTemplate } from "../seed/bossLoader.js";
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
 
@@ -49,14 +48,6 @@ function makeColossusTeam(seed = 9): TeamState {
 }
 
 describe("Ice DoT / soft freeze (Frost Archer)", () => {
-  it("bone archers have Ice on-hit kit", () => {
-    const team = makeColossusTeam(1);
-    expect(team.boss?.id).toBe("bone_colossus");
-    const tpl = getBossTemplate("bone_colossus");
-    const summon = tpl?.attacks.find((a) => a.id === "SummonBoneArchers")?.summon;
-    expect(summon?.onHitDot).toEqual({ type: "Ice", stacks: 1 });
-  });
-
   it("ticks flat for 3 rounds then soft-freezes", () => {
     const team = makeColossusTeam(2);
     const front = soldierAt(team, 1)!;

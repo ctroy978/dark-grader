@@ -249,6 +249,22 @@ export function actorCanHitMinions(actor?: Soldier | null): boolean {
   return actor.position === 1 || actor.archetype === "Archer";
 }
 
+/** Apply boss damage while respecting an encounter HP gate. */
+export function damageBoss(
+  team: TeamState,
+  raw: number,
+): { damage: number; warded: boolean } {
+  const boss = team.boss;
+  if (!boss || boss.currentHp <= 0 || raw <= 0) {
+    return { damage: 0, warded: false };
+  }
+  const floor = Math.max(0, Math.min(boss.currentHp, boss.damageFloor ?? 0));
+  const available = Math.max(0, boss.currentHp - floor);
+  const damage = Math.min(available, Math.floor(raw));
+  boss.currentHp -= damage;
+  return { damage, warded: damage < Math.floor(raw) && boss.currentHp <= floor };
+}
+
 /**
  * Deal damage to enemies.
  * - single: first living minion (if allowed), else boss
@@ -286,9 +302,11 @@ export function hitEnemies(
       raw = Math.floor(raw * 0.5);
     }
     const mult = team.boss.curseDamageTakenMult || 1;
-    const dmg = Math.min(team.boss.currentHp, Math.floor(raw * mult));
-    team.boss.currentHp -= dmg;
-    parts.push(`${dmg} to ${team.boss.name}`);
+    const result = damageBoss(team, Math.floor(raw * mult));
+    parts.push(`${result.damage} to ${team.boss.name}`);
+    if (result.warded) {
+      parts.push(`${team.boss.damageFloorLabel ?? "Bone Ward"} holds`);
+    }
     return true;
   };
 

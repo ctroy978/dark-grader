@@ -43,6 +43,10 @@ export type BoardReveal = {
     statuses?: import("@dungeon-grades/shared").StatusTag[];
     /** Progressive: only rises when Thundercaller (etc.) stun lands */
     stunRoundsLeft?: number;
+    curseDamageTakenMult?: number;
+    curseRoundsLeft?: number;
+    damageFloor?: number;
+    damageFloorLabel?: string;
   } | null;
   minions: Array<{
     id: string;
@@ -51,6 +55,8 @@ export type BoardReveal = {
     maxHp: number;
     damage?: number;
     statuses?: import("@dungeon-grades/shared").StatusTag[];
+    kind?: string;
+    memory?: import("@dungeon-grades/shared").BoneMemoryState;
   }>;
   partyShield: {
     remaining: number;
@@ -59,6 +65,7 @@ export type BoardReveal = {
     coveredIds?: string[];
   };
   magnetStunRoundsLeft?: number;
+  boneColossus?: import("@dungeon-grades/shared").BoneColossusEncounterState | null;
 };
 
 export type PresentationCue = {
@@ -113,6 +120,7 @@ export type EnrichedTeam = {
     coveredIds?: string[];
   };
   phase: string;
+  pendingBossAttackId?: string | null;
   round: number;
   log: { round: number; text: string; tags?: string[] }[];
   playback?: CombatBeat[];
@@ -136,6 +144,8 @@ export type EnrichedTeam = {
     outgoingBuffRoundsLeft?: number;
     stunRoundsLeft?: number;
     nextAttackBonus?: number;
+    damageFloor?: number;
+    damageFloorLabel?: string;
   } | null;
   minions: {
     id: string;
@@ -144,7 +154,10 @@ export type EnrichedTeam = {
     maxHp: number;
     damage?: number;
     statuses?: import("@dungeon-grades/shared").StatusTag[];
+    kind?: string;
+    memory?: import("@dungeon-grades/shared").BoneMemoryState;
   }[];
+  boneColossus?: import("@dungeon-grades/shared").BoneColossusEncounterState | null;
   cloud: Grade[];
   pendingTokens?: Grade[];
   tokensRemaining: number;

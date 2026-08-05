@@ -20,6 +20,7 @@ import {
 import { adjacentPositions } from "@dungeon-grades/shared";
 import {
   applyPartyDamage,
+  damageBoss,
   formatPartyHit,
   healSoldier,
   livingParty,
@@ -717,11 +718,14 @@ export function tickBossDots(
     if (dot.kind !== "Dot") continue;
     // Flat tick on boss HP (Poison is not a party splash when on the boss)
     const perTick = DOT_STATS[dot.type].tick * dot.stacks;
-    const dmg = Math.min(boss.currentHp, perTick);
-    boss.currentHp -= dmg;
+    const result = damageBoss(team, perTick);
+    const dmg = result.damage;
     log(
       `  [Boss ${dot.type}×${dot.stacks}] ${dmg} to ${boss.name} · ${dot.duration - 1}r left`,
     );
+    if (result.warded) {
+      log(`  ${boss.damageFloorLabel ?? "Bone Ward"} prevents further damage`);
+    }
     dot.duration -= 1;
   }
 

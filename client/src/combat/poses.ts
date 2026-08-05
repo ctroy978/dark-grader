@@ -214,6 +214,11 @@ export function fxClassesForUnit(
       if (f === "ice-tint") return !isBoss ? "fx-ice-tint" : "";
       if (f === "slime-tint") return !isBoss ? "fx-slime-tint" : "";
       if (f === "chill-tint") return !isBoss ? "fx-chill-tint" : "";
+      if (f === "memory-slime") return !isBoss ? "fx-slime-tint" : "";
+      if (f === "memory-poison") return !isBoss ? "fx-poison-tint" : "";
+      if (f === "memory-fire") return !isBoss ? "fx-fire-tint" : "";
+      if (f === "memory-shock") return "fx-shock-flash";
+      if (f === "memory-frost") return "fx-ice-tint";
       if (f === "frost-flash" || f === "frost-shatter") {
         return !isBoss ? "fx-frost-flash" : "fx-frost-flash";
       }
@@ -261,6 +266,7 @@ export function fxClassesForUnit(
       if (f === "boss-windup") return isBoss ? "fx-boss-windup" : "";
       if (f === "boss-voice") return isBoss ? "fx-boss-voice" : "";
       if (f === "boss-attack") return isBoss ? "fx-boss-attack" : "";
+      if (f === "boss-exposed") return isBoss ? "fx-boss-stunned" : "";
       if (f === "boss-attack-shock") return isBoss ? "fx-boss-attack-shock" : "";
       if (f === "boss-stunned" || f === "stunned" || f === "stun-skip") {
         return isBoss ? "fx-boss-stunned" : "";

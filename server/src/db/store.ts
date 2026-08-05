@@ -219,6 +219,7 @@ export class GameStore {
     if (!Array.isArray(state.lastClaims)) state.lastClaims = [];
     if (!Array.isArray(state.pendingTokens)) state.pendingTokens = [];
     if (typeof state.classroomId !== "string") state.classroomId = "";
+    if (state.boss?.id !== "bone_colossus") state.boneColossus = null;
   }
 
   /** Ensure teamIds arrays match teams.classroomId. */

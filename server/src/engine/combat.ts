@@ -56,12 +56,105 @@ import {
   preparePendingForRound,
 } from "./tokens.js";
 import { resolveSfxId } from "../audio/resolveSfx.js";
+import {
+  activeBoneMemory,
+  advanceBoneMemoryCharge,
+  BONE_MEMORY_AWAKEN_SFX,
+  BONE_MEMORY_BREAK_SFX,
+  BONE_MEMORY_CHARGE_SFX,
+  BONE_MEMORY_CRITICAL_SFX,
+  BONE_MEMORY_DETONATION_ATTACK_ID,
+  BONE_MEMORY_EXPOSE_SFX,
+  boneMemoryIsCritical,
+  initializeBoneColossusEncounter,
+  resolveBoneMemoryDetonation,
+  resolveDestroyedBoneMemory,
+  spawnNextBoneMemory,
+  spawnScheduledBoneMemory,
+  type BoneMemoryResolution,
+} from "./boneMemories.js";
 
 function pushLog(team: TeamState, text: string, tags?: string[]): void {
   team.log.push({ round: team.round, text, tags });
   if (team.log.length > MAX_LOG_ENTRIES) {
     team.log = team.log.slice(-MAX_LOG_ENTRIES);
   }
+}
+
+function memoryFx(theme: string): string[] {
+  return ["bone-memory", `memory-${theme}`];
+}
+
+function cueMemoryAwaken(team: TeamState, minion: TeamState["minions"][number]): void {
+  if (!minion.memory) return;
+  pushLog(
+    team,
+    `${minion.name} rises (${minion.memory.charge}/${minion.memory.maxCharge}) — destroy it before ${minion.memory.signatureName}!`,
+    ["boss", "memory", "summon"],
+  );
+  pushCue(team, {
+    kind: "system",
+    focusIds: [minion.id, "boss"],
+    bubble: {
+      speakerId: minion.id,
+      speakerName: minion.name,
+      side: "minion",
+      text: "Awaken…",
+    },
+    fx: [...memoryFx(minion.memory.theme), "memory-awaken"],
+    sfxId: BONE_MEMORY_AWAKEN_SFX,
+    durationMs: 1000,
+  });
+}
+
+function cueFinalStand(team: TeamState): void {
+  pushLog(team, "All five Bone Memories are gone — the Colossus can finally fall!", [
+    "boss",
+    "memory",
+    "final",
+  ]);
+  pushCue(team, {
+    kind: "system",
+    focusIds: ["boss"],
+    bubble: {
+      speakerId: "boss",
+      speakerName: team.boss?.name ?? "Bone Colossus",
+      side: "boss",
+      text: "FINAL STAND!",
+    },
+    fx: ["boss-windup", "enraged", "final-stand"],
+    sfxId: "boss_bone_laugh",
+    durationMs: 1200,
+  });
+}
+
+function cueMemoryBroken(team: TeamState, resolution: BoneMemoryResolution): void {
+  pushLog(
+    team,
+    `${resolution.memory.sourceBossName} Memory shatters — Bone Ward broken! The Colossus is exposed.`,
+    ["boss", "memory", "exposed"],
+  );
+  pushCue(team, {
+    kind: "system",
+    focusIds: [resolution.memoryId, "boss"],
+    bubble: {
+      speakerId: "boss",
+      speakerName: team.boss?.name ?? "Bone Colossus",
+      side: "boss",
+      text: "WARD BROKEN!",
+    },
+    fx: [
+      ...memoryFx(resolution.memory.theme),
+      "memory-shatter",
+      "boss-exposed",
+      "hurt-flash",
+    ],
+    sfxId: BONE_MEMORY_BREAK_SFX,
+    secondarySfxId: BONE_MEMORY_EXPOSE_SFX,
+    secondarySfxDelayMs: 180,
+    durationMs: 1100,
+  });
+  if (resolution.finalStand) cueFinalStand(team);
 }
 
 export function createTeam(
@@ -90,6 +183,7 @@ export function createTeam(
     noSummonBeforeRound: 0,
     boss: null,
     minions: [],
+    boneColossus: null,
     phase: "lobby",
     round: 0,
     log: [],
@@ -230,6 +324,10 @@ export function startFight(
   // Cover only when a Shield Maiden claims (no free opening shield)
   team.partyShield = { remaining: 0, active: false, coveredIds: [] };
   team.revivedSoldierIdsThisFight = [];
+  team.boneColossus = null;
+  team.playback = [];
+
+  const openingMemory = initializeBoneColossusEncounter(team);
 
   // Telegraph the first drop so students plan the magnet
   const prep = preparePendingForRound(team);
@@ -252,6 +350,7 @@ export function startFight(
     `Round ${team.round}: ${prep.living} living → ${prep.tokens.length} token(s). Incoming: ${prep.tokens.join(", ") || "(none)"} — set magnet, then Drop Tokens.`,
     ["system", "tokens"],
   );
+  if (openingMemory) cueMemoryAwaken(team, openingMemory);
 }
 
 /** True if a living party member occupies this line position. */
@@ -390,6 +489,7 @@ export function commitRound(team: TeamState): TeamState {
           (text, tags) => pushLog(team, text, tags ?? ["party"]),
         );
       markClaimerResolved(soldier.id);
+      const brokenMemory = acted ? resolveDestroyedBoneMemory(team) : null;
 
       // Stunned / Frozen claimers keep their token claim but must not play an attack beat
       if (!acted) {
@@ -527,6 +627,7 @@ export function commitRound(team: TeamState): TeamState {
         fx,
         { hitFocusIds, slainNames },
       );
+      if (brokenMemory) cueMemoryBroken(team, brokenMemory);
 
       // Life Power purple rain: bonus HP on heal seats; FX on cleanse seats too.
       if (lifePowerFollowUp) {
@@ -683,6 +784,8 @@ export function commitRound(team: TeamState): TeamState {
       }
     }
   });
+  const dottedMemoryBreak = resolveDestroyedBoneMemory(team);
+  if (dottedMemoryBreak) cueMemoryBroken(team, dottedMemoryBreak);
 
   // Chain frost exploded — whole line took damage; ice cleared. Hit pose + shatter FX.
   if (sawFrostShatter) {
@@ -780,6 +883,31 @@ export function commitRound(team: TeamState): TeamState {
         // no attack SFX — skip is resolved next
         durationMs: 900,
       });
+    } else if (boneMemoryIsCritical(team)) {
+      const memory = activeBoneMemory(team)!;
+      team.pendingBossAttackId = BONE_MEMORY_DETONATION_ATTACK_ID;
+      pushLog(
+        team,
+        `${memory.name} is critical — ${memory.memory!.signatureName} will detonate!`,
+        ["boss", "memory", "telegraph"],
+      );
+      pushCue(team, {
+        kind: "telegraph",
+        focusIds: [memory.id, "boss"],
+        bubble: {
+          speakerId: memory.id,
+          speakerName: memory.name,
+          side: "minion",
+          text: `${memory.memory!.signatureName}!`,
+        },
+        fx: [
+          ...memoryFx(memory.memory!.theme),
+          "memory-critical",
+          "threat-ultimate",
+        ],
+        sfxId: BONE_MEMORY_CRITICAL_SFX,
+        durationMs: 1000,
+      });
     } else {
       // Pre-pick attack so wind-up pose/bubble match the coming impact
       const telegraphRng = createRng(
@@ -860,7 +988,45 @@ export function resolveBoss(team: TeamState): TeamState {
    * One reaction max per boss phase — never a second timed hurt cue.
    */
   let layeredHurt = false;
-  if (team.boss.currentHp > 0 && livingParty(team).length > 0) {
+  const memoryDetonation =
+    team.pendingBossAttackId === BONE_MEMORY_DETONATION_ATTACK_ID;
+  const bossWasStunned = team.boss.stunRoundsLeft > 0;
+  if (
+    team.boss.currentHp > 0 &&
+    livingParty(team).length > 0 &&
+    memoryDetonation
+  ) {
+    team.pendingBossAttackId = null;
+    const detonation = resolveBoneMemoryDetonation(team, (text) =>
+      pushLog(team, text, ["boss", "memory", "detonation"]),
+    );
+    if (detonation) {
+      pushCue(team, {
+        kind: "minion",
+        focusIds: [detonation.memoryId, ...detonation.victimIds],
+        bubble: {
+          speakerId: detonation.memoryId,
+          speakerName: `${detonation.memory.sourceBossName} Memory`,
+          side: "minion",
+          text: detonation.memory.signatureName,
+        },
+        fx: [
+          ...memoryFx(detonation.memory.theme),
+          "memory-detonate",
+          "hurt-flash",
+        ],
+        sfxId: detonation.sfxId,
+        durationMs: 1400,
+      });
+      purgeDeadMinions(team);
+      if (detonation.finalStand) {
+        cueFinalStand(team);
+      } else if (livingParty(team).length > 0) {
+        const nextMemory = spawnNextBoneMemory(team);
+        if (nextMemory) cueMemoryAwaken(team, nextMemory);
+      }
+    }
+  } else if (team.boss.currentHp > 0 && livingParty(team).length > 0) {
     resolveBossPhase(team, random, (text) => pushLog(team, text, ["boss"]), {
       onBossAttack: (info) => {
         const isStunSkip =
@@ -968,6 +1134,31 @@ export function resolveBoss(team: TeamState): TeamState {
         });
       },
     });
+    if (!bossWasStunned) {
+      const charged = advanceBoneMemoryCharge(team);
+      if (charged?.memory) {
+        pushLog(
+          team,
+          `${charged.name} builds power (${charged.memory.charge}/${charged.memory.maxCharge})`,
+          ["boss", "memory", "charge"],
+        );
+        pushCue(team, {
+          kind: "system",
+          focusIds: [charged.id, "boss"],
+          bubble: {
+            speakerId: charged.id,
+            speakerName: charged.name,
+            side: "minion",
+            text: "Power rising…",
+          },
+          fx: [...memoryFx(charged.memory.theme), "memory-charge"],
+          sfxId: BONE_MEMORY_CHARGE_SFX,
+          durationMs: 1000,
+        });
+      }
+    }
+    const scheduledMemory = spawnScheduledBoneMemory(team);
+    if (scheduledMemory) cueMemoryAwaken(team, scheduledMemory);
   }
 
   // Defensive window closed: leftover personal block, Spearman parry,
@@ -1082,6 +1273,7 @@ export function applyInterRoomHealing(team: TeamState): void {
 function clearFightState(team: TeamState): void {
   team.boss = null;
   team.minions = [];
+  team.boneColossus = null;
   team.round = 0;
   team.pendingTokens = [];
   team.pendingBossAttackId = null;
