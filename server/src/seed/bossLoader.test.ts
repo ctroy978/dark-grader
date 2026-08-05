@@ -117,6 +117,12 @@ describe("boss TOML loader", () => {
       expect.arrayContaining(["Cascade", "PoisonCloud", "CrushMagnet"]),
     );
     expect(ash!.attacks.every((a) => a.name && a.description)).toBe(true);
+    expect(ash!.attacks.find((a) => a.id === "FrontSlam")).toMatchObject({
+      name: "Hammerfall",
+    });
+    expect(
+      ash!.attacks.find((a) => a.id === "CrushMagnet")?.description,
+    ).toMatch(/Token Magnet.*adjacent positions/i);
     expect(ash!.enrageBelowHpPct).toBe(0.25);
     expect(ash!.enrageNote).toMatch(/Enrages below 25%/);
 
@@ -128,8 +134,26 @@ describe("boss TOML loader", () => {
       opensFight: true,
       onHitDot: "Fire",
     });
+    expect(herald!.minions[0]!.note).toMatch(/^Call the Kindling —/);
     expect(herald!.attacks.map((a) => a.id)).toContain("FireCloud");
     expect(herald!.attacks.map((a) => a.id)).not.toContain("SummonCinderImps");
+    expect(herald!.attacks.find((a) => a.id === "FireCloud")).toMatchObject({
+      name: "Cinderstorm",
+    });
+
+    const colossus = buildBossScout("bone_colossus")!;
+    expect(colossus.attacks.find((a) => a.id === "FrontSlam")).toMatchObject({
+      name: "Bone Hammer",
+    });
+    expect(
+      colossus.attacks.find((a) => a.id === "FrontSlam")?.description,
+    ).toMatch(/giant leg bone.*front three positions/i);
+    // The five Bone Memories are combat surprises, not pre-fight scout cards.
+    expect(colossus.minions).toEqual([]);
+    expect(colossus.encounterHint).toMatch(/Old battles stir/i);
+    expect(colossus.encounterHint).not.toMatch(
+      /Moss Grub|Ash Wraith|Cinder Herald|Rattle Captain|Barrow Warden/i,
+    );
 
     const grub = buildBossScout("moss_grub");
     expect(grub!.enrageBelowHpPct).toBeNull();

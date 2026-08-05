@@ -48,6 +48,13 @@ export function buildBossScout(templateId: string): BossScout | null {
       if (seenMinion.has(s.minionId)) continue;
       seenMinion.add(s.minionId);
       const opensFight = s.openCount > 0;
+      const minionNote = describeMinionScout({
+        id: s.minionId,
+        name: s.minionName,
+        opensFight,
+        freeVolley: s.freeVolley,
+        onHitDot: s.onHitDot?.type,
+      });
       minions.push({
         id: s.minionId,
         name: s.minionName,
@@ -57,34 +64,17 @@ export function buildBossScout(templateId: string): BossScout | null {
         opensFight,
         freeVolley: s.freeVolley,
         onHitDot: s.onHitDot?.type,
-        note: describeMinionScout({
-          id: s.minionId,
-          name: s.minionName,
-          opensFight,
-          freeVolley: s.freeVolley,
-          onHitDot: s.onHitDot?.type,
-        }),
+        note: atk.name?.trim()
+          ? `${atk.name.trim()} — ${minionNote}`
+          : minionNote,
       });
       continue;
     }
-    const info = scoutAttack(atk.id);
+    const fallback = scoutAttack(atk.id);
     attacks.push({
       id: atk.id,
-      name: info.name,
-      description: info.description,
-    });
-  }
-
-  for (const memory of t.memories) {
-    minions.push({
-      id: `bone_memory_${memory.sourceBossId}`,
-      name: `${memory.sourceBossName} Memory`,
-      maxHp: memory.maxHp,
-      damage: memory.detonationDamage,
-      maxCount: 1,
-      opensFight: memory === t.memories[0],
-      freeVolley: false,
-      note: `Charges ${memory.signatureName} over ${memory.maxCharge} party opportunities. Destroy it to break the Bone Ward and expose the Colossus.`,
+      name: atk.name?.trim() || fallback.name,
+      description: atk.description?.trim() || fallback.description,
     });
   }
 
@@ -101,6 +91,7 @@ export function buildBossScout(templateId: string): BossScout | null {
     summary: t.summary,
     attacks,
     minions,
+    ...(t.encounterHint ? { encounterHint: t.encounterHint } : {}),
     enrageBelowHpPct: enrages ? t.enrageHpPct : null,
     enrageNote: enrages
       ? `Enrages below ${pctLabel}% HP — attacks hit harder.`

@@ -636,6 +636,12 @@ function performAttack(
   rage: number,
 ): string[] {
   const boss = team.boss!;
+  const template = getBossTemplate(boss.id);
+  const configuredAttackName = template
+    ? attackDef(template, attackId)?.name?.trim()
+    : undefined;
+  const attackName = (fallback: string): string =>
+    configuredAttackName || fallback;
   const mult = (boss.outgoingDamageMult || 1) * rage;
   const bonus = boss.nextAttackBonus || 0;
   boss.nextAttackBonus = 0;
@@ -668,13 +674,16 @@ function performAttack(
   // Parameterized summons (Moss Mites, Bone Archers, future adds)
   const summonSpec = resolveSummonSpec(getBossTemplate(boss.id), attackId);
   if (summonSpec) {
+    if (configuredAttackName) {
+      log(`${boss.name} uses ${configuredAttackName}!`);
+    }
     performSummon(team, summonSpec, random, log, dmg, victims);
     return [...victims];
   }
 
   switch (attackId) {
     case "FrontSlam": {
-      log(`${boss.name} uses Front Slam!`);
+      log(`${boss.name} uses ${attackName("Front Slam")}!`);
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
         if (!s) continue;
@@ -766,7 +775,7 @@ function performAttack(
     }
     case "LightFrontSlam": {
       // Tutorial-tier: ~85% of FrontSlam — can kill 1–2 if ignored / unhealed
-      log(`${boss.name} uses Front Slam!`);
+      log(`${boss.name} uses ${attackName("Front Slam")}!`);
       for (const pos of [1, 2, 3]) {
         const s = soldierAt(team, pos);
         if (!s) continue;
@@ -779,7 +788,7 @@ function performAttack(
     case "ArcAttack": {
       // ArcAttack = Rattle’s player-facing name for the same full-line sweep
       log(
-        `${boss.name} uses ${attackId === "ArcAttack" ? "Arc Attack" : "Line Attack"}!`,
+        `${boss.name} uses ${attackName(attackId === "ArcAttack" ? "Arc Attack" : "Line Attack")}!`,
       );
       const lineBase = 7;
       for (const s of livingParty(team)) {
@@ -789,7 +798,7 @@ function performAttack(
     }
     case "LightLineAttack": {
       // Tutorial-tier: ~85% of LineAttack (7)
-      log(`${boss.name} uses a light Line Attack!`);
+      log(`${boss.name} uses ${attackName("a light Line Attack")}!`);
       for (const s of livingParty(team)) {
         logHit(s, hit(s, dmg(6)));
       }
@@ -797,7 +806,9 @@ function performAttack(
     }
     case "Cascade": {
       // Shared front→back cascade (Ash, Colossus, …). Rattle uses Grounded instead.
-      log(`${boss.name} uses Cascade! (front hard → back soft)`);
+      log(
+        `${boss.name} uses ${attackName("Cascade")}! (front hard → back soft)`,
+      );
       for (const pos of [1, 2, 3, 4, 5, 6] as const) {
         const s = soldierAt(team, pos);
         if (!s) continue;
@@ -880,7 +891,9 @@ function performAttack(
       break;
     }
     case "CrushMagnet": {
-      log(`${boss.name} focuses the Token Magnet!`);
+      log(
+        `${boss.name} uses ${attackName("Magnet Crush")} on the Token Magnet!`,
+      );
       const [a, b] = adjacentPositions(team.magnetPosition);
       const targets = [
         { pos: team.magnetPosition, base: 13 },
@@ -897,7 +910,9 @@ function performAttack(
     case "Regenerate": {
       const heal = 10;
       boss.currentHp = Math.min(boss.maxHp, boss.currentHp + heal);
-      log(`${boss.name} regenerates ${heal} HP (${boss.currentHp}/${boss.maxHp})`);
+      log(
+        `${boss.name} uses ${attackName("Regenerate")} and restores ${heal} HP (${boss.currentHp}/${boss.maxHp})`,
+      );
       const victim = magnetHardTarget(team);
       if (victim) {
         const hpLost = hit(victim, dmg(5));
@@ -912,7 +927,7 @@ function performAttack(
       break;
     }
     case "PoisonCloud": {
-      log(`${boss.name} exhales a Poison Cloud!`);
+      log(`${boss.name} uses ${attackName("Poison Cloud")}!`);
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
@@ -925,7 +940,7 @@ function performAttack(
     }
     case "FireCloud": {
       // Fire-themed party DoT (Cinder Herald, future fire bosses). Same shape as PoisonCloud.
-      log(`${boss.name} unleashes a Fire Cloud!`);
+      log(`${boss.name} uses ${attackName("Fire Cloud")}!`);
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
@@ -964,7 +979,7 @@ function performAttack(
       break;
     }
     default: {
-      log(`${boss.name} uses ${attackId}!`);
+      log(`${boss.name} uses ${attackName(attackId)}!`);
       for (const s of livingParty(team)) {
         logHit(s, hit(s, dmg(8)));
       }

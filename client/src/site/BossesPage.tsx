@@ -223,9 +223,17 @@ export function BossDetailPage({ bossId }: { bossId: string }) {
             {scout && (
               <div className="rounded-2xl border border-parchment/12 bg-navy-light/40 overflow-hidden">
                 <div className="px-4 py-3 border-b border-parchment/10 bg-navy/40">
-                  <h2 className="font-bold">Minions</h2>
+                  <h2 className="font-bold">
+                    {scout.encounterHint && scout.minions.length === 0
+                      ? "Omen"
+                      : "Minions"}
+                  </h2>
                 </div>
-                {scout.minions.length === 0 ? (
+                {scout.encounterHint && scout.minions.length === 0 ? (
+                  <p className="px-4 py-3 text-sm italic text-parchment/85 leading-relaxed">
+                    {scout.encounterHint}
+                  </p>
+                ) : scout.minions.length === 0 ? (
                   <p className="px-4 py-3 text-sm text-parchment-dim">
                     No minions — the boss fights alone.
                   </p>

@@ -55,6 +55,17 @@ describe("Ash Wraith attack cadence", () => {
     expect(next).not.toBe("Cascade");
   });
 
+  it("uses the Ash-specific attack name in combat logs", () => {
+    const team = fieldAshParty();
+    team.pendingBossAttackId = "FrontSlam";
+    const logs: string[] = [];
+
+    resolveBossPhase(team, () => 0.5, (text) => logs.push(text));
+
+    expect(logs.some((text) => text.includes("uses Hammerfall!"))).toBe(true);
+    expect(logs.some((text) => text.includes("uses Front Slam!"))).toBe(false);
+  });
+
   it("allows Cascade again after a different attack", () => {
     const team = fieldAshParty();
     team.bossLastAttackId = "FrontSlam";

@@ -160,6 +160,8 @@ export interface BossScout {
   summary: string;
   attacks: BossAttackScout[];
   minions: BossMinionScout[];
+  /** Vague pre-fight omen used when exact encounter pieces should remain hidden. */
+  encounterHint?: string;
   /**
    * Enrage threshold as a fraction of max HP (e.g. 0.4 = below 40%).
    * Null when the boss does not meaningfully enrage.

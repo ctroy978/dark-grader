@@ -980,7 +980,7 @@ export function commitRound(team: TeamState): TeamState {
 
       pushLog(
         team,
-        `${team.boss!.name} winds up (${attackId})…`,
+        `${team.boss!.name} winds up (${attackDef?.name?.trim() || attackId})…`,
         ["boss", "telegraph", attackId],
       );
       pushCue(team, {

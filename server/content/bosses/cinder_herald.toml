@@ -6,7 +6,7 @@ name = "Cinder Herald"
 max_hp = 170
 traits = ["Fire", "Herald", "Summoner"]
 difficulty = "Standard"
-summary = "Summons Cinder Imps that leave Fire on hit. Fire Cloud burns the line; slam and line pressure — no cascade or poison."
+summary = "Commands living flame and calls Cinder Imps into the gap. Furnace Fist pressures the front, Searing Wake scorches the line, and Cinderstorm leaves every hero burning."
 recommended_rounds = "8–12"
 enrage_hp_pct = 0.30
 enrage_damage_mult = 1.2
@@ -73,27 +73,35 @@ volume = 0.55
 
 [[attacks]]
 id = "FrontSlam"
+name = "Furnace Fist"
+description = "The Herald slams a blazing fist into the front three positions. The hit is strongest in position 1 and weakens through positions 2 and 3."
 weight = 3
 sfx = "boss_herald_slam"
-bubble_lines = ["Front burns!", "Cinder smash!", "Kneel!"]
+bubble_lines = ["Furnace Fist!", "Front burns!", "Kneel!"]
 use_grunt = true
 
 [[attacks]]
 id = "LineAttack"
+name = "Searing Wake"
+description = "The Herald sweeps a wave of sparks across the entire party line, dealing the same direct hit to every living hero."
 weight = 2
 sfx = "boss_herald_line"
-bubble_lines = ["Ash wave!", "All of you!", "Spark line!"]
+bubble_lines = ["Searing Wake!", "All of you!", "Spark line!"]
 use_grunt = true
 
 [[attacks]]
 id = "FireCloud"
+name = "Cinderstorm"
+description = "The Herald blankets every living hero in Fire. The burn ticks each round and grows stronger if it is left uncleansed."
 weight = 3
 sfx = "boss_herald_fire"
-bubble_lines = ["Burn!", "Cinder cloud!", "Breathe fire…"]
+bubble_lines = ["Cinderstorm!", "Burn!", "Breathe fire…"]
 use_laugh = true
 
 [[attacks]]
 id = "SummonCinderImps"
+name = "Call the Kindling"
+description = "The Herald summons Cinder Imps into the gap. Their fire spit deals damage and leaves Fire on the hero it hits."
 weight = 3
 sfx = "boss_herald_summon"
 bubble_lines = ["Imps!", "Fill the gap!", "Little flames!"]

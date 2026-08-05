@@ -320,9 +320,15 @@ function NextBossIntel({
 
           <div className="mt-3 space-y-1.5">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-rune">
-              Minions
+              {scout.encounterHint && scout.minions.length === 0
+                ? "Omen"
+                : "Minions"}
             </h3>
-            {scout.minions.length === 0 ? (
+            {scout.encounterHint && scout.minions.length === 0 ? (
+              <p className="text-xs italic text-parchment/85 leading-snug">
+                {scout.encounterHint}
+              </p>
+            ) : scout.minions.length === 0 ? (
               <p className="text-xs text-parchment-dim">
                 No minions — the boss does not summon adds.
               </p>

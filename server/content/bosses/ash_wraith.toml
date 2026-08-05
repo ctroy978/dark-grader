@@ -3,7 +3,7 @@ name = "Ash Wraith"
 max_hp = 210
 traits = ["Volatile"]
 difficulty = "Standard"
-summary = "Fights alone (no minions). Cascade hits the front hardest; poison cloud and magnet crush still hurt."
+summary = "Fights alone, swinging a massive cinder hammer through ash-choked air. His Cinderquake hits the front hardest, while Choking Ash and Beacon Breaker punish the whole formation."
 recommended_rounds = "8–12"
 enrage_hp_pct = 0.25
 enrage_damage_mult = 1.15
@@ -87,41 +87,53 @@ volume = 0.45
 
 [[attacks]]
 id = "LineAttack"
+name = "Ashen Sweep"
+description = "He sweeps his great hammer through the entire party line, dealing the same direct hit to every living hero."
 weight = 2
 sfx = "boss_ash_line"
-bubble_lines = ["Burn!", "Ash wave!"]
+bubble_lines = ["Ashen Sweep!", "All become ash!"]
 use_grunt = true
 
 [[attacks]]
 id = "FrontSlam"
+name = "Hammerfall"
+description = "He brings his massive hammer down across the front three positions. The blow is strongest in position 1 and weakens through positions 2 and 3."
 weight = 3
 sfx = "boss_ash_slam"
-bubble_lines = ["Front falls!", "Cinder smash!"]
+bubble_lines = ["Hammerfall!", "Front falls!"]
 use_grunt = true
 
 [[attacks]]
 id = "Cascade"
+name = "Cinderquake"
+description = "He drives the hammer into the ground, sending a cinder shockwave through every position from front to back. It hits the front hardest and the back lightest."
 weight = 4
 sfx = "boss_ash_cascade"
-bubble_lines = ["Cascade of ash!", "Front first!"]
+bubble_lines = ["Cinderquake!", "Front first!"]
 use_grunt = true
 
 [[attacks]]
 id = "CrushMagnet"
+name = "Beacon Breaker"
+description = "He aims a crushing hammer blow at the hero on the Token Magnet and clips both adjacent positions for smaller damage."
 weight = 3
 sfx = "boss_ash_crush"
-bubble_lines = ["The light dies!", "Magnet!"]
+bubble_lines = ["Break the beacon!", "The light dies!"]
 use_grunt = true
 
 [[attacks]]
 id = "PoisonCloud"
+name = "Choking Ash"
+description = "He smothers every living hero in Poison. The Poison ticks each round and grows stronger if it is left uncleansed."
 weight = 3
 sfx = "boss_ash_poison"
-bubble_lines = ["Breathe ash…", "Toxin mist!"]
+bubble_lines = ["Breathe ash…", "Choke!"]
 use_laugh = true
 
 [[attacks]]
 id = "Regenerate"
+name = "Ember Reforging"
+description = "He reforms 10 HP from drifting embers, then sends a small damaging pulse toward a magnet-focused target."
 weight = 1
 sfx = "boss_ash_regen"
 bubble_lines = ["Embers reform…"]

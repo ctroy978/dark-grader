@@ -5,9 +5,10 @@
 id = "bone_colossus"
 name = "Bone Colossus"
 max_hp = 230
-traits = ["Undead", "Bone Memories", "Enrage"]
+traits = ["Undead", "Bone Ward", "Enrage"]
 difficulty = "Hard"
-summary = "Raises five charging memories of earlier bosses. Break each memory to expose the Colossus before its signature attack detonates."
+summary = "A towering skeleton sealed by a Bone Ward. It swings the remains of ancient giants as weapons while something restless stirs inside its frame."
+encounter_hint = "The Colossus does not stand alone. Old battles stir beneath its ribs, and its Bone Ward may have to be broken before the giant can be fully harmed."
 recommended_rounds = "12–18"
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.3
@@ -96,31 +97,39 @@ volume = 0.45
 
 [[attacks]]
 id = "FrontSlam"
+name = "Bone Hammer"
+description = "He uses a giant leg bone to smash the front three positions. The impact is strongest in position 1 and weakens through positions 2 and 3."
 weight = 3
 sfx = "boss_bone_slam"
-bubble_lines = ["CRUSH!", "Front line—break!", "SLAM!"]
+bubble_lines = ["BONE HAMMER!", "Front line—break!", "CRUSH!"]
 use_grunt = true
 
 [[attacks]]
 id = "LineAttack"
+name = "Marrow Sweep"
+description = "He swings the giant bone across the entire party line, dealing the same direct hit to every living hero."
 weight = 2
 sfx = "boss_bone_line"
-bubble_lines = ["All of you!", "Sweep!"]
+bubble_lines = ["MARROW SWEEP!", "All of you!"]
 use_grunt = true
 
 [[attacks]]
 id = "Cascade"
+name = "Bonefall"
+description = "He shatters a mass of bones into a wave that crashes through every position from front to back. It hits the front hardest and the back lightest."
 weight = 4
 sfx = "boss_bone_cascade"
-bubble_lines = ["Front to back!", "CASCADE!", "Fall in order!"]
+bubble_lines = ["BONEFALL!", "Front to back!", "Fall in order!"]
 use_grunt = true
 use_laugh = true
 
 [[attacks]]
 id = "CrushMagnet"
+name = "Grave Pin"
+description = "He drives a sharpened bone at the hero on the Token Magnet and strikes both adjacent positions for smaller damage."
 weight = 3
 sfx = "boss_bone_crush"
-bubble_lines = ["The magnet dies!", "There!", "Crush the glow!"]
+bubble_lines = ["GRAVE PIN!", "There!", "Pin the glow!"]
 use_grunt = true
 
 [[memories]]

@@ -56,6 +56,10 @@ export function defaultMinionShotSfx(minionId: string): string {
 
 export interface BossAttackDef {
   id: string;
+  /** Boss-specific student-facing name (mechanical id stays stable). */
+  name?: string;
+  /** Accurate boss-specific scout description. */
+  description?: string;
   weight: number;
   sfx?: string;
   bubble_lines: string[];
@@ -86,6 +90,8 @@ export interface BossTemplate {
   attackIds: string[];
   difficulty: string;
   summary: string;
+  /** Vague pre-fight foreshadowing without revealing hidden encounter pieces. */
+  encounterHint?: string;
   recommendedRounds: string;
   enrageHpPct: number;
   enrageDamageMult: number;
@@ -105,6 +111,7 @@ interface RawBossToml {
   traits?: string[];
   difficulty?: string;
   summary?: string;
+  encounter_hint?: string;
   recommended_rounds?: string;
   enrage_hp_pct?: number;
   enrage_damage_mult?: number;
@@ -120,6 +127,8 @@ interface RawBossToml {
   }>;
   attacks?: Array<{
     id: string;
+    name?: string;
+    description?: string;
     weight?: number;
     sfx?: string;
     bubble_lines?: string[];
@@ -177,6 +186,8 @@ function parseBossFile(filePath: string): BossTemplate {
   const attacks: BossAttackDef[] = (raw.attacks ?? []).map((a) => {
     const base: BossAttackDef = {
       id: a.id,
+      name: a.name,
+      description: a.description,
       weight: a.weight ?? 1,
       sfx: a.sfx,
       bubble_lines: a.bubble_lines ?? [],
@@ -254,6 +265,7 @@ function parseBossFile(filePath: string): BossTemplate {
     attackIds: attacks.map((a) => a.id),
     difficulty: raw.difficulty ?? "Standard",
     summary: raw.summary ?? "",
+    encounterHint: raw.encounter_hint,
     recommendedRounds: raw.recommended_rounds ?? "?",
     enrageHpPct: raw.enrage_hp_pct ?? 0.4,
     enrageDamageMult: raw.enrage_damage_mult ?? 1.3,
