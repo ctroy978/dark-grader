@@ -22,8 +22,8 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Cover shorts out → 0 (nothing if already down)",
   },
   FireMage: {
-    A: "Wildfire ≤3 (9) + boss Fire; front: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss (Frozen needs an A on the frozen hero)",
-    B: "Wildfire ≤3 (7) + boss Fire; back: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss (Frozen needs an A on the frozen hero)",
+    A: "Wildfire ≤3 (9) + boss Fire; front: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss",
+    B: "Wildfire ≤3 (7) + boss Fire; back: cleanse Chill/Ice/Slime — seats 1–3 hit minions, back hits boss",
     C: "Wildfire ≤2 foes (6 each) + boss Fire burn — no friendly fire",
     D: "Ember 1 foe (4); friendly fire pos 1–2 (ignores shield)",
     F: "Explodes on the whole party (ignores shield)",
