@@ -90,10 +90,15 @@ export function AcademicHonorsPanel({
   useEffect(() => {
     if (!previewTrack) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPreviewTrack(null);
+      if (event.key === "Escape") {
+        // This preview can be nested inside another dialog. Consume Escape so
+        // it closes only the top-most badge preview on the first key press.
+        event.stopImmediatePropagation();
+        setPreviewTrack(null);
+      }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [previewTrack]);
 
   const preview = previewTrack

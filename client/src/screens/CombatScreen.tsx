@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   ARCHETYPE_ICONS,
   GRADE_COLORS,
@@ -529,7 +530,13 @@ function playCueAudio(cue: PresentationCue): void {
 /** Short breath after wind-up playback before impact resolve (wind-up duration is already in the cue). */
 const BOSS_TELEGRAPH_AFTER_PLAYBACK_MS = 350;
 
-function FightSummary({ team }: { team: EnrichedTeam }) {
+function FightSummary({
+  team,
+  onViewHonors,
+}: {
+  team: EnrichedTeam;
+  onViewHonors?: () => void;
+}) {
   const party = team.activePartyIds
     .map((id) => team.roster.find((r) => r.id === id))
     .filter(Boolean) as EnrichedTeam["roster"];
@@ -576,6 +583,18 @@ function FightSummary({ team }: { team: EnrichedTeam }) {
             {team.isFinalRoom
               ? "Continue to finish the campaign and see your final roster."
               : "HP carries over. Continue to camp recovery, choose one reward, and reform for the next room."}
+            {onViewHonors && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="text-rune underline decoration-rune/50 underline-offset-2 hover:text-parchment"
+                  onClick={onViewHonors}
+                >
+                  View badges
+                </button>
+              </>
+            )}
           </p>
         ) : (
           <p className="text-xs text-parchment-dim">
@@ -583,15 +602,85 @@ function FightSummary({ team }: { team: EnrichedTeam }) {
             and retry this room (no camp heal).
           </p>
         )}
-        {win && team.lastScoreAwards && (
+      </div>
+    </div>
+  );
+}
+
+function AcademicHonorsDialog({
+  team,
+  onClose,
+}: {
+  team: EnrichedTeam;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  if (!team.lastScoreAwards) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[250] flex items-center justify-center bg-black/80 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="academic-honors-dialog-title"
+      aria-describedby="academic-honors-dialog-description"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-rune/40 bg-navy shadow-2xl shadow-black sm:max-h-[calc(100dvh-2.5rem)]">
+        <div className="shrink-0 border-b border-parchment/15 px-4 py-3 sm:px-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2
+                id="academic-honors-dialog-title"
+                className="text-xl font-bold text-parchment"
+              >
+                Badge progress
+              </h2>
+              <p
+                id="academic-honors-dialog-description"
+                className="mt-1 text-sm text-parchment-dim"
+              >
+                Review the honors earned in this room, then return to the victory screen.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="h-9 w-9 shrink-0 rounded-full border border-parchment/25 bg-navy-light text-lg text-parchment hover:border-rune/60"
+              onClick={onClose}
+              aria-label="Close badge progress"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 overflow-y-auto p-3 sm:p-5">
           <AcademicHonorsPanel
             summary={team.score}
             awards={team.lastScoreAwards}
-            compact
           />
-        )}
+        </div>
+        <div className="shrink-0 border-t border-parchment/15 px-4 py-3 text-right sm:px-5">
+          <button
+            type="button"
+            autoFocus
+            className="rounded-lg bg-rune px-5 py-2 text-sm font-bold text-navy hover:bg-parchment"
+            onClick={onClose}
+          >
+            Back to victory
+          </button>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -611,6 +700,8 @@ export default function CombatScreen({
   const [voOn, setVoOn] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
   const [logOpen, setLogOpen] = useState(false);
+  const [honorsOpen, setHonorsOpen] = useState(false);
+  const honorsShownForRef = useRef<string | null>(null);
   const logLenRef = useRef(0);
   const phaseRef = useRef(team.phase);
   const bossResolveLock = useRef(false);
@@ -786,6 +877,33 @@ export default function CombatScreen({
     setPlayIndex(0);
     setPlaying(true);
   }, [team.playback, team.phase, team.round]);
+
+  // Present badge progress once the victory story is fully visible. Keeping the
+  // panel in a portal prevents it from consuming battlefield layout height.
+  useEffect(() => {
+    if (team.phase !== "victory") {
+      setHonorsOpen(false);
+      return;
+    }
+    if (!team.lastScoreAwards || playing) return;
+    const hasPendingPresentation =
+      (team.playback?.length ?? 0) > 0 && !partyPlaybackDoneRef.current;
+    if (hasPendingPresentation) return;
+
+    const outcomeKey = `${team.teamId}:${team.currentRoom ?? team.roomIndex}:${team.round}`;
+    if (honorsShownForRef.current === outcomeKey) return;
+    honorsShownForRef.current = outcomeKey;
+    setHonorsOpen(true);
+  }, [
+    playing,
+    team.currentRoom,
+    team.lastScoreAwards,
+    team.phase,
+    team.playback,
+    team.roomIndex,
+    team.round,
+    team.teamId,
+  ]);
 
   // Advance beats on a timer
   useEffect(() => {
@@ -1263,7 +1381,14 @@ export default function CombatScreen({
       )}
       {(team.phase === "victory" || team.phase === "defeat") && !playing && (
         <div className="shrink-0">
-          <FightSummary team={team} />
+          <FightSummary
+            team={team}
+            onViewHonors={
+              team.phase === "victory" && team.lastScoreAwards
+                ? () => setHonorsOpen(true)
+                : undefined
+            }
+          />
         </div>
       )}
 
@@ -1972,6 +2097,13 @@ export default function CombatScreen({
           drop
         </p>
       </div>
+
+      {honorsOpen && (
+        <AcademicHonorsDialog
+          team={team}
+          onClose={() => setHonorsOpen(false)}
+        />
+      )}
     </div>
   );
 }
