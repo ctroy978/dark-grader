@@ -22,6 +22,7 @@ export function createCampaignRoster(): Soldier[] {
         statuses: [],
         alive: true,
         block: 0,
+        relic: null,
       });
     }
   }

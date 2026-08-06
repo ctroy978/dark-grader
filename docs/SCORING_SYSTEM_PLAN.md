@@ -1,6 +1,6 @@
 # Scoring System Plan
 
-**Status:** Implemented; awaiting badge art and classroom review  
+**Status:** Implemented with badge art; awaiting classroom review
 **Created:** 2026-08-06  
 **Branch:** `scoring-system`  
 **Scope:** Team score, three academic badge tracks, badge assets, and teacher/student presentation

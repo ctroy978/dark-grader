@@ -3,6 +3,7 @@ import JoinScreen from "./screens/JoinScreen";
 import LobbyScreen from "./screens/LobbyScreen";
 import CombatScreen from "./screens/CombatScreen";
 import TeacherDashboard from "./screens/TeacherDashboard";
+import RewardScreen from "./screens/RewardScreen";
 import type { EnrichedTeam } from "./api";
 import LandingPage from "./site/LandingPage";
 import HowToPlayPage from "./site/HowToPlayPage";
@@ -79,6 +80,18 @@ export default function App() {
 
   // In-session play overrides marketing when a team is active
   if (team) {
+    if (team.phase === "reward") {
+      return (
+        <RewardScreen
+          team={team}
+          onTeamUpdate={setTeam}
+          onLeave={() => {
+            setTeam(null);
+            navigate({ page: "home" });
+          }}
+        />
+      );
+    }
     if (team.phase === "campaign_complete") {
       return (
         <CampaignComplete

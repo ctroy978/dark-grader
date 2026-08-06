@@ -41,6 +41,7 @@ import {
   setVoEnabled,
 } from "../audio";
 import { CombatActor } from "../combat/CombatActor";
+import { RelicIcon } from "../relics/RelicIcon";
 import type { HpFloat } from "../combat/DamageFloat";
 import GradeToken, { GradeTokenSlot } from "../combat/GradeToken";
 import {
@@ -375,6 +376,7 @@ function applyBoardReveal(
           alive: p.alive,
           block: p.block,
           statuses: p.statuses.map((st) => ({ ...st })),
+          relic: p.relic ? { ...p.relic } : null,
         };
       }),
       boss:
@@ -421,6 +423,7 @@ function applyBoardReveal(
         alive: r.alive,
         block: r.block,
         statuses: r.statuses.map((st) => ({ ...st })),
+        relic: r.relic ? { ...r.relic } : null,
       };
     }),
     boss:
@@ -572,7 +575,7 @@ function FightSummary({ team }: { team: EnrichedTeam }) {
           <p className="text-xs text-parchment-dim">
             {team.isFinalRoom
               ? "Continue to finish the campaign and see your final roster."
-              : "HP carries over. Continue to camp, take Vanguard healing, and reform for the next room."}
+              : "HP carries over. Continue to camp recovery, choose one reward, and reform for the next room."}
           </p>
         ) : (
           <p className="text-xs text-parchment-dim">
@@ -1417,6 +1420,13 @@ export default function CombatScreen({
                             : "border-parchment/15 hover:border-parchment/40"
                   }`}
                 >
+                  {s.relic && (
+                    <RelicIcon
+                      relicId={s.relic.relicId}
+                      size="sm"
+                      className="absolute -left-1 -top-1 z-20"
+                    />
+                  )}
                   <div className="text-[8px] text-parchment-dim leading-none py-0.5">
                     #{pos}
                   </div>
@@ -1900,7 +1910,7 @@ export default function CombatScreen({
               >
                 {team.isFinalRoom
                   ? "Complete campaign"
-                  : "Continue → camp"}
+                  : "Continue → rewards"}
               </button>
             )}
             {team.phase === "defeat" && !playing && (

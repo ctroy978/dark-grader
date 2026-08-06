@@ -424,6 +424,8 @@ function fireMage(
     for (const s of livingParty(team)) {
       const r = applyPartyDamage(s, 3, team.partyShield, {
         bypassAbsorb: true,
+        team,
+        source: "friendly_fire",
       });
       hits.push(
         r.hpLost === 0 &&
@@ -507,6 +509,8 @@ function fireMage(
     if (s) {
       const res = applyPartyDamage(s, 3, team.partyShield, {
         bypassAbsorb: true,
+        team,
+        source: "friendly_fire",
       });
       hits.push(
         res.hpLost === 0 && s.statuses.some((st) => st.kind === "Frozen")
@@ -607,6 +611,8 @@ function archer(
       const dmg = randomInt(random, 1, 2);
       const hit = applyPartyDamage(victim, dmg, team.partyShield, {
         bypassAbsorb: true,
+        team,
+        source: "friendly_fire",
       });
       log(
         `${label}: MISFIRE — ${r}, and ${formatPartyHit(victim, hit)} (ignores shield/block)`,
@@ -688,6 +694,8 @@ function necromancer(
     }
     const hit = applyPartyDamage(target, 10, team.partyShield, {
       bypassAbsorb: true,
+      team,
+      source: "friendly_fire",
     });
     log(
       `${label}: BACKLASH — drains ${formatPartyHit(target, hit)} (highest HP, ignores shield/block)`,
@@ -700,7 +708,11 @@ function necromancer(
   const focus: string[] = [];
 
   if (g === "D") {
-    applyPartyDamage(soldier, 3, team.partyShield, { bypassAbsorb: true });
+    applyPartyDamage(soldier, 3, team.partyShield, {
+      bypassAbsorb: true,
+      team,
+      source: "friendly_fire",
+    });
     log(`${label}: drain ${r}; self-damage 3`);
     return focus;
   }

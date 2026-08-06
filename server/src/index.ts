@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { Server as SocketServer } from "socket.io";
 import {
   currentRoomNumber,
+  isRelicId,
   isFinalRoom,
   parseGradeList,
   scoringSummary,
@@ -39,6 +40,10 @@ import {
 } from "./engine/combat.js";
 import { GameStore } from "./db/store.js";
 import { cloudPreview } from "./engine/tokens.js";
+import {
+  chooseHealingPotionReward,
+  chooseRelicReward,
+} from "./engine/rewards.js";
 import { loadEnv } from "./loadEnv.js";
 
 loadEnv();
@@ -198,6 +203,7 @@ function classroomOverview(classroomId: string) {
       canStartCurrentRoom: startBlockedReason(t) === null,
       score: scoringSummary(t.scoring, c.campaignLength),
       scoring: t.scoring,
+      items: t.items,
     })),
   };
 }
@@ -683,6 +689,35 @@ app.post<{ Params: { id: string } }>("/api/team/:id/continue", async (req) => {
   requirePlayable(team);
   const c = store.getClassroomForTeam(team);
   enterBetweenRooms(team, c?.campaignLength);
+  store.updateTeam(team);
+  broadcastTeam(team.teamId);
+  return enrich(team);
+});
+
+app.post<{
+  Params: { id: string };
+  Body: { relicId?: unknown; soldierId?: string };
+}>("/api/team/:id/reward/relic", async (req) => {
+  const team = store.getTeam(req.params.id);
+  if (!team) httpError("Team not found", 404);
+  requirePlayable(team);
+  if (!isRelicId(req.body.relicId)) httpError("Invalid relic", 400);
+  if (typeof req.body.soldierId !== "string") httpError("Soldier required", 400);
+  chooseRelicReward(team, req.body.relicId, req.body.soldierId);
+  store.updateTeam(team);
+  broadcastTeam(team.teamId);
+  return enrich(team);
+});
+
+app.post<{
+  Params: { id: string };
+  Body: { soldierId?: string };
+}>("/api/team/:id/reward/healing-potion", async (req) => {
+  const team = store.getTeam(req.params.id);
+  if (!team) httpError("Team not found", 404);
+  requirePlayable(team);
+  if (typeof req.body.soldierId !== "string") httpError("Soldier required", 400);
+  chooseHealingPotionReward(team, req.body.soldierId);
   store.updateTeam(team);
   broadcastTeam(team.teamId);
   return enrich(team);

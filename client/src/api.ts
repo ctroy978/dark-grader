@@ -36,6 +36,7 @@ export type BoardReveal = {
     alive: boolean;
     block: number;
     statuses: import("@dungeon-grades/shared").StatusTag[];
+    relic: import("@dungeon-grades/shared").BoundRelic | null;
   }>;
   boss: {
     currentHp: number;
@@ -183,6 +184,7 @@ export type EnrichedTeam = {
   scoring: import("@dungeon-grades/shared").TeamScoringState;
   score: import("@dungeon-grades/shared").ScoringSummary;
   lastScoreAwards?: import("@dungeon-grades/shared").ScoreAwardResult | null;
+  items: import("@dungeon-grades/shared").TeamItemState;
 };
 
 export type ClassroomSummary = {
@@ -236,6 +238,7 @@ export type Overview = {
     canStartCurrentRoom?: boolean;
     score: import("@dungeon-grades/shared").ScoringSummary;
     scoring: import("@dungeon-grades/shared").TeamScoringState;
+    items: import("@dungeon-grades/shared").TeamItemState;
   }[];
 };
 
@@ -268,6 +271,20 @@ export const api = {
     request<EnrichedTeam>(`/api/team/${id}/start-fight`, { method: "POST" }),
   continueCampaign: (id: string) =>
     request<EnrichedTeam>(`/api/team/${id}/continue`, { method: "POST" }),
+  chooseRelicReward: (
+    id: string,
+    relicId: import("@dungeon-grades/shared").RelicId,
+    soldierId: string,
+  ) =>
+    request<EnrichedTeam>(`/api/team/${id}/reward/relic`, {
+      method: "POST",
+      body: JSON.stringify({ relicId, soldierId }),
+    }),
+  chooseHealingPotion: (id: string, soldierId: string) =>
+    request<EnrichedTeam>(`/api/team/${id}/reward/healing-potion`, {
+      method: "POST",
+      body: JSON.stringify({ soldierId }),
+    }),
   returnFromDefeat: (id: string) =>
     request<EnrichedTeam>(`/api/team/${id}/return-from-defeat`, {
       method: "POST",

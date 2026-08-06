@@ -436,6 +436,26 @@ async function playCampaign(runName, pickFn, magnetFn, maxRounds = 80) {
         });
         team = await req(`/api/team/${team.teamId}/continue`, { method: "POST" });
         summary.events.continues++;
+        if (team.phase === "reward") {
+          const eligible = team.roster.find((s) => s.alive && !s.relic);
+          const offer = team.items?.pendingReward?.relicOfferIds?.[0];
+          if (eligible && offer) {
+            team = await req(`/api/team/${team.teamId}/reward/relic`, {
+              method: "POST",
+              body: j({ relicId: offer, soldierId: eligible.id }),
+            });
+          } else {
+            const target = team.roster
+              .filter((s) => s.alive)
+              .sort((a, b) => a.currentHp / a.maxHp - b.currentHp / b.maxHp)[0];
+            if (target) {
+              team = await req(`/api/team/${team.teamId}/reward/healing-potion`, {
+                method: "POST",
+                body: j({ soldierId: target.id }),
+              });
+            }
+          }
+        }
         // reform if needed and start next fight
         if (team.phase === "between_rooms" || team.phase === "lobby") {
           const living = team.roster.filter((s) => s.alive);

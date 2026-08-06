@@ -153,6 +153,12 @@ describe("GameStore multi-classroom", () => {
     expect(team?.scoring.preservationRank).toBe(0);
     expect(team?.scoring.tempoRank).toBe(0);
     expect(team?.scoring.rooms).toHaveLength(2);
+    expect(team?.items).toEqual({
+      version: 1,
+      catalogVersion: 1,
+      pendingReward: null,
+      rooms: [],
+    });
     const c = store.getClassroom(team!.classroomId);
     expect(c?.rooms[0].tokenPool).toEqual(["A", "A", "B"]);
     expect(c?.rooms[0].open).toBe(true);

@@ -38,6 +38,7 @@ export function captureBoardReveal(team: TeamState): BoardReveal {
       alive: s.alive,
       block: s.block,
       statuses: s.statuses.map((st) => ({ ...st })),
+      relic: s.relic ? { ...s.relic } : null,
     })),
     boss: team.boss
       ? {

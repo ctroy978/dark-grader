@@ -192,10 +192,20 @@ function resolveMinionShot(
   log: LogFn,
 ): number {
   const scaled = scaleBossDamageToSoldier(team, target, amount);
-  const { hpLost } = applyPartyDamage(target, scaled, team.partyShield);
+  const { hpLost } = applyPartyDamage(target, scaled, team.partyShield, {
+    team,
+    source: "minion",
+  });
   log(`${minion.name} fires at ${target.name} for ${hpLost} HP`);
   if (minion.onHitDot && minion.onHitDot.stacks > 0) {
-    applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
+    applyDot(
+      target,
+      minion.onHitDot.type,
+      minion.onHitDot.stacks,
+      undefined,
+      true,
+      team,
+    );
     log(onHitDotApplyLog(target.name, minion.onHitDot.type, minion.onHitDot.stacks));
   }
   return hpLost;
@@ -660,7 +670,10 @@ function performAttack(
     }
     const scaled = scaleBossDamageToSoldier(team, s, amount);
     const afterParry = applySpearmanBossDefense(s, scaled);
-    const { hpLost } = applyPartyDamage(s, afterParry, team.partyShield);
+    const { hpLost } = applyPartyDamage(s, afterParry, team.partyShield, {
+      team,
+      source: "boss",
+    });
     if (hpLost > 0) victims.add(s.id);
     return hpLost;
   };
@@ -703,7 +716,7 @@ function performAttack(
         const base = WARDEN_WIND_HIT[i]!;
         const chillDur = WARDEN_WIND_CHILL_DURATION[i]!;
         const hpLost = hit(s, dmg(base));
-        applyDot(s, "Chill", 1, chillDur, true);
+        applyDot(s, "Chill", 1, chillDur, true, team);
         if (hpLost < 0) {
           log(
             `  ${s.name} is encased in ice — boss hit glances off! (still Chilled ${chillDur}r)`,
@@ -727,7 +740,7 @@ function performAttack(
         const base = WARDEN_WIND_HIT[i]!;
         const chillDur = WARDEN_WIND_CHILL_DURATION[i]!;
         const hpLost = hit(s, dmg(base));
-        applyDot(s, "Chill", 1, chillDur, true);
+        applyDot(s, "Chill", 1, chillDur, true, team);
         if (hpLost < 0) {
           log(
             `  ${s.name} is encased in ice — boss hit glances off! (still Chilled ${chillDur}r)`,
@@ -826,6 +839,7 @@ function performAttack(
           s,
           afterParry,
           team.partyShield,
+          { team, source: "boss" },
         );
         if (hpLost > 0) victims.add(s.id);
         const extra: string[] = [];
@@ -859,6 +873,7 @@ function performAttack(
           s,
           afterParry,
           team.partyShield,
+          { team, source: "boss" },
         );
         if (hpLost > 0) victims.add(s.id);
         const extra: string[] = [];
@@ -932,7 +947,7 @@ function performAttack(
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
-          applyDot(s, "Poison", 1, undefined, true);
+          applyDot(s, "Poison", 1, undefined, true, team);
           victims.add(s.id);
           log(`  ${s.name} is poisoned (ramps each round if left up)`);
         }
@@ -945,7 +960,7 @@ function performAttack(
       for (const pos of [1, 2, 3, 4, 5, 6]) {
         const s = soldierAt(team, pos);
         if (s) {
-          applyDot(s, "Fire", 1, undefined, true);
+          applyDot(s, "Fire", 1, undefined, true, team);
           victims.add(s.id);
           log(`  ${s.name} is burning (ramps each round if left up)`);
         }
@@ -1028,12 +1043,22 @@ function performSummon(
       let raw = dmg(minion.damage);
       if (shot >= 1) raw = Math.floor(raw * MULTI_MINION_FOCUS_MULT);
       const amount = scaleBossDamageToSoldier(team, target, raw);
-      const { hpLost } = applyPartyDamage(target, amount, team.partyShield);
+      const { hpLost } = applyPartyDamage(target, amount, team.partyShield, {
+        team,
+        source: "minion",
+      });
       if (hpLost > 0) victims.add(target.id);
       log(`  ${minion.name} free-fires at ${target.name} for ${hpLost}`);
       shot += 1;
       if (minion.onHitDot && minion.onHitDot.stacks > 0) {
-        applyDot(target, minion.onHitDot.type, minion.onHitDot.stacks, undefined, true);
+        applyDot(
+          target,
+          minion.onHitDot.type,
+          minion.onHitDot.stacks,
+          undefined,
+          true,
+          team,
+        );
         log(
           onHitDotApplyLog(
             target.name,

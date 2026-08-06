@@ -17,9 +17,32 @@ import {
   enterBetweenRooms,
   returnFromDefeat,
 } from "../server/dist/engine/combat.js";
+import {
+  chooseHealingPotionReward,
+  chooseRelicReward,
+} from "../server/dist/engine/rewards.js";
 import { DEFAULT_ROOM_BOSSES } from "../packages/shared/dist/index.js";
 
 const ROOM_BOSSES = [...DEFAULT_ROOM_BOSSES];
+
+function resolveReward(team) {
+  if (team.phase !== "reward") return;
+  const eligible = team.roster
+    .filter((soldier) => soldier.alive && !soldier.relic)
+    .sort((a, b) => b.currentHp / b.maxHp - a.currentHp / a.maxHp)[0];
+  const pending = team.items.pendingReward;
+  const offer = pending?.relicOfferIds[
+    (pending?.sourceRoomIndex ?? 0) % (pending?.relicOfferIds.length || 1)
+  ];
+  if (eligible && offer) {
+    chooseRelicReward(team, offer, eligible.id);
+    return;
+  }
+  const wounded = team.roster
+    .filter((soldier) => soldier.alive)
+    .sort((a, b) => a.currentHp / a.maxHp - b.currentHp / b.maxHp)[0];
+  if (wounded) chooseHealingPotionReward(team, wounded.id);
+}
 
 const GENEROUS = [
   ...Array(20).fill("A"),
@@ -372,6 +395,7 @@ function runCampaign(seed, arches, pool, opts = {}) {
       outcome = "campaign_complete";
       break;
     }
+    resolveReward(team);
   }
 
   if (outcome === "unknown" && team.phase === "campaign_complete") {

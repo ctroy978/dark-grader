@@ -101,15 +101,16 @@ describe("campaign progression", () => {
     team.roomIndex = 0;
 
     enterBetweenRooms(team, 3);
-    expect(team.phase).toBe("between_rooms");
+    expect(team.phase).toBe("reward");
     expect(team.roomIndex).toBe(1);
     expect(team.activePartyIds).toEqual([]);
     expect(team.boss).toBeNull();
+    expect(team.items.pendingReward?.relicOfferIds).toHaveLength(3);
 
     // Double continue must not skip a room
     enterBetweenRooms(team, 3);
     expect(team.roomIndex).toBe(1);
-    expect(team.phase).toBe("between_rooms");
+    expect(team.phase).toBe("reward");
   });
 
   it("completes campaign after final room", () => {

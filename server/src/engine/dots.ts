@@ -10,6 +10,7 @@ import {
   MAX_PARTY_POISON_STACKS,
   MAX_PARTY_SLIME_STACKS,
   MAX_POISON_INTENSITY,
+  PURITY_CHARM_DURATION_REDUCTION,
   type BossState,
   type DotType,
   type FrozenStatus,
@@ -124,7 +125,7 @@ export function tickFrozenChain(
         s,
         FROST_LOCKED_TICK_DAMAGE,
         team.partyShield,
-        { throughFrozen: true },
+        { throughFrozen: true, team, source: "dot" },
       );
       log(
         `  [Frost] ${s.name} freezes deeper: ${FROST_LOCKED_TICK_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -144,7 +145,7 @@ export function tickFrozenChain(
           s,
           FROST_SHATTER_FROZEN_DAMAGE,
           team.partyShield,
-          { throughFrozen: true },
+          { throughFrozen: true, team, source: "dot" },
         );
         log(
           `    ${s.name}: shatter ${FROST_SHATTER_FROZEN_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -154,7 +155,7 @@ export function tickFrozenChain(
           s,
           FROST_SHATTER_SPLASH_DAMAGE,
           team.partyShield,
-          { throughFrozen: true },
+          { throughFrozen: true, team, source: "dot" },
         );
         log(
           `    ${s.name}: ice shards ${FROST_SHATTER_SPLASH_DAMAGE} raw → ${formatPartyHit(s, result)}`,
@@ -213,9 +214,28 @@ export function applyDot(
   stacks = 1,
   durationOverride?: number,
   fromBoss = false,
+  team?: TeamState,
 ): void {
   const existing = soldier.statuses.find((s) => s.kind === "Dot" && s.type === type);
-  const duration = durationOverride ?? DOT_STATS[type].duration;
+  let duration = durationOverride ?? DOT_STATS[type].duration;
+  const purity = soldier.relic;
+  if (
+    !existing &&
+    type !== "Slime" &&
+    purity?.relicId === "purity_charm" &&
+    !purity.usedThisFight
+  ) {
+    purity.usedThisFight = true;
+    duration = Math.max(0, duration - PURITY_CHARM_DURATION_REDUCTION);
+    if (team) {
+      team.log.push({
+        round: team.round,
+        text: `${soldier.name}'s Purity Charm shortens the incoming ${type}.`,
+        tags: ["relic", "purity_charm", "cleanse"],
+      });
+    }
+    if (duration <= 0) return;
+  }
   const addStacks =
     type === "Fire"
       ? Math.min(stacks, MAX_PARTY_FIRE_STACKS)
@@ -527,6 +547,8 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
       const perTick = DOT_STATS[dot.type].tick * dot.stacks * intensity;
       const result = applyPartyDamage(soldier, perTick, team.partyShield, {
         throughFrozen: true,
+        team,
+        source: "dot",
       });
       const rampNote =
         dot.escalationStep != null ? ` · intensity ${intensity}` : "";
@@ -785,6 +807,8 @@ function distributePoison(
     if (p.floor <= 0) continue;
     const result = applyPartyDamage(p.soldier, p.floor, team.partyShield, {
       throughFrozen: true,
+      team,
+      source: "dot",
     });
     log(`    ${p.soldier.name} (pos ${p.pos}): ${formatPartyHit(p.soldier, result)}`);
   }

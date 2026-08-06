@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   DEFAULT_CAMPAIGN_LENGTH,
   DEFAULT_ROOM_BOSSES,
+  createEmptyItemState,
   createEmptyScoringState,
   clampScoreRank,
   type ClassroomRoomSlot,
@@ -221,6 +222,15 @@ export class GameStore {
     if (!Array.isArray(state.lastClaims)) state.lastClaims = [];
     if (!Array.isArray(state.pendingTokens)) state.pendingTokens = [];
     if (typeof state.classroomId !== "string") state.classroomId = "";
+    for (const soldier of state.roster ?? []) {
+      if (soldier.relic === undefined) soldier.relic = null;
+    }
+    if (!state.items || state.items.version !== 1) {
+      state.items = createEmptyItemState();
+    } else {
+      if (!Array.isArray(state.items.rooms)) state.items.rooms = [];
+      if (state.items.pendingReward === undefined) state.items.pendingReward = null;
+    }
     if (state.boss?.id !== "bone_colossus") state.boneColossus = null;
     if (!state.scoring || state.scoring.version !== 1) {
       const scoring = createEmptyScoringState();

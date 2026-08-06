@@ -1,4 +1,6 @@
 import {
+  BULWARK_SIGIL_REDUCTION,
+  EMBER_WHETSTONE_BONUS,
   OHM_REFLECT_RATIO,
   SPEARMAN_FRONT_VULN_MULT,
   type Minion,
@@ -6,6 +8,7 @@ import {
   type Soldier,
   type TeamState,
 } from "@dungeon-grades/shared";
+import { recordRelicDestruction } from "./rewards.js";
 
 /** Short phrase for logs: "3 HP to Name", "2 blocked by shield on Name", etc. */
 export function formatPartyHit(
@@ -35,6 +38,10 @@ export type DamageOpts = {
    * Boss attacks, minions, and party friendly-fire stay blocked.
    */
   throughFrozen?: boolean;
+  /** Authoritative state required for relic use/destruction bookkeeping. */
+  team?: TeamState;
+  /** Damage provenance; only direct boss hits trigger Bulwark Sigil. */
+  source?: "boss" | "minion" | "dot" | "reflect" | "friendly_fire" | "memory";
 };
 
 /**
@@ -95,6 +102,24 @@ export function applyPartyDamage(
   let shieldAbsorbed = 0;
   let blockAbsorbed = 0;
 
+  const bulwark = soldier.relic;
+  if (
+    opts?.source === "boss" &&
+    bulwark?.relicId === "bulwark_sigil" &&
+    !bulwark.usedThisFight
+  ) {
+    const prevented = Math.min(BULWARK_SIGIL_REDUCTION, remaining);
+    remaining -= prevented;
+    bulwark.usedThisFight = true;
+    if (opts.team) {
+      opts.team.log.push({
+        round: opts.team.round,
+        text: `${soldier.name}'s Bulwark Sigil absorbs ${prevented} boss damage.`,
+        tags: ["relic", "bulwark_sigil"],
+      });
+    }
+  }
+
   if (!opts?.bypassAbsorb) {
     // One-round Maiden cover: only listed seats may spend the pool
     const inCover =
@@ -137,6 +162,7 @@ export function applyPartyDamage(
     }
     soldier.alive = false;
     soldier.currentHp = 0;
+    if (opts?.team) recordRelicDestruction(opts.team, soldier);
   }
 
   return { hpLost, shieldAbsorbed, blockAbsorbed };
@@ -300,6 +326,18 @@ export function hitEnemies(
   const bonus = (team.partyDamageBonus || 0) + charge;
   const parts: string[] = [];
   const canMinions = actorCanHitMinions(actor);
+  const ember = actor?.relic?.relicId === "ember_whetstone" && !actor.relic.usedThisFight
+    ? actor.relic
+    : null;
+
+  const withEmber = (amount: number): number =>
+    amount +
+    (ember && !ember.usedThisFight ? EMBER_WHETSTONE_BONUS : 0);
+  const consumeEmber = (damage: number): void => {
+    if (!ember || ember.usedThisFight || damage <= 0) return;
+    ember.usedThisFight = true;
+    parts.push(`Ember Whetstone flares +${EMBER_WHETSTONE_BONUS}`);
+  };
 
   const applyToBoss = (amount: number, verb?: string) => {
     if (!team.boss || team.boss.currentHp <= 0) return false;
@@ -312,7 +350,8 @@ export function hitEnemies(
       raw = Math.floor(raw * 0.5);
     }
     const mult = team.boss.curseDamageTakenMult || 1;
-    const result = damageBoss(team, Math.floor(raw * mult));
+    const result = damageBoss(team, withEmber(Math.floor(raw * mult)));
+    consumeEmber(result.damage);
     parts.push(`${verb ? `${verb} ` : ""}${result.damage} to ${team.boss.name}`);
     if (result.warded) {
       parts.push(`${team.boss.damageFloorLabel ?? "Bone Ward"} holds`);
@@ -335,7 +374,10 @@ export function hitEnemies(
       parts.push(`0 to ${m.name} (reflect)`);
       const bounce = Math.floor(amount * OHM_REFLECT_RATIO);
       if (bounce > 0 && actor && actor.alive) {
-        const { hpLost } = applyPartyDamage(actor, bounce, team.partyShield);
+        const { hpLost } = applyPartyDamage(actor, bounce, team.partyShield, {
+          team,
+          source: "reflect",
+        });
         if (hpLost > 0) {
           parts.push(`${hpLost} reflected to ${actor.name}`);
         } else {
@@ -344,10 +386,12 @@ export function hitEnemies(
       }
       return { hit: true, overkill: 0 };
     }
+    const enhancedAmount = withEmber(amount);
     const hpBefore = m.currentHp;
-    const dmg = Math.min(hpBefore, amount);
-    const overkill = Math.max(0, amount - hpBefore);
+    const dmg = Math.min(hpBefore, enhancedAmount);
+    const overkill = Math.max(0, enhancedAmount - hpBefore);
     m.currentHp -= dmg;
+    consumeEmber(dmg);
     parts.push(`${dmg} to ${m.name}`);
     if (m.currentHp <= 0) {
       m.currentHp = 0;

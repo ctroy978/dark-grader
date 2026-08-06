@@ -106,15 +106,21 @@ A reasonable initial policy is a small cap, such as 1–3 assignment or campaign
 
 ## 4. Magic items
 
+> **Relic implementation plan:** The approved reward shape, Healing Potion
+> fallback, persistence model, combat hooks, UI, and delivery slices now live in
+> [`RELIC_SYSTEM_PLAN.md`](./RELIC_SYSTEM_PLAN.md). That document is the source
+> of truth for relic implementation work.
+
 ### 4.1 Reward flow
 
 After every non-final boss victory:
 
 1. The team enters a reward step before ordinary camp party formation.
-2. Three relics are presented.
-3. The team chooses one relic.
-4. The team permanently binds it to one living soldier who does not already carry a relic.
-5. The relic functions only when its bearer is deployed.
+2. Three relics and a Healing Potion are presented.
+3. The team chooses exactly one of the four rewards.
+4. A chosen relic is permanently bound to one living soldier who does not already carry a relic.
+5. The Healing Potion instead restores one living soldier to maximum HP in the lobby, is consumed immediately, and does not occupy a relic slot.
+6. A relic functions only when its bearer is deployed.
 
 The final boss should award a trophy, Renown bonus, or epilogue collectible because a normal combat relic would have no later fight in which to matter.
 
@@ -130,6 +136,11 @@ For classroom fairness, all teams in the same classroom should receive the same 
 - Relic destruction should receive a clear combat cue and be recorded in room history.
 
 These rules make the bearer meaningful without introducing a separate equipment-management game.
+
+The Healing Potion is always available as the fourth choice. It ensures the
+reward step remains completable if every living soldier already carries a
+relic, while also creating a meaningful choice between permanent power and
+immediate campaign recovery.
 
 ### 4.3 Initial power budget
 
@@ -318,3 +329,7 @@ The first slice should create the foundation without changing combat balance:
 7. Update the campaign simulator to report from the same metrics where practical.
 
 Once that foundation is stable, implement a three-to-six-item vertical slice and test it through the full reward, binding, combat, destruction, persistence, and presentation flow.
+
+The scoring and badge foundation is now implemented. Relic work proceeds on the
+dedicated plan in [`RELIC_SYSTEM_PLAN.md`](./RELIC_SYSTEM_PLAN.md), beginning
+with three passive relics plus the always-available Healing Potion.

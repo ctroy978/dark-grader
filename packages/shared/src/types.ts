@@ -1,5 +1,6 @@
 import type { PresentationCue } from "./presentation.js";
 import type { ScoreAwardResult, TeamScoringState } from "./scoring.js";
+import type { BoundRelic, TeamItemState } from "./relics.js";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
@@ -176,6 +177,8 @@ export interface Soldier {
   alive: boolean;
   /** One-round personal absorb (Vanguard) */
   block: number;
+  /** Permanent passive reward; destroyed the first time this soldier dies. */
+  relic: BoundRelic | null;
 }
 
 export interface PartyShield {
@@ -306,6 +309,8 @@ export type FightPhase =
   /** Cleared current room (not yet advanced) */
   | "victory"
   | "defeat"
+  /** Non-final victory reward must resolve before party formation. */
+  | "reward"
   /** Camp between rooms — reform party */
   | "between_rooms"
   /** Cleared entire campaign */
@@ -388,6 +393,8 @@ export interface TeamState {
   scoring: TeamScoringState;
   /** Upgrades earned on the latest victory; cleared when the next fight starts. */
   lastScoreAwards?: ScoreAwardResult | null;
+  /** Persistent relic ownership, pending reward, and room item history. */
+  items: TeamItemState;
 }
 
 /** Per-room grade pool + teacher open gate for one classroom. */

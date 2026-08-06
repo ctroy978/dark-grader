@@ -18,6 +18,7 @@ import {
   type Archetype,
   type BossScout,
   type Grade,
+  type RelicId,
 } from "@dungeon-grades/shared";
 import { api, getSocket, type EnrichedTeam } from "../api";
 import {
@@ -38,6 +39,7 @@ import {
 } from "../combat/CombatLogPanel";
 import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
 import { AcademicHonorsPanel } from "../scoring/AcademicHonors";
+import { RelicIcon } from "../relics/RelicIcon";
 
 const PARTY_SIZE = 6;
 
@@ -63,6 +65,7 @@ function CharacterIntel({
   soldierName,
   currentHp,
   maxHp,
+  relicId,
   inLine,
   onAddToLineup,
   children,
@@ -74,6 +77,7 @@ function CharacterIntel({
   /** Live HP for this soldier (after fights). Falls back to class max. */
   currentHp?: number;
   maxHp?: number;
+  relicId?: RelicId;
   /** Already placed in the formation line */
   inLine?: boolean;
   /** Place or remove from the formation line */
@@ -163,6 +167,12 @@ function CharacterIntel({
                 <span className="text-grade-d"> · wounded</span>
               )}
             </div>
+            {relicId && (
+              <div className="flex items-center gap-2 text-xs text-rune">
+                <RelicIcon relicId={relicId} size="sm" />
+                Equipped relic
+              </div>
+            )}
             <p className="text-xs text-parchment/90 leading-snug">{scout.summary}</p>
           </div>
         </div>
@@ -973,6 +983,7 @@ export default function LobbyScreen({
                     <span className="text-[9px] text-parchment-dim">
                       {s.currentHp}/{s.maxHp} HP
                     </span>
+                    {s.relic && <RelicIcon relicId={s.relic.relicId} size="sm" />}
                   </>
                 ) : (
                   <span className="text-parchment-dim/60 text-xs px-1">
@@ -1047,6 +1058,7 @@ export default function LobbyScreen({
                       {!s.alive && " · fallen"}
                     </div>
                   </div>
+                  {s.relic && <RelicIcon relicId={s.relic.relicId} size="sm" />}
                   {s.alive && (
                     <span
                       className={`shrink-0 self-center rounded-full border text-[10px] font-semibold leading-none w-5 h-5 inline-flex items-center justify-center transition ${
@@ -1074,6 +1086,7 @@ export default function LobbyScreen({
                     soldierName={s.name}
                     currentHp={s.currentHp}
                     maxHp={s.maxHp || ARCHETYPE_MAX_HP[s.archetype]}
+                    relicId={s.relic?.relicId}
                     inLine={inLine}
                     onAddToLineup={() => placeSoldier(s.id)}
                   >

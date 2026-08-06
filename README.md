@@ -80,7 +80,7 @@ If a clip is missing and a key is configured, the server can also generate it on
 2. In a classroom → **Create team**(s) → share invite codes with student stations.
 3. After a test → paste **grades for Room N** → **Open room N**. Only that room is playable.
 4. **Students** enter the invite code (no classroom picker) → form a party of 6 → enter the open room.
-5. Victory → camp → next room stays **locked** until the teacher enters the next test’s grades and opens it.
+5. Victory → camp recovery → choose one reward → next room stays **locked** until the teacher enters the next test’s grades and opens it.
 6. Each classroom has its own grades, open rooms, pause flag, and teams.
 
 ### Academic Honors scoring
@@ -95,7 +95,22 @@ The running score is the sum of the three ranks (maximum **18** in the default s
 
 Badge PNGs are drop-in assets under `client/public/art/badges/{campaign,preservation,tempo}/`: `base.png` for unranked, then `1.png` through `6.png`. Missing images use a CSS fallback.
 
-Default path: **Moss Grub → Ash → Herald → Rattle Captain → Barrow Warden (placeholder) → Bone Colossus** (6 rooms).
+### Relic rewards
+
+Every non-final victory offers three classroom-deterministic relics plus an
+always-available Healing Potion. The team chooses exactly one:
+
+- **Bulwark Sigil** — first direct boss hit each fight deals 6 less damage.
+- **Ember Whetstone** — first damaging action each fight adds 4 damage to its first hit.
+- **Purity Charm** — first new finite damaging status each fight loses one tick.
+- **Healing Potion** — immediately restore one living soldier to maximum HP in camp; consumed on use and occupies no relic slot.
+
+A soldier can carry only one permanently bound relic. Relics work only while
+their bearer is deployed and are destroyed immediately if the bearer dies,
+including before a later Thundercaller revival. Reward rules and implementation
+details are in [`docs/RELIC_SYSTEM_PLAN.md`](docs/RELIC_SYSTEM_PLAN.md).
+
+Default path: **Moss Grub → Ash → Herald → Rattle Captain → Barrow Warden → Bone Colossus** (6 rooms).
 
 See [`docs/MULTI_CLASSROOM_PLAN.md`](docs/MULTI_CLASSROOM_PLAN.md) for the full multi-classroom design.
 

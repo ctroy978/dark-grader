@@ -6,6 +6,7 @@ import {
   bossThreatTier,
   bossWindupTheme,
   awardRoomVictory,
+  createEmptyItemState,
   createEmptyScoringState,
   createRng,
   defaultTelegraphLines,
@@ -61,6 +62,11 @@ import {
   preparePendingForRound,
 } from "./tokens.js";
 import { resolveSfxId } from "../audio/resolveSfx.js";
+import {
+  ensureRoomItemRecord,
+  flushRelicDestructionCues,
+  preparePendingRoomReward,
+} from "./rewards.js";
 import {
   activeBoneMemory,
   advanceBoneMemoryCharge,
@@ -285,6 +291,7 @@ export function createTeam(
     lastClearedBossName: null,
     scoring: createEmptyScoringState(),
     lastScoreAwards: null,
+    items: createEmptyItemState(),
   };
 }
 
@@ -363,6 +370,9 @@ export function startFight(
   if (team.phase === "campaign_complete") {
     throw new Error("Campaign already complete — teacher must reset the team");
   }
+  if (team.phase !== "lobby" && team.phase !== "between_rooms") {
+    throw new Error("Can only start a fight from the lobby or camp");
+  }
   const need = requiredPartySize(team);
   if (need <= 0) {
     throw new Error(
@@ -411,6 +421,7 @@ export function startFight(
   for (const s of activeParty(team)) {
     s.block = 0;
     s.statuses = [];
+    if (s.relic) s.relic.usedThisFight = false;
   }
 
   // Cover only when a Shield Maiden claims (no free opening shield)
@@ -419,6 +430,7 @@ export function startFight(
   team.boneColossus = null;
   team.playback = [];
   beginScoringAttempt(team);
+  ensureRoomItemRecord(team, team.roomIndex, team.boss.id);
 
   const openingMemory = initializeBoneColossusEncounter(team);
 
@@ -955,6 +967,7 @@ export function commitRound(team: TeamState): TeamState {
     });
   }
 
+  flushRelicDestructionCues(team);
   processDeaths(team);
   // Keep slain minions at 0 HP on the board through party playback so the
   // client can show who killed them. Corpses are removed when the boss acts.
@@ -1302,6 +1315,7 @@ export function resolveBoss(team: TeamState): TeamState {
   }
   team.partyShield = { remaining: 0, active: false, coveredIds: [] };
 
+  flushRelicDestructionCues(team);
   processDeaths(team);
 
   if (livingParty(team).length === 0) {
@@ -1434,13 +1448,17 @@ function clearFightState(team: TeamState): void {
  * Advance after a room victory.
  * - Idempotent: only runs from `victory` (double-click safe).
  * - Increments roomsCleared (roomIndex) once.
- * - If campaign finished → `campaign_complete`, else `between_rooms`.
+ * - If campaign finished → `campaign_complete`, else persisted `reward` phase.
  */
 export function enterBetweenRooms(
   team: TeamState,
   campaignLength = DEFAULT_CAMPAIGN_LENGTH,
 ): void {
-  if (team.phase === "between_rooms" || team.phase === "campaign_complete") {
+  if (
+    team.phase === "reward" ||
+    team.phase === "between_rooms" ||
+    team.phase === "campaign_complete"
+  ) {
     // Already advanced — ignore repeat continue
     return;
   }
@@ -1448,9 +1466,9 @@ export function enterBetweenRooms(
     throw new Error("Fight not won");
   }
 
-  if (team.boss) {
-    team.lastClearedBossName = team.boss.name;
-  }
+  const sourceRoomIndex = team.roomIndex;
+  const sourceBossId = team.boss?.id ?? `room_${sourceRoomIndex + 1}`;
+  if (team.boss) team.lastClearedBossName = team.boss.name;
 
   applyInterRoomHealing(team);
   clearFightState(team);
@@ -1468,7 +1486,8 @@ export function enterBetweenRooms(
       ["system", "campaign"],
     );
   } else {
-    team.phase = "between_rooms";
+    preparePendingRoomReward(team, sourceRoomIndex, sourceBossId);
+    team.phase = "reward";
     const living = livingRosterCount(team);
     const lineNote =
       living >= PARTY_SIZE
@@ -1478,8 +1497,8 @@ export function enterBetweenRooms(
           : `No living soldiers left — ask the teacher to reset.`;
     pushLog(
       team,
-      `Room ${cleared} cleared. Camping before room ${cleared + 1} of ${total}. ${lineNote}`,
-      ["system", "campaign"],
+      `Room ${cleared} cleared. Camp recovery complete — choose one reward before room ${cleared + 1} of ${total}. ${lineNote}`,
+      ["system", "campaign", "reward"],
     );
   }
 }

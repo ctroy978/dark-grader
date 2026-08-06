@@ -4,6 +4,7 @@ import type {
   Grade,
   StatusTag,
 } from "./types.js";
+import type { BoundRelic } from "./relics.js";
 
 /**
  * Combatant HP / status snapshot for progressive presentation.
@@ -18,6 +19,7 @@ export interface BoardReveal {
     alive: boolean;
     block: number;
     statuses: StatusTag[];
+    relic: BoundRelic | null;
   }>;
   boss: {
     currentHp: number;

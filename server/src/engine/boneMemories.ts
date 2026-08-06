@@ -189,7 +189,10 @@ function hitPartyLine(
   log: (text: string) => void,
 ): void {
   for (const soldier of livingParty(team)) {
-    const { hpLost } = applyPartyDamage(soldier, amount, team.partyShield);
+    const { hpLost } = applyPartyDamage(soldier, amount, team.partyShield, {
+      team,
+      source: "memory",
+    });
     if (hpLost > 0) victims.add(soldier.id);
     log(`  ${soldier.name} takes ${hpLost}`);
   }
@@ -205,7 +208,7 @@ function resolveSignature(
     case "MemorySlimeBurst": {
       hitPartyLine(team, memory.detonationDamage, victims, log);
       for (const soldier of livingParty(team)) {
-        applyDot(soldier, "Slime", 1, undefined, true);
+        applyDot(soldier, "Slime", 1, undefined, true, team);
         victims.add(soldier.id);
       }
       break;
@@ -213,7 +216,7 @@ function resolveSignature(
     case "PoisonCloud": {
       hitPartyLine(team, memory.detonationDamage, victims, log);
       for (const soldier of livingParty(team)) {
-        applyDot(soldier, "Poison", 1, undefined, true);
+        applyDot(soldier, "Poison", 1, undefined, true, team);
         victims.add(soldier.id);
       }
       break;
@@ -221,7 +224,7 @@ function resolveSignature(
     case "FireCloud": {
       hitPartyLine(team, memory.detonationDamage, victims, log);
       for (const soldier of livingParty(team)) {
-        applyDot(soldier, "Fire", 1, undefined, true);
+        applyDot(soldier, "Fire", 1, undefined, true, team);
         victims.add(soldier.id);
       }
       break;
@@ -240,6 +243,7 @@ function resolveSignature(
           soldier,
           target.damage,
           team.partyShield,
+          { team, source: "memory" },
         );
         if (hpLost > 0) victims.add(soldier.id);
         log(`  ${soldier.name} takes ${hpLost}`);

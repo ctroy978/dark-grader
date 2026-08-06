@@ -689,6 +689,28 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                     <td className="py-2 pr-3">{t.round}</td>
                     <td className="py-2 pr-3">
                       {t.alive}/{t.rosterSize}
+                      <span
+                        className="block text-[10px] text-parchment-dim"
+                        title={
+                          t.items.rooms.length
+                            ? t.items.rooms
+                                .map((room) => {
+                                  const choice = room.choice
+                                    ? room.choice.kind === "relic"
+                                      ? `${room.choice.relicId} → ${room.choice.soldierId}`
+                                      : `potion → ${room.choice.soldierId} (+${room.choice.amountHealed} HP)`
+                                    : "no reward chosen";
+                                  const destroyed = room.destroyedRelics.length
+                                    ? `; destroyed: ${room.destroyedRelics.map((record) => `${record.relicId}/${record.soldierId}/R${record.round}`).join(", ")}`
+                                    : "";
+                                  return `Room ${room.roomIndex + 1}: ${choice}${destroyed}`;
+                                })
+                                .join("\n")
+                            : "No item history"
+                        }
+                      >
+                        {t.items.rooms.filter((room) => room.choice?.kind === "relic").length} relics · {t.items.rooms.filter((room) => room.choice?.kind === "healing_potion").length} potions
+                      </span>
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <span className="font-semibold text-rune">

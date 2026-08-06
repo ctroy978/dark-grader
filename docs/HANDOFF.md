@@ -84,7 +84,7 @@ README.md            Full ability reference for design review (keep in sync with
 4. Client plays `playback` with **progressive HP reveals**, then auto **resolve-boss**  
 5. Boss/minion cues (or stun skip) → next magnet phase or win/lose  
 
-Phases: `lobby` | `between_rooms` | `awaiting_magnet` | `resolving` | `boss_telegraph` | `victory` | `defeat` | `campaign_complete`
+Phases: `lobby` | `between_rooms` | `awaiting_magnet` | `resolving` | `boss_telegraph` | `victory` | `defeat` | `reward` | `campaign_complete`
 
 ## Academic Honors scoring
 
@@ -92,11 +92,28 @@ Source of truth: [`SCORING_SYSTEM_PLAN.md`](./SCORING_SYSTEM_PLAN.md). Each team
 
 Shared rules: `packages/shared/src/scoring.ts`. Engine lifecycle: `server/src/engine/combat.ts`. Student panel: `client/src/scoring/AcademicHonors.tsx`. Badge art contract: `client/public/art/badges/README.md`.
 
+## Relic rewards
+
+Source of truth: [`RELIC_SYSTEM_PLAN.md`](./RELIC_SYSTEM_PLAN.md). Every
+non-final victory applies ordinary camp recovery, advances into a persisted
+`reward` phase, and presents three deterministic classroom/room relic offers
+plus a Healing Potion. Choosing one atomically enters `between_rooms`.
+
+Each soldier carries at most one bound relic. The initial set is Bulwark Sigil,
+Ember Whetstone, and Purity Charm. A relic is destroyed at lethal resolution,
+before Thundercaller can revive its bearer. The potion instead heals one living
+soldier to full immediately and consumes the room reward.
+
+Shared definitions: `packages/shared/src/relics.ts`. Reward lifecycle:
+`server/src/engine/rewards.ts`. Student screen:
+`client/src/screens/RewardScreen.tsx`. Art contract:
+`client/public/art/relics/README.md`.
+
 ### Post-fight
 
 | Outcome | Flow |
 |---------|------|
-| **Victory** | Continue → camp → `POST .../continue` → `enterBetweenRooms` (idempotent). Final room → `campaign_complete`. |
+| **Victory** | Continue → camp recovery → `reward` via `POST .../continue` (idempotent) → relic/potion choice → `between_rooms`. Final room → `campaign_complete`. |
 | **Defeat** | Reform & retry → `POST .../return-from-defeat` → same `roomIndex`; no camp heal; dead stay dead. |
 
 ### Understrength parties (no soft-lock)
@@ -241,22 +258,20 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.  
+1. **Relic classroom review** — supply final PNGs under `client/public/art/relics/`, playtest the four-choice reward screen on Chromebook, and compare relic-enabled campaign balance.
+2. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.
    - **Lobby music:** drop `server/data/audio/music_ambient_lobby.mp3` (60–90s loop). Catalog volume **0.2**. Pref `dg_music` (default on); **Music / Music off** button on lobby + combat chrome. Ambient plays in lobby/camp only; combat stops the bed. Master mute also stops music.  
-2. **Boss plan Slice B.2** — Rattle Captain + light scraps (CrushMagnet tax)  
-3. **Slice C** — Barrow Warden + Grave Thrall heal-on-drop + Dominated  
-4. Expand default path to full 6 rooms when Captain/Warden ship  
-5. Finish missing art poses / new boss art (commit under `public/art/`)  
-6. Classroom deploy (serve built client from server, one command)  
-7. **FX overlays (when we start visual FX)** — tag-driven, not full particle engine. **Priority must-include:**  
+3. Finish missing art poses / new boss art (commit under `public/art/`)
+4. Classroom deploy (serve built client from server, one command)
+5. **FX overlays (when we start visual FX)** — tag-driven, not full particle engine. **Priority must-include:**
    - **Strong on-portrait DoT signal** — players must *instantly* see that someone is poisoned / burning / iced / slimed (not chip-only). Classroom read from a few feet away.  
    - Per-type tint/aura (poison green, fire orange, etc.) while the DoT is active, not only on tick flash.  
    - **Boss ramp intensity** should read on the body/FX (stronger pulse / thicker aura as `escalationStep` rises), not only as `⬆N` on a tiny chip.  
    - Apply/cleanse moments need a clear pop (cloud land, cleanse wash).  
    - Also: Thundercaller lightning stage arcs, etc.  
-8. Image bubble frames  
-9. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)  
-10. Cascade / FireMage FF fine-tune if still too hard after more rooms exist
+6. Image bubble frames
+7. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)
+8. Cascade / FireMage FF fine-tune if classroom review still finds the campaign too hard
 
 ### Party SFX catalog (hand-authored preferred)
 

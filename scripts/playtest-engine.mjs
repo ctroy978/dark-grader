@@ -10,6 +10,10 @@ import {
   startFight,
   enterBetweenRooms,
 } from "../server/dist/engine/combat.js";
+import {
+  chooseHealingPotionReward,
+  chooseRelicReward,
+} from "../server/dist/engine/rewards.js";
 
 const GENEROUS = [
   ...Array(20).fill("A"),
@@ -29,6 +33,19 @@ function living(team) {
 }
 function livingRoster(team) {
   return team.roster.filter((s) => s.alive);
+}
+
+function resolveReward(team) {
+  if (team.phase !== "reward") return;
+  const eligible = team.roster.find((s) => s.alive && !s.relic);
+  const offer = team.items.pendingReward?.relicOfferIds[0];
+  if (eligible && offer) chooseRelicReward(team, offer, eligible.id);
+  else {
+    const target = livingRoster(team).sort(
+      (a, b) => a.currentHp / a.maxHp - b.currentHp / b.maxHp,
+    )[0];
+    if (target) chooseHealingPotionReward(team, target.id);
+  }
 }
 
 function partyIds(team, arches) {
@@ -343,10 +360,11 @@ console.log("\n=== Soft-lock: victory with <6 living ===");
   team.boss.currentHp = 0;
   team.phase = "victory";
   enterBetweenRooms(team, 3);
+  resolveReward(team);
   console.log("phase", team.phase, "living", livingRoster(team).length);
   try {
     selectParty(team, partyIds(team, archesPower));
-    console.log("reform ok — unexpected");
+    console.log("reform ok — understrength flow remains available");
   } catch (e) {
     console.log("SOFT-LOCK:", e.message);
   }
@@ -520,6 +538,7 @@ for (let seed = 1; seed <= 5; seed++) {
         outcome = "campaign_complete";
         break;
       }
+      resolveReward(team);
     } else {
       outcome = team.phase;
       break;
