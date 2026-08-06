@@ -13,13 +13,14 @@ import { navigate } from "./siteNav";
 const ALL: Archetype[] = [
   "Vanguard",
   "Spearman",
+  "ShieldMaiden",
+  "Necromancer",
+  "Runesinger",
   "FireMage",
   "Archer",
   "Thundercaller",
-  "ShieldMaiden",
-  "Necromancer",
   "Healer",
-  "Runesinger",
+  "Lifebinder",
 ];
 
 /** Student-facing role groups for the codex list. */
@@ -37,6 +38,13 @@ const ROLE_SECTIONS: {
     archetypes: ["Vanguard", "Spearman"],
   },
   {
+    id: "support",
+    title: "Support",
+    blurb:
+      "Protect and enable the line — Maiden covers and cleanses, Necromancer drains and empowers a healer, and Runesinger rewrites claims before striking.",
+    archetypes: ["ShieldMaiden", "Necromancer", "Runesinger"],
+  },
+  {
     id: "damage",
     title: "Damage",
     blurb:
@@ -44,18 +52,11 @@ const ROLE_SECTIONS: {
     archetypes: ["FireMage", "Archer", "Thundercaller"],
   },
   {
-    id: "support",
-    title: "Support",
+    id: "lifebinders",
+    title: "Lifebinders",
     blurb:
-      "Protect and enable the line — Maiden cleanses Fire/Poison and covers the endangered; Necromancer drains and empowers the back-seat support.",
-    archetypes: ["ShieldMaiden", "Necromancer"],
-  },
-  {
-    id: "healers",
-    title: "Healers",
-    blurb:
-      "Keep the party alive. Healer = instant triage heals (no cleanse). Runesinger = grade rewrite + slow gold hymn HoT. Back seat only — bring one or the other, not both.",
-    archetypes: ["Healer", "Runesinger"],
+      "Keep the party alive. Thornmender provides rescue healing; Grovekeeper lays three-tick renewal streams. Back seat only — bring one or the other.",
+    archetypes: ["Healer", "Lifebinder"],
   },
 ];
 
@@ -110,9 +111,9 @@ export function CharactersListPage() {
             Characters
           </h1>
           <p className="text-parchment-dim leading-relaxed">
-            Nine specialist classes fill a roster of 21 soldiers. You field six
-            per room — frontline, damage, support, and one back-seat healer
-            (Healer <em>or</em> Runesinger). Click a class for grade A–F
+            Ten specialist classes fill a roster of 23 soldiers. You field six
+            per room — frontline, damage, support, and one back-seat Lifebinder
+            (Thornmender <em>or</em> Grovekeeper). Click a class for grade A–F
             abilities.
           </p>
         </header>

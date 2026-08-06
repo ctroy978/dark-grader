@@ -1,33 +1,35 @@
 import { describe, expect, it } from "vitest";
 import {
-  backlineSupportSeat,
-  isBacklineSupportArchetype,
+  backlineHealerSeat,
+  isBacklineHealerArchetype,
+  largestLegalPartySize,
   partyFormationError,
-  withBacklineSupportLast,
+  withBacklineHealerLast,
 } from "./partyRules.js";
 
-describe("partyRules — backline support seat", () => {
-  it("flags Healer and Runesinger only", () => {
-    expect(isBacklineSupportArchetype("Healer")).toBe(true);
-    expect(isBacklineSupportArchetype("Runesinger")).toBe(true);
-    expect(isBacklineSupportArchetype("Vanguard")).toBe(false);
+describe("partyRules — backline healer seat", () => {
+  it("flags Healer and Lifebinder but not Runesinger", () => {
+    expect(isBacklineHealerArchetype("Healer")).toBe(true);
+    expect(isBacklineHealerArchetype("Lifebinder")).toBe(true);
+    expect(isBacklineHealerArchetype("Runesinger")).toBe(false);
+    expect(isBacklineHealerArchetype("Vanguard")).toBe(false);
   });
 
-  it("allows support only in the last seat", () => {
+  it("allows a backline healer only in the last seat", () => {
     expect(
       partyFormationError([
         { archetype: "Vanguard" },
         { archetype: "ShieldMaiden" },
         { archetype: "FireMage" },
         { archetype: "Archer" },
-        { archetype: "Thundercaller" },
-        { archetype: "Healer" },
+        { archetype: "Runesinger" },
+        { archetype: "Lifebinder" },
       ]),
     ).toBeNull();
     expect(
       partyFormationError([
         { archetype: "Vanguard" },
-        { archetype: "Healer" },
+        { archetype: "Lifebinder" },
         { archetype: "Archer" },
         { archetype: "FireMage" },
         { archetype: "Thundercaller" },
@@ -36,7 +38,7 @@ describe("partyRules — backline support seat", () => {
     ).toMatch(/back seat/);
   });
 
-  it("rejects two supports (second cannot be last)", () => {
+  it("rejects Healer and Lifebinder together", () => {
     expect(
       partyFormationError([
         { archetype: "Vanguard" },
@@ -44,29 +46,64 @@ describe("partyRules — backline support seat", () => {
         { archetype: "FireMage" },
         { archetype: "Archer" },
         { archetype: "Healer" },
-        { archetype: "Runesinger" },
+        { archetype: "Lifebinder" },
       ]),
     ).toMatch(/back seat/);
   });
 
-  it("understrength: last seat is party size", () => {
-    expect(backlineSupportSeat(4)).toBe(4);
+  it("allows Runesinger in every seat", () => {
+    for (let runeSeat = 0; runeSeat < 6; runeSeat++) {
+      const line = [
+        "Vanguard",
+        "ShieldMaiden",
+        "FireMage",
+        "Archer",
+        "Thundercaller",
+        "Spearman",
+      ].map((archetype) => ({ archetype })) as { archetype: import("./types.js").Archetype }[];
+      line[runeSeat] = { archetype: "Runesinger" };
+      expect(partyFormationError(line)).toBeNull();
+    }
+  });
+
+  it("uses the current line size as the back seat", () => {
+    expect(backlineHealerSeat(4)).toBe(4);
     expect(
       partyFormationError([
         { archetype: "Vanguard" },
         { archetype: "FireMage" },
-        { archetype: "Archer" },
         { archetype: "Runesinger" },
+        { archetype: "Lifebinder" },
       ]),
     ).toBeNull();
   });
 
-  it("withBacklineSupportLast moves and dedupes supports", () => {
-    const out = withBacklineSupportLast([
+  it("calculates the largest legal understrength line", () => {
+    expect(
+      largestLegalPartySize([
+        { archetype: "Vanguard" },
+        { archetype: "FireMage" },
+        { archetype: "Archer" },
+        { archetype: "Runesinger" },
+        { archetype: "Healer" },
+        { archetype: "Lifebinder" },
+      ]),
+    ).toBe(5);
+    expect(
+      largestLegalPartySize([
+        { archetype: "Healer" },
+        { archetype: "Lifebinder" },
+      ]),
+    ).toBe(1);
+  });
+
+  it("moves and dedupes only backline healers", () => {
+    const out = withBacklineHealerLast([
       { id: "h", archetype: "Healer" as const },
       { id: "v", archetype: "Vanguard" as const },
       { id: "r", archetype: "Runesinger" as const },
+      { id: "l", archetype: "Lifebinder" as const },
     ]);
-    expect(out.map((s) => s.id)).toEqual(["v", "r"]);
+    expect(out.map((soldier) => soldier.id)).toEqual(["v", "r", "l"]);
   });
 });

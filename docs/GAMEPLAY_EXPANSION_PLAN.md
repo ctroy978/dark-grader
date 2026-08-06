@@ -1,8 +1,9 @@
 # Gameplay Expansion Plan
 
-**Status:** Proposed design direction  
+**Status:** Scoring, relics, and the Lifebinder/Runesinger split implemented;
+Centurion remains proposed
 **Created:** 2026-08-06  
-**Scope:** Persistent scoring, magic items, Centurion, and Warden/Runesinger redesign
+**Scope:** Persistent scoring, magic items, Centurion, and Lifebinder/Runesinger redesign
 
 ## 1. Purpose
 
@@ -12,14 +13,14 @@ This document records the recommended direction for four connected additions:
 
 1. Persistent run statistics and a scoring foundation.
 2. Magic-item rewards after boss victories.
-3. A Warden archetype and a narrower Runesinger identity.
+3. A Lifebinder archetype and a narrower Runesinger identity.
 4. A position-sensitive Centurion archetype.
 
 The recommended implementation order is:
 
 1. Add persistent run statistics and scoring data structures.
 2. Add a small, complete magic-item system.
-3. Split healing-over-time from the Runesinger into the Warden.
+3. Split healing-over-time from the Runesinger into the Lifebinder.
 4. Add the Centurion after validating that his role remains distinct from the Spearman.
 5. Balance the complete six-room campaign with all new systems active.
 
@@ -31,8 +32,10 @@ The following existing rules shape this plan:
 - A team fields six soldiers while at full strength.
 - Permanent deaths and persistent HP make campaign attrition important.
 - Camp currently provides partial recovery and party reformation, but no reward choice.
-- Runesinger currently combines token rewriting with substantial healing-over-time.
-- Healer and Runesinger currently compete for the only legal back support seat.
+- Before the role split, Runesinger combined token rewriting with substantial
+  healing-over-time.
+- Before the role split, Healer and Runesinger competed for the only legal back
+  support seat.
 - The actual new-campaign roster contains 21 soldiers, despite a few older references to 22.
 - The default dungeon contains six bosses, so only the first five boss drops can affect later combat.
 
@@ -181,31 +184,40 @@ Boss-themed names and art should connect each reward set to the defeated boss: g
 - Teacher overview and room-history reporting.
 - Unit tests plus item-aware campaign simulations.
 
-## 5. Warden and Runesinger redesign
+## 5. Lifebinder and Runesinger redesign
+
+> **Implementation plan:** The detailed role split, grade ladders, seating
+> rules, understrength behavior, persistence policy, documentation checklist,
+> tests, and delivery slices now live in
+> [`LIFEBINDER_RUNESINGER_REWORK_PLAN.md`](./LIFEBINDER_RUNESINGER_REWORK_PLAN.md). That
+> document is the source of truth for implementation and supersedes this
+> preliminary section where the two differ.
 
 ### 5.1 Design goal
 
-The current Runesinger performs two major jobs: she rewrites all claims before other actions and also places substantial healing-over-time. These identities should be divided.
+Before this rework, the Runesinger performed two major jobs: she rewrote all
+claims before other actions and also placed substantial healing-over-time. The
+implemented split gives those identities separate homes.
 
 - **Runesinger:** token control plus modest rune damage.
-- **Warden:** preventative healing-over-time.
+- **Lifebinder:** preventative healing-over-time.
 - **Healer:** immediate emergency healing.
 
 This gives each sustain/control archetype a clearer classroom-readable job.
 
-### 5.2 Warden starting kit
+### 5.2 Lifebinder starting kit
 
-The existing Runesinger HoT ladder can move almost directly to the Warden:
+The existing Runesinger HoT ladder can move almost directly to the Lifebinder:
 
-| Grade | Proposed Warden effect |
+| Grade | Proposed Lifebinder effect |
 |---|---|
 | A | HoT all living soldiers for 4 HP × 3 ticks. |
 | B | HoT front positions for 4 HP × 3 ticks. |
 | C | HoT back positions for 3 HP × 3 ticks. |
-| D | HoT the lowest-HP ally or self for 3 HP × 3 ticks. |
+| D | HoT the Lifebinder for 3 HP × 3 ticks. |
 | F | No HoT; mild self-backfire rather than party-wide punishment. |
 
-The Warden should not inherit additional cleanses initially. Shield Maiden, Fire Mage, and Life Power already divide cleanse responsibilities.
+The Lifebinder should not inherit additional cleanses initially. Shield Maiden, Fire Mage, and Life Power already divide cleanse responsibilities.
 
 ### 5.3 Runesinger starting kit
 
@@ -217,25 +229,33 @@ Keep the current rewrite identities:
 - D: no rewrite.
 - F: all claims shift down one grade.
 
-After rewriting, add a modest rune attack using the normal positional targeting rules. A starting damage ladder could be 6/5/4/3/0. The rewrite remains her primary power.
+After rewriting, add a modest rune attack using the normal positional targeting
+rules. The implementation plan starts at 12/9/6/4/0: comparable to
+Necromancer, below Shield Maiden, with the rewrite remaining her primary power.
 
 Once healing is removed, Runesinger should no longer consume the dedicated back healer slot by definition.
 
 ### 5.4 Connected rule changes
 
-- Necromancer Life Power should target Healer or Warden instead of Healer or Runesinger.
+- Necromancer Life Power should target Healer or Lifebinder instead of Healer or Runesinger.
 - Healing-over-time status source names must no longer be Runesinger-specific.
 - Playbook, scout, audio, status, art, roster, and simulation data must be updated.
-- The hero name conflicts with the Barrow Warden boss. Prefer a distinct name such as **Grove Warden**, **Wild Warden**, or **Oathwarden**, unless the boss is renamed.
+- **Lifebinder** is the healing role. Its two classes are **Thornmender**
+  (original rescue healer; internal id `Healer`) and **Grovekeeper** (HoT healer;
+  internal id `Lifebinder`). They use distinct mechanics and art folders.
 
 ### 5.5 Formation softlock to resolve
 
-Current rules require Healer and Runesinger to occupy the single back seat, while an understrength party must field every living soldier. If multiple back-seat supports are among the final survivors, the team can be unable to form a legal party.
+The former rules required Healer and Runesinger to occupy the single back seat,
+while an understrength party had to field every living soldier. Multiple
+back-seat supports among the final survivors could therefore make a legal line
+impossible.
 
 Recommended replacement:
 
-- At full roster strength, limit the selected party to one dedicated sustain hero: Healer or Warden.
-- When the roster is understrength and every survivor must fight, waive the composition cap.
+- Limit the selected party to one dedicated sustain hero: Healer or Lifebinder.
+- When understrength, field the largest legal party and allow only an overflow
+  Healer/Lifebinder to remain benched; never waive the last-seat rule.
 - Runesinger is not a dedicated sustain hero after the redesign.
 
 This must be solved before adding another support archetype.

@@ -165,11 +165,16 @@ export function actionBubbleText(archetype: string, grade: Grade): string {
     "Thundercaller:C": "Zap!",
     "Thundercaller:D": "Spark!",
     "Thundercaller:F": "Overload!",
-    "Runesinger:A": "Hymn +2!",
-    "Runesinger:B": "Lift the line!",
+    "Runesinger:A": "Runes rise!",
+    "Runesinger:B": "Tune the line!",
     "Runesinger:C": "Lift the worst!",
-    "Runesinger:D": "Soft hymn…",
+    "Runesinger:D": "Rune strike!",
     "Runesinger:F": "Tokens fall!",
+    "Lifebinder:A": "Roots restore!",
+    "Lifebinder:B": "Guard the front!",
+    "Lifebinder:C": "Mend the back!",
+    "Lifebinder:D": "Mend myself…",
+    "Lifebinder:F": "Thorns recoil!",
   };
   return table[key] ?? `${grade}!`;
 }

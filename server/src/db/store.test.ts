@@ -83,6 +83,12 @@ describe("GameStore multi-classroom", () => {
     expect(t1.classroomId).toBe(p1.classroomId);
     expect(t3.classroomId).toBe(p3.classroomId);
     expect(t1.inviteCode).not.toBe(t3.inviteCode);
+    expect(t1.roster).toHaveLength(23);
+    expect(
+      t1.roster
+        .filter((soldier) => soldier.archetype === "Lifebinder")
+        .map((soldier) => soldier.name),
+    ).toEqual(["Rowan", "Briar"]);
 
     const slot1 = store.roomSlotForTeam(t1);
     expect(slot1?.open).toBe(true);
@@ -123,7 +129,19 @@ describe("GameStore multi-classroom", () => {
         teamId: "team_legacy",
         inviteCode: "ABC12",
         name: "Legacy",
-        roster: [],
+        roster: [
+          {
+            id: "runesinger_1",
+            name: "Glyph",
+            archetype: "Runesinger",
+            maxHp: 40,
+            currentHp: 40,
+            position: null,
+            statuses: [{ kind: "LifePower", bonus: 6 }],
+            alive: true,
+            block: 0,
+          },
+        ],
         activePartyIds: [],
         magnetPosition: 1,
         partyShield: { remaining: 0, active: false },
@@ -159,6 +177,8 @@ describe("GameStore multi-classroom", () => {
       pendingReward: null,
       rooms: [],
     });
+    expect(team?.roster[0]?.relic).toBeNull();
+    expect(team?.roster[0]?.statuses).toEqual([]);
     const c = store.getClassroom(team!.classroomId);
     expect(c?.rooms[0].tokenPool).toEqual(["A", "A", "B"]);
     expect(c?.rooms[0].open).toBe(true);

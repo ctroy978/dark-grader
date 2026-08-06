@@ -17,7 +17,7 @@ function supportParty(withHealer: boolean): TeamState {
   const tank = team.roster.find((s) => s.archetype === "Vanguard")!;
   const necro = team.roster.find((s) => s.archetype === "Necromancer")!;
   const support = team.roster.find(
-    (s) => s.archetype === (withHealer ? "Healer" : "Runesinger"),
+    (s) => s.archetype === (withHealer ? "Healer" : "Lifebinder"),
   )!;
   const rest = team.roster
     .filter(
@@ -27,7 +27,7 @@ function supportParty(withHealer: boolean): TeamState {
         s.id !== necro.id &&
         s.id !== support.id &&
         s.archetype !== "Healer" &&
-        s.archetype !== "Runesinger",
+        s.archetype !== "Lifebinder",
     )
     .slice(0, 3)
     .map((s) => s.id);
@@ -70,10 +70,12 @@ describe("Necromancer Life Power", () => {
     });
   });
 
-  it("empowers Runesinger when no Healer on the line", () => {
+  it("empowers Lifebinder when no Healer is on the line", () => {
     const team = supportParty(false);
     const necro = livingParty(team).find((s) => s.archetype === "Necromancer")!;
-    const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
+    const lifebinder = livingParty(team).find(
+      (s) => s.archetype === "Lifebinder",
+    )!;
 
     resolveSpecialistAction(
       team,
@@ -83,7 +85,7 @@ describe("Necromancer Life Power", () => {
       () => {},
     );
 
-    const lp = rs.statuses.find((st) => st.kind === "LifePower");
+    const lp = lifebinder.statuses.find((st) => st.kind === "LifePower");
     expect(lp?.kind).toBe("LifePower");
     if (lp?.kind === "LifePower") expect(lp.bonus).toBe(NECRO_LIFE_POWER.B);
   });
@@ -231,15 +233,19 @@ describe("Necromancer Life Power", () => {
     }
   });
 
-  it("charged Runesinger: hymn HoT still applies; dirty seats also wash; purple only on clean", () => {
+  it("charged Lifebinder: renewal still applies; dirty seats wash; purple only on clean", () => {
     const team = supportParty(false);
-    const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
-    rs.statuses.push({ kind: "LifePower", bonus: 4 });
-    team.lastClaims = livingParty(team).map((s) => ({
-      token: "C" as Grade,
-      soldierId: s.id,
-      effectiveGrade: "C" as Grade,
-    }));
+    const necro = livingParty(team).find((s) => s.archetype === "Necromancer")!;
+    const lifebinder = livingParty(team).find(
+      (s) => s.archetype === "Lifebinder",
+    )!;
+    resolveSpecialistAction(
+      team,
+      necro,
+      { token: "B", soldierId: necro.id, effectiveGrade: "B" },
+      () => 0.5,
+      () => {},
+    );
     const front = livingParty(team).filter(
       (s) => s.position != null && s.position <= 3,
     );
@@ -248,11 +254,11 @@ describe("Necromancer Life Power", () => {
       s.statuses = s.statuses.filter((st) => st.kind !== "Hot");
     }
 
-    // B = front hymn
+    // B = front renewal
     const result = resolveSpecialistAction(
       team,
-      rs,
-      { token: "B", soldierId: rs.id, effectiveGrade: "B" },
+      lifebinder,
+      { token: "B", soldierId: lifebinder.id, effectiveGrade: "B" },
       () => 0.5,
       () => {},
     );
@@ -261,7 +267,7 @@ describe("Necromancer Life Power", () => {
       expect(
         s.statuses.some((st) => st.kind === "Dot" && st.type === "Poison"),
       ).toBe(false);
-      // Base hymn always lands — Life Power does not cancel it.
+      // Base renewal always lands — Life Power does not cancel it.
       expect(s.statuses.some((st) => st.kind === "Hot")).toBe(true);
     }
     expect(result.lifePowerFollowUp?.cleanseTargetIds.length).toBe(

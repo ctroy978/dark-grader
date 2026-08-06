@@ -89,15 +89,16 @@ export function poseForUnit(
             f === "doom-blast" ||
             f === "archer-blast" ||
             f === "spear-blast" ||
+            f === "rune-blast" ||
             f === "party-stunned",
         );
         const softHeal = fx.some(
           (f) =>
             f === "heal-glow" ||
             f === "heal-blast" ||
-            f === "rune-blast" ||
-            f === "hymn-tick" ||
-            f === "hymn-glow",
+            f === "lifebinder-blast" ||
+            f === "lifebinder-tick" ||
+            f === "lifebinder-glow",
         );
         // Pure heal / hymn (Healer F boss backlash, party mend) — no flinch
         if (softHeal && !offensive) return "standing";
@@ -126,6 +127,7 @@ export function poseForUnit(
           fx.includes("necro-charge") ||
           fx.includes("thunder-charge") ||
           fx.includes("heal-charge") ||
+          fx.includes("lifebinder-charge") ||
           fx.includes("rune-charge") ||
           fx.includes("vanguard-charge") ||
           fx.includes("doom-charge") ||
@@ -213,12 +215,15 @@ export function fxClassesForUnit(
   if (!focused) return "";
   const isBoss = unitId === "boss";
   const cleanseTarget = cue.cleanseTargetIds?.includes(unitId) ?? false;
+  const fireCleanse = cue.fx.includes("fire-cleanse");
   return cue.fx
     .map((f) => {
       // A cleanse target shares the actor's cue, but must not inherit its
       // offensive class blast/tint. Only the dedicated wash paints this seat.
       if (cleanseTarget) {
-        return f === "cleanse-glow" && !isBoss ? "fx-cleanse-glow" : "";
+        return f === "cleanse-glow" && !isBoss
+          ? `fx-cleanse-glow${fireCleanse ? " fx-cleanse-glow--fire" : ""}`
+          : "";
       }
       // Victim tints — party only (boss impact/wind-up glow is separate)
       if (f === "poison-tint") return !isBoss ? "fx-poison-tint" : "";
@@ -244,7 +249,11 @@ export function fxClassesForUnit(
       if (f === "party-stunned") return !isBoss ? "fx-party-stunned" : "";
       if (f === "party-frozen") return !isBoss ? "fx-party-frozen" : "";
       if (f === "heal-glow") return "fx-heal-glow";
-      if (f === "cleanse-glow") return !isBoss ? "fx-cleanse-glow" : "";
+      if (f === "cleanse-glow") {
+        return !isBoss
+          ? `fx-cleanse-glow${fireCleanse ? " fx-cleanse-glow--fire" : ""}`
+          : "";
+      }
       if (f === "maiden-cleanse") {
         return cue.bubble?.speakerId === unitId && !isBoss
           ? "fx-cleanse-cast"
@@ -253,7 +262,7 @@ export function fxClassesForUnit(
       if (f === "life-power-grant" || f === "life-power-blast") {
         return !isBoss ? "fx-life-power-glow" : "";
       }
-      if (f === "hymn-glow" || f === "hymn-tick") {
+      if (f === "lifebinder-glow" || f === "lifebinder-tick") {
         return !isBoss ? "fx-hymn-glow" : "";
       }
       if (f === "attack-flash" || f === "claim-pop") return "fx-attack-flash";
@@ -272,6 +281,8 @@ export function fxClassesForUnit(
       if (f === "heal-blast") return "fx-heal-blast";
       if (f === "rune-charge") return !isBoss ? "fx-rune-charge" : "";
       if (f === "rune-blast") return "fx-rune-blast";
+      if (f === "lifebinder-charge") return !isBoss ? "fx-rune-charge" : "";
+      if (f === "lifebinder-blast") return !isBoss ? "fx-heal-blast" : "";
       if (f === "vanguard-charge") return !isBoss ? "fx-vanguard-charge" : "";
       if (f === "vanguard-blast") return "fx-vanguard-blast";
       if (f === "doom-charge") return !isBoss ? "fx-doom-charge" : "";

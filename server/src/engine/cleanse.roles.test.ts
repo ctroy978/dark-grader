@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { Grade } from "@dungeon-grades/shared";
+import {
+  isBacklineHealerArchetype,
+  type Grade,
+} from "@dungeon-grades/shared";
 import {
   createTeam,
   selectParty,
@@ -16,6 +19,7 @@ function partyWith(
     at: 1 | 2 | 3 | 4 | 5 | 6;
     archetype:
       | "Healer"
+      | "Lifebinder"
       | "FireMage"
       | "Spearman"
       | "Vanguard"
@@ -40,7 +44,7 @@ function partyWith(
   }
   const supportIds = ids.filter((id) => {
     const a = team.roster.find((r) => r.id === id)!.archetype;
-    return a === "Healer" || a === "Runesinger";
+    return isBacklineHealerArchetype(a);
   });
   const restIds = ids.filter((id) => !supportIds.includes(id));
   const orderedIds =
@@ -245,7 +249,8 @@ describe("cleanse role split", () => {
     const team = partyWith([
       { at: 1, archetype: "Vanguard" },
       { at: 2, archetype: "FireMage" },
-      { at: 3, archetype: "Healer" },
+      { at: 3, archetype: "Archer" },
+      { at: 6, archetype: "Healer" },
     ]);
     const front = soldierAt(team, 1)!;
     const mid = soldierAt(team, 3)!;

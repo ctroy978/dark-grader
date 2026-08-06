@@ -142,11 +142,11 @@ This section is for design review — update it when abilities change.
 
 | Rule | Current behavior |
 |------|------------------|
-| Party | 6 of **22** roster soldiers; campaign HP persists |
+| Party | 6 of **23** roster soldiers; campaign HP persists |
 | Tokens / round | 6/5/4 living → 3 tokens; 3 → 2; 2/1 → 1 (`tokensForLivingCount`) |
 | Magnet | Only control: raise claim odds on one living position (1–6) |
 | Claim rules | **Magnet always claims one token** (which grade is random among the drop). Remaining tokens: living party **except magnet**, weighted by proximity (adjacent 2× far). Each soldier ≤1 token. |
-| Resolve order | Claims → **Runesinger first** (rewrites tokens) → other claimers **front → back** → DoTs → boss |
+| Resolve order | Claims → **Runesinger first** (rewrite + rune attack) → other claimers **front → back** → damaging DoTs → Lifebinder renewal → boss |
 | Enemy damage | **Gap rule:** fixed positions **1–3** hit minions first; positions **4–6** hit the boss only. **Archers** can hit minions from any seat. **Minions hard-focus the magnet**; 2nd+ minion shot ×1.5 |
 | Party damage bonus | Legacy field; Runesinger no longer uses it (token rewrite instead) |
 | Party cover | **No free open.** Shield Maiden claim raises one-round cover (self + most endangered); size by grade; **F** dumps; expires after boss phase |
@@ -158,7 +158,7 @@ This section is for design review — update it when abilities change.
 
 ### Roster & HP
 
-Full campaign roster = **21**. Names match art gender (see `server/src/seed/names.ts`).
+Full campaign roster = **23**. Names match art gender (see `server/src/seed/names.ts`).
 
 | Archetype | Max HP | Count | Art / names |
 |-----------|--------|-------|-------------|
@@ -166,11 +166,12 @@ Full campaign roster = **21**. Names match art gender (see `server/src/seed/name
 | Spearman | 52 | **2** | Male |
 | ShieldMaiden | 48 | **2** | Female |
 | FireMage | 38 | 3 | Male |
-| Healer | 40 | **2** | Female |
+| Thornmender (`Healer`) | 40 | **2** | Female |
 | Archer | 36 | **3** | Female |
 | Necromancer | 40 | **2** | Male |
 | Thundercaller | 38 | **3** | Male |
 | Runesinger | 40 | **2** | Female |
+| Grovekeeper (`Lifebinder`) | 40 | **2** | Female |
 
 ---
 
@@ -226,7 +227,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ---
 
-### Healer — instant triage (no cleanse)
+### Thornmender — rescue healing (internal id: `Healer`)
 
 **Job (as coded):** emergency HP ladder. Uncharged: **no** cleanse (Maiden is primary Fire/Poison; Fire Mage = Chill/Ice/Slime). **Life Power** charge: **normal heal still applies**; Fire/Poison seats also **wash** (no purple bonus); clean seats get purple bonus. F heals the boss.
 
@@ -238,7 +239,28 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 | **D** | Tiny **full-party** heal **+3** each |
 | **F** | Heal **boss** **+8** |
 
-**2** Healers in the roster (back seat only — exclusive with Runesinger).
+**2** Thornmenders in the roster (back seat only — exclusive with Grovekeeper).
+
+---
+
+### Grovekeeper — healing-over-time (internal id: `Lifebinder`)
+
+**Job (as coded):** slow, preventative healing-over-time. Grovekeeper occupies
+the back seat and is exclusive with Thornmender. Necromancer Life Power enhances the
+seats reached by her next renewal: dirty Fire/Poison seats wash, while clean
+seats receive the purple bonus.
+
+| Grade | Renewal (3 ticks after damaging DoTs) |
+|-------|----------------------------------------|
+| **A** | All living **+4**/tick |
+| **B** | Front positions 1–3 **+4**/tick |
+| **C** | Back positions 4–6 **+3**/tick |
+| **D** | Self **+3**/tick |
+| **F** | No renewal; **3 self-damage** bypassing absorb |
+
+Streams are independent and cap at **2** per soldier. Grovekeeper and
+Thornmender are the game's two Lifebinder classes: Grovekeeper handles
+preventative HoTs; Thornmender handles rescue healing.
 
 ---
 
@@ -276,7 +298,7 @@ Fire tick uses normal `DOT_STATS.Fire` (**4**/stack per DoT phase) on the **boss
 
 ### Necromancer — drain + Life Power (cleanse charge)
 
-**Job (as coded):** modest boss drain; **A–C** grant **Life Power** to the living **Healer or Runesinger**. On their **next** heal/hymn: **normal mend still applies**; seats with **Fire/Poison** also **wash** (no purple bonus); clean seats get purple **+N**. Purple rain FX on both. **Maiden remains primary one-token cleanse.** No stacking; until used. **No direct ally heal.**
+**Job (as coded):** modest boss drain; **A–C** grant **Life Power** to the living **Thornmender or Grovekeeper**. On their **next** heal/renewal: **normal mend still applies**; seats with **Fire/Poison** also **wash** (no purple bonus); clean seats get purple **+N**. Purple rain FX on both. **Maiden remains primary one-token cleanse.** No stacking; until used. **No direct ally heal.**
 
 | Grade | Effect |
 |-------|--------|
@@ -308,19 +330,23 @@ Once per soldier per boss fight. Charge stacks; consumed on next `hitEnemies`.
 
 ---
 
-### Runesinger — rewrite tokens + hymn HoT (always acts first)
+### Runesinger — support rewrite + rune attack (always acts first)
 
-**Job (as coded):** change this drop’s claim grades, then apply a **slow gold hymn HoT** (no cleanse, no instant holder snacks). **Always resolves before every other specialist**. **Back seat only** — exclusive with Healer.
+**Job (as coded):** any-seat support who changes this drop's claim grades and
+then makes a normal positional rune attack. **Always resolves before every
+other specialist.** Positions 1–3 hit a gap minion first; positions 4–6 hit the
+boss. Runesinger does not heal and cannot receive Life Power.
 
-| Grade | Token rewrite | HoT (3 ticks after damage DoTs) |
-|-------|---------------|--------------------------------|
-| **A** | All claims **+2** (F→C, D→B, … cap A) | All living **+4**/tick (~12 total) |
-| **B** | F/D→**C**, C→**B**, B/A stay | Front **+4**/tick |
-| **C** | Worst claim → **C** (front wins ties) | Back **+3**/tick |
-| **D** | None | Self **+3**/tick |
+| Grade | Token rewrite | Rune attack |
+|-------|---------------|-------------|
+| **A** | All claims **+2** (F→C, D→B, … cap A) | **12** |
+| **B** | F/D→**C**, C→**B**, B/A stay | **9** |
+| **C** | Worst claim → **C** (front wins ties) | **6** |
+| **D** | None | **4** |
 | **F** | All claims **−1** (F stays F) | None |
 
-HoT streams are independent (max **2** per soldier). Mutates `effectiveGrade` so later actors use the new grades.
+Mutates `effectiveGrade` so later actors use the new grades. Multiple claimed
+Runesingers resolve front-to-back and stack rewrites deterministically.
 
 ---
 
@@ -337,7 +363,8 @@ Useful when weighing “who is just DPS?”
 | Necromancer | 12 + Life Power on support | |
 | Vanguard | 11 + Last Stand A/B | |
 | Spearman | **12** ST + Penetrate + modest parry | |
-| Runesinger | 0 direct | Token rewrite + hymn HoT |
+| Runesinger | **12** | Token rewrite + positional attack |
+| Lifebinder | 0 direct | Three-tick preventative renewal |
 | Healer | 0 direct | Instant triage (no cleanse) |
 
 ---
@@ -357,6 +384,7 @@ Use this space when you decide changes. Leave blank until then.
 | Necromancer | | | |
 | Thundercaller | | | |
 | Runesinger | | | |
+| Lifebinder | | | |
 
 ## License
 

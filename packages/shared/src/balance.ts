@@ -11,15 +11,16 @@ export const ARCHETYPE_MAX_HP: Record<Archetype, number> = {
   Necromancer: 40,
   Thundercaller: 38,
   Runesinger: 40,
+  Lifebinder: 40,
 };
 
 /**
  * Roster counts for a new campaign.
- * Total 21: art-aligned gender pools (see server/src/seed/names.ts).
+ * Total 23: art-aligned gender pools (see server/src/seed/names.ts).
  * Pattern: frontline/support/healer ×2, damage ×3.
  * Display order (lobby): frontline → support → damage → healers.
  * Males: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
- * Females: ShieldMaiden, Healer, Archer, Runesinger
+ * Females: ShieldMaiden, Healer, Archer, Runesinger, Lifebinder
  */
 export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
   // Frontline
@@ -28,13 +29,14 @@ export const ROSTER_COUNTS: { archetype: Archetype; count: number }[] = [
   // Support
   { archetype: "ShieldMaiden", count: 2 },
   { archetype: "Necromancer", count: 2 },
+  { archetype: "Runesinger", count: 2 },
   // Damage
   { archetype: "FireMage", count: 3 },
   { archetype: "Archer", count: 3 },
   { archetype: "Thundercaller", count: 3 },
   // Healers
   { archetype: "Healer", count: 2 },
-  { archetype: "Runesinger", count: 2 },
+  { archetype: "Lifebinder", count: 2 },
 ];
 
 /** Lobby / UI sort key by role group (matches ROSTER_COUNTS order). */
@@ -227,7 +229,7 @@ export const HEALER_BOSS_HEAL = 8;
 
 /**
  * Necromancer Life Power flat bonus per healed ally (A–C).
- * Applied as a second purple heal rain after the support’s base heal/hymn.
+ * Applied as a second purple heal rain after the healer's base heal/renewal.
  */
 export const NECRO_LIFE_POWER: Record<Exclude<Grade, "D" | "F">, number> = {
   A: 6,
@@ -266,21 +268,33 @@ export function thundercallerRezHp(maxHp: number): number {
   return Math.max(1, Math.floor(maxHp * 0.1));
 }
 
-/** Runesinger HoT duration (DoT-phase ticks). */
-export const RUNESINGER_HOT_TICKS = 3;
+/** Lifebinder HoT duration (DoT-phase ticks). */
+export const LIFEBINDER_HOT_TICKS = 3;
 
-/** Max independent hymn streams per soldier. */
+/** Max independent renewal streams per soldier. */
 export const MAX_HOT_STREAMS_PER_SOLDIER = 2;
 
 /**
- * Heal per DoT-phase tick by grade (× RUNESINGER_HOT_TICKS ≈ Healer band + a bit).
+ * Heal per DoT-phase tick by grade (× LIFEBINDER_HOT_TICKS ≈ Healer band + a bit).
  * A/B: 4×3 = 12; C/D: 3×3 = 9. F: none.
  */
-export const RUNESINGER_HOT_PER_TICK: Record<Exclude<Grade, "F">, number> = {
+export const LIFEBINDER_HOT_PER_TICK: Record<Exclude<Grade, "F">, number> = {
   A: 4,
   B: 4,
   C: 3,
   D: 3,
+};
+
+/** Lifebinder F backlash: self-damage that bypasses absorb. */
+export const LIFEBINDER_F_SELF_DAMAGE = 3;
+
+/** Runesinger attack after rewriting the current claims. */
+export const RUNESINGER_DAMAGE: Record<Grade, number> = {
+  A: 12,
+  B: 9,
+  C: 6,
+  D: 4,
+  F: 0,
 };
 
 /**
@@ -330,4 +344,5 @@ export const ARCHETYPE_ICONS: Record<Archetype, string> = {
   Necromancer: "🌑",
   Thundercaller: "⚡",
   Runesinger: "📜",
+  Lifebinder: "🌿",
 };

@@ -149,7 +149,7 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
       key: `life-power-${index}`,
       icon: "💜",
       label: `Life +${st.bonus}`,
-      title: `Life Power — next Healer/Runesinger action still heals/hymns normally. Fire/Poison seats also wash (no purple bonus); clean seats get +${st.bonus} purple. Maiden remains primary strip. No stack; until used (Necromancer).`,
+      title: `Life Power — next Thornmender/Grovekeeper healing action still mends normally. Fire/Poison seats also wash (no purple bonus); clean seats get +${st.bonus} purple. Maiden remains primary strip. No stack; until used (Necromancer).`,
       colorClass: "text-fuchsia-200 border-fuchsia-400/50 bg-fuchsia-950/40",
     };
   }
@@ -157,8 +157,8 @@ export function statusToChip(st: StatusTag, index: number): StatusChipView {
     return {
       key: `hot-${index}`,
       icon: "✨",
-      label: `Hymn +${st.healPerTick}×${st.duration}`,
-      title: `Hymn HoT — +${st.healPerTick} HP each DoT phase · ${st.duration} tick(s) left (Runesinger; max 2 streams)`,
+      label: `${st.source === "Runesinger" ? "Legacy hymn" : "Renewal"} +${st.healPerTick}×${st.duration}`,
+      title: `${st.source === "Runesinger" ? "Legacy Runesinger hymn" : "Grovekeeper renewal"} — +${st.healPerTick} HP each DoT phase · ${st.duration} tick(s) left (max 2 streams)`,
       colorClass: "text-amber-100 border-amber-200/50 bg-amber-950/40",
     };
   }

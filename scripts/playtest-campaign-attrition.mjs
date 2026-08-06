@@ -21,7 +21,11 @@ import {
   chooseHealingPotionReward,
   chooseRelicReward,
 } from "../server/dist/engine/rewards.js";
-import { DEFAULT_ROOM_BOSSES } from "../packages/shared/dist/index.js";
+import {
+  DEFAULT_ROOM_BOSSES,
+  isBacklineHealerArchetype,
+  largestLegalPartySize,
+} from "../packages/shared/dist/index.js";
 
 const ROOM_BOSSES = [...DEFAULT_ROOM_BOSSES];
 
@@ -102,45 +106,16 @@ function livingRoster(team) {
   return team.roster.filter((s) => s.alive);
 }
 
-function isSupport(a) {
-  return a === "Healer" || a === "Runesinger";
-}
-
-/**
- * Back-seat exclusivity softlocks only when every living soldier must enter
- * (understrength) or when there are not enough non-supports to fill a legal 6.
- * Bench is fine while living ≥ 6 and ≥5 non-supports remain — do not retire then.
- */
-function retireExcessSupports(team) {
-  const alive = livingRoster(team);
-  const supports = alive.filter((s) => isSupport(s.archetype));
-  if (supports.length <= 1) return 0;
-  const nonSupports = alive.length - supports.length;
-  const need = Math.min(6, alive.length);
-  const mustRetire =
-    (need < 6 && supports.length > 1) ||
-    (need === 6 && nonSupports < 5);
-  if (!mustRetire) return 0;
-  const keep =
-    supports.find((s) => s.archetype === "Runesinger") ?? supports[0];
-  let retired = 0;
-  for (const s of supports) {
-    if (s.id === keep.id) continue;
-    s.alive = false;
-    s.currentHp = 0;
-    retired++;
-  }
-  return retired;
-}
-
 /**
  * Build a legal active line.
- * - Full roster (≥6 living): preferred archetypes, at most one backline support.
- * - Understrength: every living soldier; excess supports already retired.
+ * - Runesinger is unrestricted and remains in the preferred body.
+ * - At most one Healer/Lifebinder is selected, always in the last seat.
+ * - Understrength parties field the largest legal line and bench only an
+ *   overflow Healer/Lifebinder.
  */
 function partyIds(team, arches) {
   const alive = livingRoster(team);
-  const need = Math.min(6, alive.length);
+  const need = largestLegalPartySize(alive);
   if (need <= 0) return [];
 
   const preferFront = ["Vanguard", "Spearman", "ShieldMaiden"];
@@ -151,72 +126,38 @@ function partyIds(team, arches) {
       return (pa === -1 ? 9 : pa) - (pb === -1 ? 9 : pb);
     });
 
-  const supports = alive.filter((s) => isSupport(s.archetype));
-  const rest = sortFront(alive.filter((s) => !isSupport(s.archetype)));
+  const healers = alive.filter((s) =>
+    isBacklineHealerArchetype(s.archetype),
+  );
+  const rest = sortFront(
+    alive.filter((s) => !isBacklineHealerArchetype(s.archetype)),
+  );
+  const preferredHealerArchetype = arches.find((a) =>
+    isBacklineHealerArchetype(a),
+  );
+  let healer = preferredHealerArchetype
+    ? healers.find((s) => s.archetype === preferredHealerArchetype)
+    : null;
+  if (!healer && rest.length < need) healer = healers[0] ?? null;
 
-  // Understrength: field every living (0–1 support after retirement)
-  if (need < 6) {
-    if (supports.length === 0) return rest.map((s) => s.id);
-    return [...rest, supports[0]].map((s) => s.id);
-  }
-
-  // Full party of 6: up to 5 non-supports + optional 1 support
   const used = new Set();
   const body = [];
+  const bodyLimit = need - (healer ? 1 : 0);
   for (const a of arches) {
-    if (isSupport(a)) continue;
-    if (body.length >= 5) break;
+    if (isBacklineHealerArchetype(a)) continue;
+    if (body.length >= bodyLimit) break;
     const s = rest.find((x) => x.archetype === a && !used.has(x.id));
     if (!s) continue;
     used.add(s.id);
     body.push(s);
   }
   for (const s of rest) {
-    if (body.length >= 5) break;
+    if (body.length >= bodyLimit) break;
     if (used.has(s.id)) continue;
     used.add(s.id);
     body.push(s);
   }
-
-  let support = null;
-  for (const a of arches) {
-    if (!isSupport(a)) continue;
-    const s = supports.find((x) => x.archetype === a);
-    if (s) {
-      support = s;
-      break;
-    }
-  }
-  if (!support && supports.length) support = supports[0];
-
-  // Need 6: if we have support, body max 5; else body max 6
-  if (support) {
-    while (body.length < 5) {
-      const s = rest.find((x) => !used.has(x.id));
-      if (!s) break;
-      used.add(s.id);
-      body.push(s);
-    }
-    // If still short on non-supports, pad with more non-supports only — cannot dual-support
-    const line = [...body.slice(0, 5), support];
-    if (line.length < 6) {
-      // not enough non-supports for full legal party
-      for (const s of rest) {
-        if (line.length >= 6) break;
-        if (line.some((x) => x.id === s.id)) continue;
-        line.splice(line.length - 1, 0, s);
-      }
-    }
-    return line.slice(0, 6).map((s) => s.id);
-  }
-
-  while (body.length < 6) {
-    const s = rest.find((x) => !used.has(x.id));
-    if (!s) break;
-    used.add(s.id);
-    body.push(s);
-  }
-  return body.slice(0, 6).map((s) => s.id);
+  return [...body, ...(healer ? [healer] : [])].map((s) => s.id);
 }
 
 function smartPos(team) {
@@ -245,7 +186,7 @@ function smartPos(team) {
   if (minions.length)
     return pick("Archer", "Spearman", "Vanguard") ?? L[0].position;
   if (dots) return pick("FireMage", "Healer") ?? L[0].position;
-  if (hurt) return pick("Healer", "Runesinger", "Necromancer") ?? L[0].position;
+  if (hurt) return pick("Healer", "Lifebinder", "Necromancer") ?? L[0].position;
   if (hasA)
     return (
       pick(
@@ -305,7 +246,6 @@ function runCampaign(seed, arches, pool, opts = {}) {
   const rooms = [];
   let totalRetries = 0;
   let outcome = "unknown";
-  let supportsRetired = 0;
 
   for (let room = 0; room < campaignLength; room++) {
     const bossId = ROOM_BOSSES[room] ?? "bone_colossus";
@@ -314,7 +254,6 @@ function runCampaign(seed, arches, pool, opts = {}) {
 
     while (attempts <= maxRetriesPerRoom) {
       attempts++;
-      supportsRetired += retireExcessSupports(team);
       const alive = livingRoster(team).length;
       if (alive === 0) {
         outcome = "wipe_no_roster";
@@ -332,9 +271,9 @@ function runCampaign(seed, arches, pool, opts = {}) {
 
       try {
         const ids = partyIds(team, arches);
-        if (ids.length !== Math.min(6, livingRoster(team).length)) {
+        if (ids.length !== largestLegalPartySize(livingRoster(team))) {
           throw new Error(
-            `formation short: got ${ids.length}, need ${Math.min(6, livingRoster(team).length)} living=${livingRoster(team).length}`,
+            `formation short: got ${ids.length}, need ${largestLegalPartySize(livingRoster(team))} living=${livingRoster(team).length}`,
           );
         }
         selectParty(team, ids);
@@ -403,7 +342,7 @@ function runCampaign(seed, arches, pool, opts = {}) {
   }
 
   const finalAlive = livingRoster(team).length;
-  const deathsTotal = 21 - finalAlive; // roster size 21
+  const deathsTotal = 23 - finalAlive;
   return {
     seed,
     outcome,
@@ -413,7 +352,6 @@ function runCampaign(seed, arches, pool, opts = {}) {
     finalAlive,
     deathsTotal,
     totalRetries,
-    supportsRetired,
     understrengthFinish: outcome === "campaign_complete" && finalAlive < 6,
     thinFinish: outcome === "campaign_complete" && finalAlive <= 3,
   };
@@ -492,7 +430,7 @@ function summarize(label, runs) {
     `Avg retries (defeats then reform): ${avgRetries?.toFixed(2) ?? "—"}`,
   );
   console.log(
-    `Among completes — avg final alive: ${avgFinalAliveComplete?.toFixed(1) ?? "—"} / 21  |  avg deaths: ${avgDeathsComplete?.toFixed(1) ?? "—"}`,
+    `Among completes — avg final alive: ${avgFinalAliveComplete?.toFixed(1) ?? "—"} / 23  |  avg deaths: ${avgDeathsComplete?.toFixed(1) ?? "—"}`,
   );
   console.log(
     `All runs — avg deaths by end: ${avgDeathsAll?.toFixed(1) ?? "—"}`,
@@ -569,7 +507,7 @@ console.log(
 console.log("Smart magnet AI | permanent deaths | understrength fielding OK");
 console.log("Max 2 retries per room after defeat (deaths persist)");
 console.log(
-  "Note: excess Healer/Runesinger auto-retired when both alive (back-seat exclusivity softlock workaround)\n",
+  "Note: Runesinger may use any seat; only overflow Healer/Lifebinder is benched.\n",
 );
 
 const results = [];
@@ -637,11 +575,10 @@ function thinFinalProbe(n = 20) {
   for (let seed = 1; seed <= n; seed++) {
     const team = createTeam(`thin${seed}`, "THIN", "T", seed + 400);
     // Kill all but 3 varied survivors
-    const keep = partyIds(team, [
-      "Vanguard",
-      "FireMage",
-      "Healer",
-    ]).slice(0, 3);
+    const keep = ["Vanguard", "FireMage", "Healer"].map(
+      (archetype) =>
+        team.roster.find((soldier) => soldier.archetype === archetype).id,
+    );
     for (const s of team.roster) {
       if (!keep.includes(s.id)) {
         s.alive = false;

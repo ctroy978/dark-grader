@@ -1,6 +1,6 @@
 # Dungeon Grades — Agent Handoff
 
-**Last updated:** 2026-07-16 (Cinder Herald + 4-room default path)  
+**Last updated:** 2026-08-06 (Lifebinder / Runesinger role split)
 **Repo:** `ctroy978/dark-grader` (local path often `/home/tcoop/Work/darker`)  
 **Owner:** Troy / ctroy978 — classroom only (LAN, firewall, no public SaaS)
 
@@ -80,7 +80,7 @@ README.md            Full ability reference for design review (keep in sync with
 
 1. **`awaiting_magnet`** — `pendingTokens` drawn; magnet playbook for target  
 2. Magnet **1–6** (cannot park on dead)  
-3. **Drop Tokens** → claims → **Runesinger first** → other party actions front→back → DoTs (party + boss) → deaths → **`boss_telegraph`** (or victory/defeat)  
+3. **Drop Tokens** → claims → **Runesinger first** (rewrite + rune attack) → other party actions front→back → damaging DoTs → Lifebinder renewal → deaths → **`boss_telegraph`** (or victory/defeat)
 4. Client plays `playback` with **progressive HP reveals**, then auto **resolve-boss**  
 5. Boss/minion cues (or stun skip) → next magnet phase or win/lose  
 
@@ -118,8 +118,10 @@ Shared definitions: `packages/shared/src/relics.ts`. Reward lifecycle:
 
 ### Understrength parties (no soft-lock)
 
-- Living ≥ 6 → party must still be exactly **6**.
-- Living **1–5** → field **all** living soldiers (positions 1…N). Lobby + `selectParty` / `startFight` allow this.
+- Legal line ≥ 6 → party must still be exactly **6**.
+- Understrength → field every unrestricted-seat survivor plus at most one
+  Thornmender/Grovekeeper in the final seat. An overflow Lifebinder may remain
+  benched; no other living soldier may be benched.
 - Living **0** → cannot enter; teacher reset required.
 - `requiredPartySize(team)` / `canFormNextParty` (≥1 living) in `combat.ts`.
 
@@ -140,10 +142,11 @@ Code: `server/src/engine/claims.ts`, `packages/shared/src/magnet.ts` (`proximity
 ## Action order (critical)
 
 1. Claims resolved  
-2. **All Runesingers** who claimed (rewrite grades + heals)  
+2. **All Runesingers** who claimed, front-to-back (rewrite grades + positional rune attack)
 3. **Everyone else** front (pos 1) → back (pos 6)  
-4. DoT phase (party then **boss DoTs**)  
-5. Boss telegraph / victory / defeat  
+4. Damaging DoT phase (party then **boss DoTs**)
+5. Lifebinder renewal HoTs
+6. Boss telegraph / victory / defeat
 
 Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyActionPhase` / `markClaimerResolved` in `specialists.ts`). Never “hits” Runesinger after she already acted.
 
@@ -202,16 +205,17 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 | **Spearman** | ST thrust; A–D **Penetrate** + modest Parry; pos 1 without Parry takes extra boss damage |
 | **ShieldMaiden** | Hit + one-round cover on self + most-likely-to-die; no free open; F dumps |
 | **FireMage** | Wildfire AOE + boss Fire; seats 1–3 rake minions, back hits boss; A/B Frozen thaw + Ice/Slime; D/F friendly fire (C clean) |
-| **Healer** | Heal + cleanse **Fire/Poison**; F boss heal |
+| **Thornmender** (internal `Healer`) | Rescue/instant triage; Life Power wash/bonus; F boss heal; last seat only |
 | **Archer** | Arrow Storm + minion bonus; can hit gap from any seat |
-| **Necromancer** | Drain + heal lowest; F hit highest-HP ally |
+| **Necromancer** | Drain + Life Power on deployed Thornmender/Grovekeeper; F hit highest-HP ally |
 | **Thundercaller** | Lightning + stun/Charge; **A** rez once/soldier/fight at ~10% HP + Dazed |
-| **Runesinger** | Always first; rewrite tokens + heal holders |
+| **Runesinger** | Support; any seat; always first; rewrite tokens + 12/9/6/4/0 positional rune attack |
+| **Grovekeeper** (internal `Lifebinder`) | Preventative 3-tick renewal; Life Power recipient; last seat only |
 
 **Doomcaller removed.**
 
-**Roster (21):** Vanguard×2, Spearman×2, ShieldMaiden×2, FireMage×3, Healer×2, Archer×3, Necromancer×2, Thundercaller×3, Runesinger×2.  
-**Names / art gender:** Male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; Female = ShieldMaiden, Healer, Archer, Runesinger — `server/src/seed/names.ts`.
+**Roster (23):** Vanguard×2, Spearman×2, ShieldMaiden×2, Necromancer×2, Runesinger×2, FireMage×3, Archer×3, Thundercaller×3, Thornmender×2, Grovekeeper×2. The engine retains `Healer` and `Lifebinder` as their respective persistence ids.
+**Lifebinder role:** Thornmender = rescue healing; Grovekeeper = HoT healing. **Art folders:** `thornmender/` and `grovekeeper/`.
 
 ---
 
@@ -242,14 +246,17 @@ Thundercaller F only stuns claimers **still unresolved** this drop (`beginPartyA
 ```
 client/public/art/{key}/{pose}.png
 ```
-Keys: `vanguard`, `shieldmaiden`, `firemage`, `healer`, `archer`, `spearman`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`, **`bone_archer`**, **`moss_mite`**, **`cinder_imp`** (minions — not nested under boss folders).  
+Keys: `vanguard`, `shieldmaiden`, `firemage`, `thornmender`, `grovekeeper`, `archer`, `spearman`, `necromancer`, `thundercaller`, `runesinger`, `moss_grub`, `ash_wraith`, `cinder_herald`, `bone_colossus`, **`bone_archer`**, **`moss_mite`**, **`cinder_imp`** (minions — not nested under boss folders).
 Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ---
 
 ## Owner feedback / recent fixes
 
-- Ability + magnet rework session completed (all 9 kits + claims + roster)  
+- Lifebinder/Runesinger role split implemented (10 kits; classroom tuning pending)
+- Automated validation: shared 35/35, server 208/208, all production builds;
+  six-room campaign sample cleared 15/16 Generous but 0/24 Typical and 0/12
+  Weak, so broader campaign tuning remains open
 - Victory horn fired at drop → fixed  
 - Stunned boss still *looked* like it attacked → telegraph + skip presentation fixed  
 - Combat still feels hard; balance pass still open  
@@ -258,20 +265,21 @@ Poses: standing, attack, hit, death. PNG only. ~5:6, ~768×922.
 
 ## Open / next phase
 
-1. **Relic classroom review** — supply final PNGs under `client/public/art/relics/`, playtest the four-choice reward screen on Chromebook, and compare relic-enabled campaign balance.
-2. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.
+1. **Lifebinder/Runesinger classroom review** — reset teams for the 23-soldier roster, validate any-seat Runesinger and last-seat Lifebinder formation, and compare Thornmender/Grovekeeper plus one/two-Runesinger balance.
+2. **Relic classroom review** — supply final PNGs under `client/public/art/relics/`, playtest the four-choice reward screen on Chromebook, and compare relic-enabled campaign balance.
+3. **Presentation audio (in progress)** — per-archetype attack SFX + gendered party hurt; hand MP3s in `server/data/audio/` (see shopping list below). Mixer / sparse rules still open.
    - **Lobby music:** drop `server/data/audio/music_ambient_lobby.mp3` (60–90s loop). Catalog volume **0.2**. Pref `dg_music` (default on); **Music / Music off** button on lobby + combat chrome. Ambient plays in lobby/camp only; combat stops the bed. Master mute also stops music.  
-3. Finish missing art poses / new boss art (commit under `public/art/`)
-4. Classroom deploy (serve built client from server, one command)
-5. **FX overlays (when we start visual FX)** — tag-driven, not full particle engine. **Priority must-include:**
+4. Finish missing art poses / new boss art (commit under `public/art/`)
+5. Classroom deploy (serve built client from server, one command)
+6. **FX overlays (when we start visual FX)** — tag-driven, not full particle engine. **Priority must-include:**
    - **Strong on-portrait DoT signal** — players must *instantly* see that someone is poisoned / burning / iced / slimed (not chip-only). Classroom read from a few feet away.  
    - Per-type tint/aura (poison green, fire orange, etc.) while the DoT is active, not only on tick flash.  
    - **Boss ramp intensity** should read on the body/FX (stronger pulse / thicker aura as `escalationStep` rises), not only as `⬆N` on a tiny chip.  
    - Apply/cleanse moments need a clear pop (cloud land, cleanse wash).  
    - Also: Thundercaller lightning stage arcs, etc.  
-6. Image bubble frames
-7. Sync stale `docs/DESIGN.md` (still mentions SQLite / old claims / old abilities)
-8. Cascade / FireMage FF fine-tune if classroom review still finds the campaign too hard
+7. Image bubble frames
+8. Sync remaining stale `docs/DESIGN.md` sections (SQLite / old claims / old abilities)
+9. Cascade / FireMage FF fine-tune if classroom review still finds the campaign too hard
 
 ### Party SFX catalog (hand-authored preferred)
 
@@ -280,7 +288,9 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | Id | Who / when | Pixabay vibe |
 |----|------------|--------------|
 | `act_healer` | Healer cast | heal chime (legacy `heal.mp3` still accepted) |
-| `act_runesinger` | Runesinger cast | rune hymn / magic chime (falls back to `heal`) |
+| `act_runesinger` | Runesinger attack | focused rune cast + impact |
+| `act_lifebinder` | Lifebinder cast | leaf-and-chime renewal (falls back to legacy `hymn_cast` / `heal`) |
+| `lifebinder_tick` | Lifebinder HoT tick | gentle restorative leaf/chime pulse |
 | `act_vanguard` | Vanguard | shield bash / armor hit |
 | `act_shieldmaiden` | Shield Maiden | sword strike |
 | `act_firemage` | Fire Mage | fire cast burst |
@@ -297,7 +307,7 @@ Drop files as `server/data/audio/{id}.mp3`. Missing files fall back (`hit_light`
 | `minion_shot` | Generic add fallback | any small enemy hit |
 | `music_ambient_lobby` | Lobby / between rooms loop | soft dark ambient, seamless 60–90s, **hand-authored only** |
 
-**Art gender (locked with names):** male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger.  
+**Art gender (locked with names):** male = Vanguard, Spearman, FireMage, Necromancer, Thundercaller; female = ShieldMaiden, Healer, Archer, Runesinger, Lifebinder.
 Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunts (not a second generic hit).
 
 ---
@@ -323,7 +333,7 @@ Boss/minion impact stays on the boss/minion cue; hurt bubble uses gendered grunt
 |--------|--------|
 | Claims (magnet guarantee) | `claims.ts`, `magnet.ts`, `claims.test.ts` |
 | Specialists / abilities | `specialists.ts`, `playbook.ts`, `README.md` abilities |
-| Runesinger first + Charge + party stun | `combat.ts` action order, `specialists.ts`, `damage.ts` (`applyCharge`/`consumeCharge`) |
+| Lifebinder/Runesinger split + formation | `specialists.ts`, `combat.ts`, `partyRules.ts`, `lifebinder.test.ts`, `runesinger.test.ts` |
 | Boss DoTs | `dots.ts`, `types.ts` `BossState.statuses` |
 | Front-three targeting | branch `frontline-targeting-redesign`; fixed rows, Long Shot, Penetrate, Vanguard block |
 | Progressive presentation | `presentation.ts` (shared+server), `CombatScreen.tsx` |

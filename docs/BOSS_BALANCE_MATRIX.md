@@ -1,6 +1,9 @@
 # Boss Balance Matrix
 
-> Historical pre-nerf baseline. Rattle Captain and Barrow Warden were subsequently tuned; see `docs/BOSS_NUMERIC_TUNING_LOG.md` for current values and results.
+> Historical pre-nerf and pre-Lifebinder baseline. Rattle Captain and Barrow
+> Warden were subsequently tuned, and the Runesinger healing data below predates
+> her Support rework; see `docs/BOSS_NUMERIC_TUNING_LOG.md` and
+> `docs/LIFEBINDER_RUNESINGER_REWORK_PLAN.md` for current rules.
 
 Run on 2026-08-05 against the current working tree (HEAD `b1d0f08` plus the local combat/content changes). This is an isolated-fight benchmark: every fight starts with a fresh six-person party. Campaign attrition would make later rooms harder than these results.
 
@@ -36,7 +39,10 @@ These are directional composition signals, not isolated character coefficients:
 - **Sustain cannot rescue low damage after room 2.** Sustain records the most healing but falls to 30% on Cinder, 6% on Rattle, 5% on Warden, and 19% on Bone. Healing extends fights into repeated add/status/enrage cycles without creating enough progress.
 - **Fire Mage/cleanse access matters sharply.** Replacing Balanced's Fire Mage with Necromancer in Sustain barely changes Ash (78% versus 77%) but loses 18 points on Cinder, 24 on Rattle, and 14 on Bone. Some of that is damage throughput, but the DoT/add encounters are particularly punitive without Fire Mage.
 - **The current Spearman substitution is not a clear upgrade.** Frontline replaces Balanced's Thundercaller with Spearman and shifts Shield Maiden one seat back; it wins less often on Ash, Cinder, Warden, and Bone, and only gains two points on Rattle. Spearman's extra front durability is not translating into better outcomes under this controller.
-- **Runesinger specialists are viable early but fragile late.** Specialists remain close to Frontline on Ash and Cinder, but average 5.3–5.7 deaths on Rattle/Warden/Bone typical pools. A direct Healer-versus-Runesinger paired test would be the next useful character-isolation sweep.
+- **Pre-rework Runesinger specialists were viable early but fragile late.**
+  Specialists remained close to Frontline on Ash and Cinder, but averaged
+  5.3–5.7 deaths on Rattle/Warden/Bone typical pools. The Lifebinder role split
+  supersedes the old Healer-versus-Runesinger comparison proposed here.
 
 ## Method
 

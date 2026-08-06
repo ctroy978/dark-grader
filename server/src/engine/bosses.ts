@@ -132,8 +132,8 @@ const DEFAULT_SUMMONS: Record<string, BossSummonDef> = {
   SummonMossMites: {
     minionId: "moss_mite",
     minionName: "Moss Mite",
-    maxHp: 9,
-    damage: 3,
+    maxHp: 11,
+    damage: 4,
     maxCount: 2,
     freeVolley: false,
     openCount: 1,
@@ -811,10 +811,11 @@ function performAttack(
       break;
     }
     case "LightLineAttack": {
-      // Tutorial-tier: ~85% of LineAttack (7)
+      // Tutorial sweep: one point below the standard line attack was too soft
+      // after the Lifebinder split, so it now matches the standard 7 damage.
       log(`${boss.name} uses ${attackName("a light Line Attack")}!`);
       for (const s of livingParty(team)) {
-        logHit(s, hit(s, dmg(6)));
+        logHit(s, hit(s, dmg(7)));
       }
       break;
     }

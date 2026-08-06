@@ -253,12 +253,27 @@ export function cueAction(
         grade === "F"
           ? "Slip…"
           : grade === "A"
-            ? "Hymn +2…"
+            ? "Runes rise…"
             : grade === "B"
-              ? "Lift…"
+              ? "Tune…"
               : grade === "C"
                 ? "Worst…"
-                : "Soft hymn…",
+                : "Strike…",
+      durationMs: 850,
+    },
+    Lifebinder: {
+      chargeFx: "lifebinder-charge",
+      blastFx: "lifebinder-blast",
+      bubble:
+        grade === "F"
+          ? "Thorns…"
+          : grade === "A"
+            ? "Restore…"
+            : grade === "B"
+              ? "Guard the front…"
+              : grade === "C"
+                ? "Mend the back…"
+                : "Renew…",
       durationMs: 850,
     },
     // Vanguard: seismic bastion plates + ground-slam shockwave (not a soft beam)

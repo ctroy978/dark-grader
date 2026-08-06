@@ -442,4 +442,5 @@ Missing art must not block selection or combat readability.
 - Final trophy/epilogue collectible.
 - Teacher-authored offer tables or manual offer overrides.
 - Direct changes to grades, token odds, magnet weights, or extra actions.
-- Warden/Runesinger and Centurion work from the broader expansion plan.
+- Centurion work from the broader expansion plan. The Lifebinder/Runesinger
+  role split is implemented separately; see `LIFEBINDER_RUNESINGER_REWORK_PLAN.md`.

@@ -122,14 +122,14 @@ Cascade / FireMage FF left for a later pass if needed.
 
 | | |
 |--|--|
-| HP | **120–140** (start **130**) |
+| HP | **140** (raised from 130 after the Lifebinder/Runesinger classroom run) |
 | Enrage | None (or &lt;20% @ 1.1× only if needed) |
-| Attacks | Light `LineAttack` (**6**), light `FrontSlam` (**10 / 8 / 4** seats 1–3); **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
-| Adds | **Moss Mite** ×0–2 — **9 HP**, **3 dmg** + **Slime** on hit (flat **2**/tick, **until cleansed**, stack cap **1**, no ramp, **no token slow**); max 2; open with 1 |
+| Attacks | Light `LineAttack` (**7**), light `FrontSlam` (**10 / 8 / 4** seats 1–3); **no Cascade**, **no Poison**, **no/low Regen**, Crush rare or absent |
+| Adds | **Moss Mite** ×0–2 — **11 HP**, **4 dmg** + **Slime** on hit (flat **2**/tick, **until cleansed**, stack cap **1**, no ramp, **no token slow**); max 2; open with 1 |
 | Feel | Clear in **5–8** rounds when attentive; **1–2 deaths** expected if students sleep or ignore mites |
 | Art key | `moss_grub`, mites `moss_mite` |
 
-Attentive teams should still usually win; the lesson is that party members **can die** before Ash, and sticky Slime needs Fire Mage A/B (or Doomcaller strip).
+Attentive teams should still usually win; the lesson is that party members **can die** before Ash, and sticky Slime needs Fire Mage A/B.
 
 ---
 
@@ -306,7 +306,6 @@ On resolving a claim, if boss has trait **MindHex**:
 | Source | Clears? |
 |--------|---------|
 | Healer A/B/C (Fire/Ice/Poison) | **No** (not Marks) |
-| Doomcaller strip Marks | **Yes** (no transfer) |
 | FireMage Frozen thaw | **No** (Frozen ≠ Mark) |
 | Duration expiry | **Yes** |
 

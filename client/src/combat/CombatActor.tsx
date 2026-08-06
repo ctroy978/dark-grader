@@ -341,13 +341,16 @@ function MaidenEnergyFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
 }
 
 /**
- * Cleanse wash — a cool white/cyan lift that strips grime upward.
- * Runs on every ally actually cleansed; the Maiden caster gets it as well.
+ * Cleanse wash — the shared upward strip motion, themed by cleanser.
+ * Maiden uses silver/cyan; Fire Mage uses ember/gold.
  */
-function CleanseWashFx() {
+function CleanseWashFx({ variant = "maiden" }: { variant?: "maiden" | "fire" }) {
   const moteCount = 12;
   return (
-    <div className="cleanse-wash-fx" aria-hidden>
+    <div
+      className={`cleanse-wash-fx${variant === "fire" ? " cleanse-wash-fx--fire" : ""}`}
+      aria-hidden
+    >
       <div className="cleanse-wash-sheen" />
       <div className="cleanse-wash-ring cleanse-wash-ring--a" />
       <div className="cleanse-wash-ring cleanse-wash-ring--b" />
@@ -470,14 +473,14 @@ function ThunderBoltFx({ mode }: { mode: "charge" | "blast" | "impact" }) {
 
 /**
  * Healer — soft green rain falling onto the caster / targets.
- * Runesinger tick impact — gold-white rain on HoT recipients (not the cast).
+ * Lifebinder renewal tick — gold-white rain on HoT recipients.
  */
 function SpiritRainFx({
   mode,
   variant,
 }: {
   mode: "charge" | "blast";
-  /** heal = Healer green; rune = Runesinger gold; life = Necro Life Power purple */
+  /** heal = Healer green; rune = Lifebinder gold; life = Necro Life Power purple */
   variant: "heal" | "rune" | "life";
 }) {
   const dropCount = mode === "charge" ? 14 : 18;
@@ -509,8 +512,7 @@ function SpiritRainFx({
 }
 
 /**
- * Runesinger cast — gold-white orb grows from portrait center (not rain).
- * Charge: pulse/grow; blast: expand and soften (hymn is set; ticks rain later).
+ * Shared rune/nature orb used for Runesinger attacks and Lifebinder casts.
  */
 function HymnOrbFx({ mode }: { mode: "charge" | "blast" }) {
   return (
@@ -702,12 +704,12 @@ export function StatusLabels({
       ...hots.map((st) => (st.kind === "Hot" ? st.duration : 0)),
     );
     chips.push({
-      key: "hymn-hot",
+      key: "renewal-hot",
       text:
         hots.length > 1
-          ? `Hymn +${perTick}/t ×${hots.length}`
-          : `Hymn +${perTick}×${maxDur}`,
-      title: `Hymn HoT — +${perTick} HP per DoT phase · ${hots.length} stream(s)`,
+          ? `Renew +${perTick}/t ×${hots.length}`
+          : `Renew +${perTick}×${maxDur}`,
+      title: `Lifebinder renewal — +${perTick} HP per DoT phase · ${hots.length} stream(s)`,
       className: "text-amber-100 border-amber-200/50 bg-amber-950/40",
     });
   }
@@ -890,6 +892,9 @@ export function CombatActor({
     (isCleanseTarget ||
       (speaking && (cue?.fx?.includes("maiden-cleanse") ?? false))) &&
     (cue?.fx?.includes("cleanse-glow") ?? false);
+  const cleanseWashVariant = cue?.fx?.includes("fire-cleanse")
+    ? "fire"
+    : "maiden";
   const showNecroCharge =
     speaking && (cue?.fx?.includes("necro-charge") ?? false);
   const showNecroBlast =
@@ -918,21 +923,27 @@ export function CombatActor({
     ((cue?.fx?.includes("heal-blast") ?? false) ||
       (cue?.fx?.includes("heal-glow") ?? false)) &&
     !(cue?.fx?.includes("life-power-blast") ?? false);
-  // Necromancer Life Power — purple rain on grant (buff) and when spent after heal/hymn
+  // Necromancer Life Power — purple rain on grant and healer spend.
   const showLifePower =
     inFocus &&
     ((cue?.fx?.includes("life-power-blast") ?? false) ||
       (lifePowerBuffSeat && (cue?.fx?.includes("life-power-grant") ?? false)));
-  // Cast: growing orb on the Runesinger only (not rain)
+  // Runesinger cast + positional impact.
   const showRuneCharge =
     speaking && (cue?.fx?.includes("rune-charge") ?? false);
   const showRuneBlast =
     speaking && (cue?.fx?.includes("rune-blast") ?? false);
-  // HoT tick: gold rain + glow on anyone receiving hymn this beat
-  const showHymnTick =
+  const showRuneImpact =
+    !speaking && inFocus && (cue?.fx?.includes("rune-blast") ?? false);
+  // Lifebinder renewal cast and tick.
+  const showLifebinderCharge =
+    speaking && (cue?.fx?.includes("lifebinder-charge") ?? false);
+  const showLifebinderBlast =
+    speaking && (cue?.fx?.includes("lifebinder-blast") ?? false);
+  const showLifebinderTick =
     inFocus &&
-    ((cue?.fx?.includes("hymn-tick") ?? false) ||
-      (cue?.fx?.includes("hymn-glow") ?? false));
+    ((cue?.fx?.includes("lifebinder-tick") ?? false) ||
+      (cue?.fx?.includes("lifebinder-glow") ?? false));
   const showVanguardCharge =
     speaking && (cue?.fx?.includes("vanguard-charge") ?? false);
   const showVanguardBlast =
@@ -1017,7 +1028,7 @@ export function CombatActor({
           {showMaidenCharge && <MaidenEnergyFx mode="charge" />}
           {showMaidenBlast && <MaidenEnergyFx mode="blast" />}
           {showMaidenImpact && <MaidenEnergyFx mode="impact" />}
-          {showCleanseWash && <CleanseWashFx />}
+          {showCleanseWash && <CleanseWashFx variant={cleanseWashVariant} />}
           {showFireCharge && <FireBurstFx mode="charge" />}
           {showFireBlast && <FireBurstFx mode="blast" />}
           {showFireImpact && <FireBurstFx mode="impact" />}
@@ -1033,7 +1044,10 @@ export function CombatActor({
           {showLifePower && <SpiritRainFx mode="blast" variant="life" />}
           {showRuneCharge && <HymnOrbFx mode="charge" />}
           {showRuneBlast && <HymnOrbFx mode="blast" />}
-          {showHymnTick && <SpiritRainFx mode="blast" variant="rune" />}
+          {showRuneImpact && <HymnOrbFx mode="blast" />}
+          {showLifebinderCharge && <HymnOrbFx mode="charge" />}
+          {showLifebinderBlast && <HymnOrbFx mode="blast" />}
+          {showLifebinderTick && <SpiritRainFx mode="blast" variant="rune" />}
           {showVanguardCharge && <VanguardBastionFx mode="charge" />}
           {showVanguardBlast && <VanguardBastionFx mode="blast" />}
           {showVanguardImpact && <VanguardBastionFx mode="impact" />}

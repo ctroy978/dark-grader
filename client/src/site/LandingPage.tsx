@@ -178,7 +178,7 @@ export default function LandingPage() {
             <h3 className="mt-2 text-2xl font-bold">Characters</h3>
             <p className="mt-2 text-sm text-parchment-dim max-w-sm">
               Nine specialist classes. Grade-by-grade abilities, HP, and roles —
-              Vanguard to Runesinger.
+              Vanguard to Lifebinder.
             </p>
             <span className="mt-6 inline-block text-rune font-semibold group-hover:translate-x-1 transition">
               Open roster →

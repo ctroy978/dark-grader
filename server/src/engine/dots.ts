@@ -481,7 +481,7 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     const bits = [...summary, ...minionDotSummary.map((s) => `add ${s}`)];
     log(`— DoT phase — ${bits.join(" · ")}`);
   } else if (partyHasHot) {
-    log(`— DoT phase — hymn HoT —`);
+    log(`— DoT phase — renewal HoT —`);
   } else {
     log(`— DoT phase — boss marks only —`);
   }
@@ -605,21 +605,21 @@ export function tickDots(team: TeamState, log: (text: string) => void): void {
     tickFrozenChain(team, log);
   }
 
-  // Hymn HoTs tick after this function returns (combat pushes a separate FX beat
+  // Lifebinder HoTs tick after this function returns (combat pushes a separate FX beat
   // so +HP floats are not netted against Fire/Poison on the same reveal).
 
   log(`— End DoT phase —`);
 }
 
 /**
- * Apply a Runesinger hymn stream. Independent instances; cap MAX_HOT_STREAMS_PER_SOLDIER
+ * Apply a Lifebinder renewal stream. Independent instances; cap MAX_HOT_STREAMS_PER_SOLDIER
  * (drop oldest when over cap).
  */
 export function applyHot(
   soldier: Soldier,
   healPerTick: number,
   duration: number,
-  source: "Runesinger" = "Runesinger",
+  source: "Lifebinder" | "Runesinger" = "Lifebinder",
 ): void {
   if (!soldier.alive || healPerTick <= 0 || duration <= 0) return;
   soldier.statuses.push({
@@ -670,14 +670,14 @@ export function tickHots(
     );
     if (streams > 0) {
       lines.push(
-        `${soldier.name}: Hymn +${gained}${streams > 1 ? ` (${streams} streams)` : ""}`,
+        `${soldier.name}: Renewal +${gained}${streams > 1 ? ` (${streams} streams)` : ""}`,
       );
       // Still focus seats that tried to tick (Frozen = 0 gain) so FX reads
       if (gained > 0 || streams > 0) healedIds.push(soldier.id);
     }
   }
   if (lines.length) {
-    log(`  [Hymn] ${lines.join(" · ")}`);
+    log(`  [Renewal] ${lines.join(" · ")}`);
   }
   return healedIds;
 }

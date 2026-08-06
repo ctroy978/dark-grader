@@ -224,6 +224,11 @@ export class GameStore {
     if (typeof state.classroomId !== "string") state.classroomId = "";
     for (const soldier of state.roster ?? []) {
       if (soldier.relic === undefined) soldier.relic = null;
+      if (soldier.archetype === "Runesinger") {
+        soldier.statuses = (soldier.statuses ?? []).filter(
+          (status) => status.kind !== "LifePower",
+        );
+      }
     }
     if (!state.items || state.items.version !== 1) {
       state.items = createEmptyItemState();

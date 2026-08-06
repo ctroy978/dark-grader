@@ -180,6 +180,33 @@ describe("F-token presentation targets (real cast, correct panels)", () => {
 });
 
 describe("cleanse presentation targets", () => {
+  it("tags Fire Mage cleanses for an ember-colored client wash", () => {
+    const team = createTeam("fire-cleanse-fx", "FCLN", "Fire Cleanse FX", 17);
+    selectParty(team, [
+      "vanguard_1",
+      "shieldmaiden_1",
+      "firemage_1",
+      "archer_1",
+      "thundercaller_1",
+      "healer_1",
+    ]);
+    startFight(team, "ash_wraith", Array<Grade>(30).fill("A"));
+
+    const target = team.roster.find((soldier) => soldier.id === "vanguard_1")!;
+    applyDot(target, "Ice", 1);
+    const mage = team.roster.find((soldier) => soldier.id === "firemage_1")!;
+    placeMagnet(team, mage.position!);
+    commitRound(team);
+
+    const action = team.playback.find(
+      (cue) => cue.kind === "action" && cue.bubble?.speakerId === mage.id,
+    );
+    expect(action?.cleanseTargetIds).toContain(target.id);
+    expect(action?.fx).toContain("cleanse-glow");
+    expect(action?.fx).toContain("fire-cleanse");
+    expect(action?.fx).not.toContain("maiden-cleanse");
+  });
+
   it("tags the Maiden cast and only the allies whose DoTs were removed", () => {
     const team = createTeam("cleanse-fx", "CLNFX", "Cleanse FX", 19);
     selectParty(team, [

@@ -43,10 +43,13 @@ const ALL_POOLS = {
 // shapes instead of six small variations on the same balanced core.
 const ALL_PARTIES = {
   Balanced: ["Vanguard", "ShieldMaiden", "FireMage", "Archer", "Thundercaller", "Healer"],
+  BalancedLifebinder: ["Vanguard", "ShieldMaiden", "FireMage", "Archer", "Thundercaller", "Lifebinder"],
   Frontline: ["Vanguard", "Spearman", "ShieldMaiden", "FireMage", "Archer", "Healer"],
   Glass: ["ShieldMaiden", "FireMage", "FireMage", "Archer", "Archer", "Thundercaller"],
   Sustain: ["Vanguard", "ShieldMaiden", "Necromancer", "Thundercaller", "Archer", "Healer"],
+  SustainLifebinder: ["Vanguard", "ShieldMaiden", "Necromancer", "Thundercaller", "Archer", "Lifebinder"],
   Specialists: ["Spearman", "FireMage", "Archer", "Necromancer", "Thundercaller", "Runesinger"],
+  RunePair: ["Vanguard", "Runesinger", "FireMage", "Archer", "Thundercaller", "Runesinger"],
 };
 
 const BOSS_ORDER = [
@@ -127,7 +130,7 @@ function adaptiveMagnetPosition(team) {
   if (dead && hasA) return pick("Thundercaller") ?? living[0].position;
   if (dotted && hasAB) return pick("FireMage", "Healer") ?? living[0].position;
   if (hpRatio < 0.62 && hasAB) {
-    return pick("Healer", "Runesinger", "Necromancer") ?? living[0].position;
+    return pick("Healer", "Lifebinder", "Necromancer") ?? living[0].position;
   }
   if (liveAdds.length) {
     return pick("Archer", "FireMage", "Spearman", "Vanguard") ?? living[0].position;

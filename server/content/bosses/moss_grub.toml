@@ -4,7 +4,7 @@
 
 id = "moss_grub"
 name = "Moss Grub"
-max_hp = 130
+max_hp = 140
 traits = ["Tutorial"]
 difficulty = "Easy"
 summary = "Opening fight that can still kill. Front slams and line sweeps only — no cascade, poison, or regen. Moss Mites nibble and leave sticky slime until Fire Mage burns it off."
@@ -89,8 +89,8 @@ bubble_lines = ["Skitter!", "Mites!", "Little ones!"]
 use_laugh = true
 minion_id = "moss_mite"
 minion_name = "Moss Mite"
-minion_max_hp = 9
-minion_damage = 3
+minion_max_hp = 11
+minion_damage = 4
 minion_max_count = 2
 free_volley = false
 open_count = 1

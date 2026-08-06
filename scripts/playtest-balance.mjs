@@ -43,10 +43,10 @@ function partyIds(team, arches) {
     .map((id) => team.roster.find((x) => x.id === id))
     .filter(Boolean);
   const supports = soldiers.filter(
-    (s) => s.archetype === "Healer" || s.archetype === "Runesinger",
+    (s) => s.archetype === "Healer" || s.archetype === "Lifebinder",
   );
   const rest = soldiers.filter(
-    (s) => s.archetype !== "Healer" && s.archetype !== "Runesinger",
+    (s) => s.archetype !== "Healer" && s.archetype !== "Lifebinder",
   );
   if (supports.length === 0) return ids;
   const ordered = [...rest, supports[supports.length - 1]];
@@ -129,7 +129,7 @@ function sim(seed, arches, pool, boss = "ash_wraith") {
       0.6
     )
       pos =
-        living.find((s) => ["Healer", "Runesinger"].includes(s.archetype))
+        living.find((s) => ["Healer", "Lifebinder"].includes(s.archetype))
           ?.position ?? pos;
     placeMagnet(team, pos);
     const preBoss = team.boss.currentHp;

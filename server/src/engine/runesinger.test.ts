@@ -1,35 +1,44 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_HOT_STREAMS_PER_SOLDIER,
-  RUNESINGER_HOT_PER_TICK,
-  RUNESINGER_HOT_TICKS,
+  RUNESINGER_DAMAGE,
   type Grade,
   type TeamState,
 } from "@dungeon-grades/shared";
 import { createTeam, selectParty, startFight } from "./combat.js";
 import { livingParty } from "./damage.js";
-import { applyFrozen, tickDots, tickHots } from "./dots.js";
 import { resolveSpecialistAction } from "./specialists.js";
 
 const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
 
-function singerTeam(seed = 11): TeamState {
+function singerTeam(seed = 11, front = false): TeamState {
   const team = createTeam("rs-t", "RUNE1", "Rune", seed);
-  selectParty(team, [
-    "vanguard_1",
-    "shieldmaiden_1",
-    "firemage_1",
-    "archer_1",
-    "thundercaller_1",
-    "runesinger_1",
-  ]);
-  startFight(team, "ash_wraith", POOL);
+  selectParty(
+    team,
+    front
+      ? [
+          "runesinger_1",
+          "vanguard_1",
+          "shieldmaiden_1",
+          "firemage_1",
+          "archer_1",
+          "lifebinder_1",
+        ]
+      : [
+          "vanguard_1",
+          "runesinger_1",
+          "shieldmaiden_1",
+          "firemage_1",
+          "archer_1",
+          "lifebinder_1",
+        ],
+  );
+  startFight(team, front ? "moss_grub" : "ash_wraith", POOL);
   team.log = [];
   team.playback = [];
-  for (const s of livingParty(team)) {
-    s.block = 0;
-    s.statuses = [];
-    s.currentHp = s.maxHp;
+  for (const soldier of livingParty(team)) {
+    soldier.block = 0;
+    soldier.statuses = [];
+    soldier.currentHp = soldier.maxHp;
   }
   return team;
 }
@@ -38,193 +47,165 @@ function setClaims(
   team: TeamState,
   rows: { id: string; token: Grade; effective?: Grade }[],
 ): void {
-  team.lastClaims = rows.map((r) => ({
-    token: r.token,
-    soldierId: r.id,
-    effectiveGrade: r.effective ?? r.token,
+  team.lastClaims = rows.map((row) => ({
+    token: row.token,
+    soldierId: row.id,
+    effectiveGrade: row.effective ?? row.token,
   }));
 }
 
-function act(
-  team: TeamState,
-  grade: Grade,
-  logs: string[] = [],
-): string[] {
-  const singer = livingParty(team).find((s) => s.archetype === "Runesinger")!;
+function act(team: TeamState, grade: Grade): void {
+  const singer = livingParty(team).find(
+    (soldier) => soldier.archetype === "Runesinger",
+  )!;
   resolveSpecialistAction(
     team,
     singer,
     { token: grade, soldierId: singer.id, effectiveGrade: grade },
     () => 0.5,
-    (t) => logs.push(t),
+    () => {},
   );
-  return logs;
 }
 
-describe("Runesinger rewrite + HoT", () => {
-  it("A upgrades all claims +2 and applies all-line HoT", () => {
+function actClaim(team: TeamState, soldierId: string): void {
+  const singer = livingParty(team).find((soldier) => soldier.id === soldierId)!;
+  const claim = team.lastClaims.find((entry) => entry.soldierId === soldierId)!;
+  resolveSpecialistAction(team, singer, claim, () => 0.5, () => {});
+}
+
+describe("Runesinger rewrite + rune attack", () => {
+  it("A upgrades all claims +2 and deals the A attack", () => {
     const team = singerTeam();
-    const [v, sm, fm, ar, th, rs] = livingParty(team).sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0),
-    );
+    const party = livingParty(team);
+    const singer = party.find((soldier) => soldier.archetype === "Runesinger")!;
     setClaims(team, [
-      { id: v!.id, token: "F" },
-      { id: sm!.id, token: "D" },
-      { id: rs!.id, token: "B" },
+      { id: party[0]!.id, token: "F" },
+      { id: party[2]!.id, token: "D" },
+      { id: singer.id, token: "A" },
     ]);
+    const before = team.boss!.currentHp;
     act(team, "A");
-    expect(team.lastClaims!.map((c) => c.effectiveGrade)).toEqual([
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
       "C",
       "B",
       "A",
     ]);
-    for (const s of livingParty(team)) {
-      const hot = s.statuses.find((st) => st.kind === "Hot");
-      expect(hot).toMatchObject({
-        kind: "Hot",
-        healPerTick: RUNESINGER_HOT_PER_TICK.A,
-        duration: RUNESINGER_HOT_TICKS,
-      });
-    }
-    expect(ar!.statuses.some((st) => st.kind === "Hot")).toBe(true);
-    expect(th!.statuses.some((st) => st.kind === "Hot")).toBe(true);
-    expect(fm!.statuses.some((st) => st.kind === "Hot")).toBe(true);
+    expect(before - team.boss!.currentHp).toBe(RUNESINGER_DAMAGE.A);
+    expect(
+      party.every((soldier) =>
+        soldier.statuses.every((status) => status.kind !== "Hot"),
+      ),
+    ).toBe(true);
   });
 
-  it("B parallel map: F/D→C, C→B, B stays B", () => {
+  it("B maps grades in parallel and attacks", () => {
     const team = singerTeam();
-    const sorted = livingParty(team).sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0),
-    );
+    const party = livingParty(team);
     setClaims(team, [
-      { id: sorted[0]!.id, token: "F" },
-      { id: sorted[1]!.id, token: "C" },
-      { id: sorted[5]!.id, token: "B" },
+      { id: party[0]!.id, token: "F" },
+      { id: party[1]!.id, token: "C" },
+      { id: party[2]!.id, token: "B" },
     ]);
+    const before = team.boss!.currentHp;
     act(team, "B");
-    expect(team.lastClaims!.map((c) => c.effectiveGrade)).toEqual([
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
       "C",
       "B",
       "B",
     ]);
-    // Front HoT only
-    for (const s of livingParty(team)) {
-      const has = s.statuses.some((st) => st.kind === "Hot");
-      if ((s.position ?? 99) <= 3) expect(has).toBe(true);
-      else expect(has).toBe(false);
-    }
+    expect(before - team.boss!.currentHp).toBe(RUNESINGER_DAMAGE.B);
   });
 
-  it("C sets worst claim to C; front wins ties", () => {
+  it("C fixes the frontmost tied worst claim and attacks", () => {
     const team = singerTeam();
-    const sorted = livingParty(team).sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0),
-    );
-    // Two F's at pos 2 and pos 5 — front (pos 2) wins
+    const party = livingParty(team);
     setClaims(team, [
-      { id: sorted[1]!.id, token: "F" },
-      { id: sorted[4]!.id, token: "F" },
-      { id: sorted[5]!.id, token: "A" },
+      { id: party[1]!.id, token: "F" },
+      { id: party[4]!.id, token: "F" },
+      { id: party[5]!.id, token: "A" },
     ]);
+    const before = team.boss!.currentHp;
     act(team, "C");
-    const c2 = team.lastClaims!.find((c) => c.soldierId === sorted[1]!.id)!;
-    const c5 = team.lastClaims!.find((c) => c.soldierId === sorted[4]!.id)!;
-    expect(c2.effectiveGrade).toBe("C");
-    expect(c5.effectiveGrade).toBe("F");
+    expect(team.lastClaims[0]!.effectiveGrade).toBe("C");
+    expect(team.lastClaims[1]!.effectiveGrade).toBe("F");
+    expect(before - team.boss!.currentHp).toBe(RUNESINGER_DAMAGE.C);
   });
 
-  it("D is self HoT only; F demotes with no HoT", () => {
+  it("D attacks without rewriting; F demotes and does not attack", () => {
     const team = singerTeam();
-    const sorted = livingParty(team).sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0),
-    );
-    const rs = sorted[5]!;
+    const party = livingParty(team);
     setClaims(team, [
-      { id: sorted[0]!.id, token: "A" },
-      { id: sorted[1]!.id, token: "B" },
-      { id: rs.id, token: "D" },
+      { id: party[0]!.id, token: "A" },
+      { id: party[1]!.id, token: "B" },
     ]);
+    let before = team.boss!.currentHp;
     act(team, "D");
-    expect(team.lastClaims!.map((c) => c.effectiveGrade)).toEqual([
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
       "A",
       "B",
-      "D",
     ]);
-    expect(rs.statuses.filter((st) => st.kind === "Hot")).toHaveLength(1);
-    expect(
-      livingParty(team)
-        .filter((s) => s.id !== rs.id)
-        .every((s) => !s.statuses.some((st) => st.kind === "Hot")),
-    ).toBe(true);
+    expect(before - team.boss!.currentHp).toBe(RUNESINGER_DAMAGE.D);
 
-    for (const s of livingParty(team)) s.statuses = [];
-    setClaims(team, [
-      { id: sorted[0]!.id, token: "A" },
-      { id: sorted[1]!.id, token: "B" },
-      { id: rs.id, token: "F" },
-    ]);
+    before = team.boss!.currentHp;
     act(team, "F");
-    expect(team.lastClaims!.map((c) => c.effectiveGrade)).toEqual([
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
       "B",
       "C",
-      "F",
     ]);
-    expect(
-      livingParty(team).every((s) => !s.statuses.some((st) => st.kind === "Hot")),
-    ).toBe(true);
+    expect(team.boss!.currentHp).toBe(before);
   });
 
-  it("HoT ticks heal over 3 phases and caps streams at 2", () => {
-    const team = singerTeam();
-    const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
-    rs.currentHp = 10;
-    setClaims(team, [{ id: rs.id, token: "A" }]);
+  it("uses the ordinary gap rule from a front seat", () => {
+    const team = singerTeam(12, true);
+    const minion = team.minions.find((entry) => entry.currentHp > 0)!;
+    const bossBefore = team.boss!.currentHp;
+    const minionBefore = minion.currentHp;
     act(team, "A");
-    act(team, "A");
-    act(team, "A");
-    const hots = rs.statuses.filter((st) => st.kind === "Hot");
-    expect(hots.length).toBe(MAX_HOT_STREAMS_PER_SOLDIER);
-
-    const logs: string[] = [];
-    tickHots(team, (t) => logs.push(t));
-    expect(logs.some((l) => l.includes("Hymn"))).toBe(true);
-    expect(rs.currentHp).toBeGreaterThan(10);
-
-    // Two more ticks finish streams
-    tickHots(team, () => {});
-    tickHots(team, () => {});
-    expect(rs.statuses.filter((st) => st.kind === "Hot")).toHaveLength(0);
+    expect(minion.currentHp).toBeLessThan(minionBefore);
+    expect(team.boss!.currentHp).toBe(bossBefore);
   });
 
-  it("hard Frozen blocks HoT tick heal", () => {
+  it("never consumes an obsolete Life Power status", () => {
     const team = singerTeam();
-    const v = livingParty(team).find((s) => s.position === 1)!;
-    v.currentHp = 10;
+    const singer = livingParty(team).find(
+      (soldier) => soldier.archetype === "Runesinger",
+    )!;
+    singer.statuses.push({ kind: "LifePower", bonus: 6 });
+    act(team, "A");
+    expect(singer.statuses).toContainEqual({ kind: "LifePower", bonus: 6 });
+  });
+
+  it("stacks two Runesinger rewrites deterministically from front to back", () => {
+    const team = createTeam("rs-pair", "RUNE2", "Rune Pair", 13);
+    selectParty(team, [
+      "runesinger_1",
+      "vanguard_1",
+      "runesinger_2",
+      "firemage_1",
+      "archer_1",
+      "lifebinder_1",
+    ]);
+    startFight(team, "moss_grub", POOL);
+    const party = livingParty(team);
     setClaims(team, [
-      { id: v.id, token: "C" },
-      {
-        id: livingParty(team).find((s) => s.archetype === "Runesinger")!.id,
-        token: "A",
-      },
+      { id: "runesinger_1", token: "B" },
+      { id: "runesinger_2", token: "C" },
+      { id: party[3]!.id, token: "F" },
     ]);
-    act(team, "A");
-    applyFrozen(v, 1, 0);
-    const before = v.currentHp;
-    tickHots(team, () => {});
-    expect(v.currentHp).toBe(before);
-  });
 
-  it("hymn ticks after damage DoT phase (separate beat)", () => {
-    const team = singerTeam();
-    const rs = livingParty(team).find((s) => s.archetype === "Runesinger")!;
-    setClaims(team, [{ id: rs.id, token: "D" }]);
-    act(team, "D");
-    const logs: string[] = [];
-    tickDots(team, (t) => logs.push(t));
-    // HoT is no longer inside tickDots — combat runs tickHots as its own beat
-    expect(logs.some((l) => l.includes("[Hymn]"))).toBe(false);
-    const healed = tickHots(team, (t) => logs.push(t));
-    expect(logs.some((l) => l.includes("[Hymn]"))).toBe(true);
-    expect(healed).toContain(rs.id);
+    actClaim(team, "runesinger_1");
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
+      "B",
+      "B",
+      "C",
+    ]);
+
+    // The second singer now acts with the B created by the first rewrite.
+    actClaim(team, "runesinger_2");
+    expect(team.lastClaims.map((claim) => claim.effectiveGrade)).toEqual([
+      "B",
+      "B",
+      "B",
+    ]);
   });
 });

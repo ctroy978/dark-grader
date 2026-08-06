@@ -66,15 +66,15 @@ function partyIds(team, arches) {
     ids.push(s.id);
     used.add(s.id);
   }
-  // Healer/Runesinger only in back seat; at most one support
+  // Healer/Lifebinder only in back seat; at most one backline healer
   const soldiers = ids
     .map((id) => team.roster.find((x) => x.id === id))
     .filter(Boolean);
   const supports = soldiers.filter(
-    (s) => s.archetype === "Healer" || s.archetype === "Runesinger",
+    (s) => s.archetype === "Healer" || s.archetype === "Lifebinder",
   );
   const rest = soldiers.filter(
-    (s) => s.archetype !== "Healer" && s.archetype !== "Runesinger",
+    (s) => s.archetype !== "Healer" && s.archetype !== "Lifebinder",
   );
   if (supports.length === 0) return ids;
   const ordered = [...rest, supports[supports.length - 1]];
@@ -109,7 +109,7 @@ function smartPos(team) {
     return pick("Archer", "Spearman", "Vanguard") ?? L[0].position;
   if (dots) return pick("FireMage", "Healer") ?? L[0].position;
   if (hurt)
-    return pick("Healer", "Runesinger", "Necromancer") ?? L[0].position;
+    return pick("Healer", "Lifebinder", "Necromancer") ?? L[0].position;
   if (hasA)
     return (
       pick(

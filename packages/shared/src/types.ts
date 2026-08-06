@@ -13,7 +13,8 @@ export type Archetype =
   | "Spearman"
   | "Necromancer"
   | "Thundercaller"
-  | "Runesinger";
+  | "Runesinger"
+  | "Lifebinder";
 
 /** Chill = Warden weather DoT (no token demotion). Ice = Frost Archer DoT. */
 export type DotType = "Fire" | "Ice" | "Poison" | "Slime" | "Chill";
@@ -84,7 +85,7 @@ export interface LastStandStatus {
 }
 
 /**
- * Necromancer Life Power on the back-seat support (Healer or Runesinger).
+ * Necromancer Life Power on the back-seat healer (Healer or Lifebinder).
  * No stacking; stays until that support’s next healing action spends it.
  * Flat bonus HP per ally they heal (instant purple follow-up rain).
  */
@@ -95,7 +96,7 @@ export interface LifePowerStatus {
 }
 
 /**
- * Runesinger hymn heal-over-time (independent streams; max 2 per soldier).
+ * Lifebinder heal-over-time (independent streams; max 2 per soldier).
  * Ticks in DoT phase after damage DoTs; uses healSoldier (blocked by hard Frozen).
  */
 export interface HotStatus {
@@ -104,7 +105,8 @@ export interface HotStatus {
   healPerTick: number;
   /** Remaining ticks (including upcoming) */
   duration: number;
-  source?: "Runesinger";
+  /** Runesinger is accepted only for in-progress pre-rework saves. */
+  source?: "Lifebinder" | "Runesinger";
 }
 
 /**

@@ -110,7 +110,7 @@ function smartMagnet(team) {
     if (d) return d;
   }
   if (hurt) {
-    const h = pick(["Healer", "Runesinger", "Necromancer"]);
+    const h = pick(["Healer", "Lifebinder", "Necromancer"]);
     if (h) return h;
   }
   if (shieldLow) {
@@ -298,9 +298,9 @@ function pickBalancedParty(roster) {
     "Vanguard",
     "ShieldMaiden",
     "FireMage",
-    "Healer",
     "Archer",
     "Runesinger",
+    "Healer",
   ];
   const alt = ["Thundercaller", "Spearman", "Necromancer", "Archer", "FireMage"];
   const picked = [];
@@ -347,9 +347,9 @@ function pickTankHeal(roster) {
     "Vanguard",
     "ShieldMaiden",
     "ShieldMaiden",
-    "Healer",
     "Runesinger",
     "Necromancer",
+    "Healer",
   ];
   return pickByOrder(roster, order);
 }

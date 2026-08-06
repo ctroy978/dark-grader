@@ -13,7 +13,8 @@ import {
   ARCHETYPE_LOBBY_ORDER,
   ARCHETYPE_MAX_HP,
   getArchetypeScout,
-  isBacklineSupportArchetype,
+  isBacklineHealerArchetype,
+  largestLegalPartySize,
   partyFormationError,
   type Archetype,
   type BossScout,
@@ -468,9 +469,9 @@ export default function LobbyScreen({
     () => rosterSorted.filter((r) => r.alive),
     [rosterSorted],
   );
-  /** Full line of 6, or every survivor when the roster is understrength. */
-  const requiredSize = Math.min(PARTY_SIZE, alive.length);
-  const understrength = alive.length > 0 && alive.length < PARTY_SIZE;
+  /** Full line of 6, or the largest legal line after attrition. */
+  const requiredSize = largestLegalPartySize(alive);
+  const understrength = requiredSize > 0 && requiredSize < PARTY_SIZE;
 
   const filledIds = useMemo(
     () => slots.filter((id): id is string => !!id),
@@ -482,7 +483,11 @@ export default function LobbyScreen({
     filledCount === requiredSize &&
     new Set(filledIds).size === requiredSize &&
     (!understrength ||
-      alive.every((s) => filledIds.includes(s.id)));
+      alive.every(
+        (soldier) =>
+          filledIds.includes(soldier.id) ||
+          isBacklineHealerArchetype(soldier.archetype),
+      ));
 
   const soldierById = useMemo(() => {
     const m = new Map(team.roster.map((s) => [s.id, s]));
@@ -505,21 +510,21 @@ export default function LobbyScreen({
     setActiveSlot(index);
   }
 
-  /** Back seat index for the current required line size (Healer/Runesinger only). */
+  /** Back seat index for the current required line size (Healer/Lifebinder only). */
   const backSlotIndex = Math.max(0, requiredSize - 1);
 
   function formationErrorForSlots(next: (string | null)[]): string | null {
-    // Any Healer/Runesinger not in the back seat is illegal (even mid-build).
+    // Any Healer/Lifebinder not in the back seat is illegal (even mid-build).
     for (let i = 0; i < next.length; i++) {
       const sid = next[i];
       if (!sid) continue;
       const s = soldierById.get(sid);
       if (
         s &&
-        isBacklineSupportArchetype(s.archetype) &&
+        isBacklineHealerArchetype(s.archetype) &&
         i !== backSlotIndex
       ) {
-        return `Healer and Runesinger can only stand in the back seat (position ${requiredSize}).`;
+        return `Thornmender and Grovekeeper can only stand in the back seat (position ${requiredSize}).`;
       }
     }
     // Full line: shared validator (also covers edge cases)
@@ -540,7 +545,7 @@ export default function LobbyScreen({
     if (!soldier?.alive) return;
     if (requiredSize <= 0) return;
 
-    const isSupport = isBacklineSupportArchetype(soldier.archetype);
+    const isHealer = isBacklineHealerArchetype(soldier.archetype);
 
     setSlots((prev) => {
       const next = [...prev];
@@ -554,18 +559,18 @@ export default function LobbyScreen({
         }
         // Move / swap into focused slot
         let target = activeSlot;
-        // Supports can only move into the back seat
-        if (isSupport) target = backSlotIndex;
-        // Displacing: if something is going into a non-back seat, it can't be support
+        // Backline healers can only move into the back seat
+        if (isHealer) target = backSlotIndex;
+        // Displacing into a non-back seat cannot move a backline healer there.
         const displaced = next[target];
         if (displaced && displaced !== id) {
           const d = soldierById.get(displaced);
           if (
             d &&
-            isBacklineSupportArchetype(d.archetype) &&
+            isBacklineHealerArchetype(d.archetype) &&
             existing !== backSlotIndex
           ) {
-            // Support would leave back seat — not allowed; remove them instead
+            // Healer would leave back seat — remove them instead.
             next[existing] = null;
           } else {
             next[existing] = displaced;
@@ -584,41 +589,39 @@ export default function LobbyScreen({
       }
 
       const filled = next.filter(Boolean).length;
-      // Supports always place into the back seat
+      // Backline healers always place into the back seat.
       let target =
         activeSlot !== null ? activeSlot : next.findIndex((x) => x === null);
-      if (isSupport) target = backSlotIndex;
+      if (isHealer) target = backSlotIndex;
       if (target < 0) return prev;
-      // Non-support cannot steal back seat if a support is already there
-      // (unless replacing that support)
       // Don't grow past required size unless replacing an occupied slot
       if (!next[target] && filled >= requiredSize) return prev;
 
-      // If placing non-support into a seat held by support and target isn't back, block
+      // A backline healer cannot be displaced into a non-back seat.
       const occupant = next[target];
       if (occupant) {
         const occ = soldierById.get(occupant);
         if (
           occ &&
-          isBacklineSupportArchetype(occ.archetype) &&
+          isBacklineHealerArchetype(occ.archetype) &&
           target !== backSlotIndex
         ) {
           setError(
-            `Healer and Runesinger can only stand in the back seat (position ${requiredSize}).`,
+            `Thornmender and Grovekeeper can only stand in the back seat (position ${requiredSize}).`,
           );
           return prev;
         }
       }
 
       next[target] = id;
-      // Drop any other support if we just placed a support in back
-      if (isSupport) {
+      // Drop any other backline healer if we just placed one in back.
+      if (isHealer) {
         for (let i = 0; i < next.length; i++) {
           if (i === target) continue;
           const sid = next[i];
           if (!sid) continue;
           const s = soldierById.get(sid);
-          if (s && isBacklineSupportArchetype(s.archetype)) next[i] = null;
+          if (s && isBacklineHealerArchetype(s.archetype)) next[i] = null;
         }
       }
       const err = formationErrorForSlots(next);
@@ -639,7 +642,7 @@ export default function LobbyScreen({
 
   // After a place, auto-focus the next empty slot (front → back)
   useEffect(() => {
-    const nextEmpty = slots.findIndex((x) => x === null);
+    const nextEmpty = slots.slice(0, requiredSize).findIndex((x) => x === null);
     if (nextEmpty >= 0) {
       setActiveSlot((cur) => {
         if (cur === null) return nextEmpty;
@@ -647,13 +650,13 @@ export default function LobbyScreen({
         return cur;
       });
     }
-  }, [slots]);
+  }, [requiredSize, slots]);
 
   async function saveParty() {
     if (!complete) {
       setError(
         understrength
-          ? `Field all ${requiredSize} living soldiers before saving.`
+          ? `Form the largest legal line of ${requiredSize} soldiers before saving.`
           : "Fill all 6 positions before saving.",
       );
       return;
@@ -682,7 +685,7 @@ export default function LobbyScreen({
     if (!complete) {
       setError(
         understrength
-          ? `Field all ${requiredSize} living soldiers before starting.`
+          ? `Form the largest legal line of ${requiredSize} soldiers before starting.`
           : "Fill all 6 positions before starting.",
       );
       return;
@@ -908,14 +911,15 @@ export default function LobbyScreen({
                 Position {requiredSize || 6} (back)
               </strong>{" "}
               is the only seat for{" "}
-              <strong className="text-parchment">Healer or Runesinger</strong>{" "}
-              (one support max — pick either, not both). You must set this line before
+              <strong className="text-parchment">Thornmender or Grovekeeper</strong>{" "}
+              (one Lifebinder max — pick either, not both). You must set this line before
               every room, including the first.
               {understrength && (
                 <>
                   {" "}
-                  With attrition, place <strong className="text-parchment">all</strong>{" "}
-                  living soldiers (order still matters).
+                  With attrition, field every unrestricted-seat survivor. If both
+                  Lifebinders survive, one may remain benched because only one can occupy
+                  the back seat.
                 </>
               )}
             </p>
@@ -929,7 +933,7 @@ export default function LobbyScreen({
         </div>
 
         <div className="flex items-end justify-between text-[10px] uppercase tracking-wider text-parchment-dim px-1">
-          <span>Back · Healer / Runesinger seat</span>
+          <span>Back · Thornmender / Grovekeeper seat</span>
           <span className="text-rune">Front · nearest boss →</span>
         </div>
 
@@ -968,7 +972,7 @@ export default function LobbyScreen({
                   {pos === 1
                     ? " FRONT"
                     : pos === requiredSize
-                      ? " BACK · support"
+                      ? " BACK · healer"
                       : ""}
                 </span>
                 {s ? (

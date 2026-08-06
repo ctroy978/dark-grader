@@ -9,12 +9,13 @@ export const ARCHETYPE_DISPLAY_NAMES: Record<Archetype, string> = {
   Vanguard: "Vanguard",
   ShieldMaiden: "Shield Maiden",
   FireMage: "Fire Mage",
-  Healer: "Healer",
+  Healer: "Thornmender",
   Archer: "Archer",
   Spearman: "Spearman",
   Necromancer: "Necromancer",
   Thundercaller: "Thundercaller",
   Runesinger: "Runesinger",
+  Lifebinder: "Grovekeeper",
 };
 
 /** One-line role summary for lobby intel — what they do, not who else to bring. */
@@ -26,17 +27,19 @@ const ARCHETYPE_SUMMARIES: Record<Archetype, string> = {
   FireMage:
     "Hits several enemies with fire and can burn the boss. Seats 1–3 can rake gap minions; back seats hit the boss. A/B cleanse Chill, Ice, and Slime on half the line. D/F can hurt allies.",
   Healer:
-    "Instant triage heals (A all, B two lowest, C one, D tiny all). F heals the boss. Back seat only. Uncharged: no cleanse (Maiden primary). With Necromancer Life Power: normal heal still applies; Fire/Poison seats also wash (no purple); clean seats get purple bonus.",
+    "Thornmender is the rescue-healing Lifebinder: instant triage heals (A all, B two lowest, C one, D tiny all). F heals the boss. Back seat only. With Necromancer Life Power, normal healing still applies; Fire/Poison seats wash and clean seats gain purple bonus.",
   Archer:
     "Long Shot reaches gap minions from any seat, with multi-target volleys and extra minion damage. F can misfire.",
   Spearman:
     "Front-line striker with Penetrate: minion overkill carries into the boss. A–D grant modest Parry; seat 1 without Parry takes extra boss heat.",
   Necromancer:
-    "Drains the boss and grants Life Power to the Healer or Runesinger. Their next heal/hymn still mends normally; Fire/Poison seats also wash (no purple bonus); clean seats get purple bonus. Maiden is still the primary one-token cleanse. Does not heal allies directly.",
+    "Drains the boss and grants Life Power to the deployed Thornmender or Grovekeeper. Their next heal or renewal still mends normally; Fire/Poison seats also wash (no purple bonus); clean seats get purple bonus. Maiden remains the primary one-token cleanse.",
   Thundercaller:
     "Lightning damage with a chance to stun the boss; strong grades grant Charge. A hits for 14 (or, if someone is down, shocks their heart back — ~10% HP + Last Stand so one hit cannot re-kill them that turn). Revived allies skip their next claim (dazed). Each soldier only once per fight.",
   Runesinger:
-    "Acts first — rewrites this drop’s claims (A +2, B floors trash to C and lifts C to B, C fixes worst to C, F demotes). Slow gold hymn HoT. Back seat only — not with a Healer. With Necromancer Life Power, hymn still applies; dirty seats also wash Fire/Poison (no purple); clean seats get purple bonus.",
+    "Any-seat support that acts first: rewrites this drop’s claims, then launches a positional rune attack. Front seats hit gap minions first; back seats strike the boss. She no longer heals or receives Life Power.",
+  Lifebinder:
+    "Grovekeeper is the healing-over-time Lifebinder: three-tick renewal streams reach all, front, back, or self by grade. Back seat only, exclusive with Thornmender. Necromancer Life Power adds Fire/Poison wash or purple bonus healing.",
 };
 
 export interface ArchetypeGradeScout {

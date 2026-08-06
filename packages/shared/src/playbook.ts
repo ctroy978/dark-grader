@@ -50,9 +50,9 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "Weak poke (2); no parry — front takes extra boss heat",
   },
   Necromancer: {
-    A: "Drain 12; Life Power +6 on Healer/Runesinger — next heal/hymn still mends; dirty seats also wash (no purple); clean get purple",
-    B: "Drain 9; Life Power +4 on Healer/Runesinger (mend + wash or purple)",
-    C: "Drain 6; Life Power +2 on Healer/Runesinger (mend + wash or purple)",
+    A: "Drain 12; Life Power +6 on Healer/Lifebinder — next heal/renewal still mends; dirty seats wash (no purple); clean get purple",
+    B: "Drain 9; Life Power +4 on Healer/Lifebinder (mend + wash or purple)",
+    C: "Drain 6; Life Power +2 on Healer/Lifebinder (mend + wash or purple)",
     D: "Weak drain, self-damage (no Life Power)",
     F: "Backlash — hits highest-HP ally for 10",
   },
@@ -64,11 +64,18 @@ const PLAYBOOK: Record<Archetype, Record<Grade, string>> = {
     F: "No hit; 30% stun a remaining (not-yet-acted) token-holder",
   },
   Runesinger: {
-    A: "All claims +2 grades; HoT all (~12 over 3 ticks) — acts first; back seat only",
-    B: "F/D→C, C→B (B stays B); HoT front (~12 / 3 ticks) — acts first",
-    C: "Worst claim → C (front wins ties); HoT back (~9 / 3 ticks) — acts first",
-    D: "No rewrite; self HoT only (~9 / 3 ticks) — acts first",
-    F: "All claims shift down one grade; no HoT — acts first",
+    A: "All claims +2 grades, then rune attack 12 — acts first; any seat",
+    B: "F/D→C, C→B (B stays B), then rune attack 9 — acts first",
+    C: "Worst claim → C (front wins ties), then rune attack 6 — acts first",
+    D: "No rewrite; rune attack 4 — acts first",
+    F: "All claims shift down one grade; no attack — acts first",
+  },
+  Lifebinder: {
+    A: "Renew all living for 4 HP × 3 ticks — last seat only",
+    B: "Renew front positions 1–3 for 4 HP × 3 ticks",
+    C: "Renew back positions 4–6 for 3 HP × 3 ticks",
+    D: "Renew self for 3 HP × 3 ticks",
+    F: "No renewal; thorn backlash deals 3 self-damage",
   },
 };
 
@@ -81,7 +88,8 @@ export function gradeRiskNote(archetype: Archetype, grade: Grade): string | null
     Archer: { F: "May hit ally" },
     Necromancer: { D: "Self damage", F: "Hits highest-HP ally (10)" },
     Thundercaller: { F: "May stun a not-yet-acted claimer" },
-    Runesinger: { F: "Downgrades all tokens; no HoT" },
+    Runesinger: { F: "Downgrades all tokens; no attack" },
+    Lifebinder: { F: "Takes 3 self-damage; no renewal" },
     ShieldMaiden: { F: "Drops cover to 0" },
   };
   return risky[archetype]?.[grade] ?? null;

@@ -269,7 +269,7 @@ function PartySeatEffects({
       className: "text-sky-300 border-sky-400/40 bg-sky-950/40",
     });
   }
-  // Collapse multiple hymn HoTs into one chip
+  // Collapse multiple Lifebinder renewal streams into one chip.
   const hots = (statuses ?? []).filter((st) => st.kind === "Hot");
   if (hots.length > 0) {
     const perTick = hots.reduce(
@@ -280,12 +280,12 @@ function PartySeatEffects({
       ...hots.map((st) => (st.kind === "Hot" ? st.duration : 0)),
     );
     chips.push({
-      key: "hymn-hot",
+      key: "renewal-hot",
       text:
         hots.length > 1
-          ? `Hymn +${perTick}/t ×${hots.length}`
-          : `Hymn +${perTick}×${maxDur}`,
-      title: `Hymn HoT — +${perTick} HP per DoT phase across ${hots.length} stream(s); longest ${maxDur} tick(s) left`,
+          ? `Renew +${perTick}/t ×${hots.length}`
+          : `Renew +${perTick}×${maxDur}`,
+      title: `Lifebinder renewal — +${perTick} HP per DoT phase across ${hots.length} stream(s); longest ${maxDur} tick(s) left`,
       className: "text-amber-100 border-amber-200/50 bg-amber-950/40",
     });
   }

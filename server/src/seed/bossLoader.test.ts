@@ -42,7 +42,7 @@ describe("boss TOML loader", () => {
   it("loads Moss Grub tutorial kit with threatening mites", () => {
     const grub = getBossTemplate("moss_grub");
     expect(grub).toBeDefined();
-    expect(grub!.maxHp).toBe(130);
+    expect(grub!.maxHp).toBe(140);
     expect(grub!.enrageDamageMult).toBe(1);
     expect(grub!.attackIds).toEqual(
       expect.arrayContaining(["LightFrontSlam", "LightLineAttack", "SummonMossMites"]),
@@ -53,8 +53,8 @@ describe("boss TOML loader", () => {
     expect(mites?.summon).toMatchObject({
       minionId: "moss_mite",
       minionName: "Moss Mite",
-      maxHp: 9,
-      damage: 3,
+      maxHp: 11,
+      damage: 4,
       maxCount: 2,
       freeVolley: false,
       openCount: 1,

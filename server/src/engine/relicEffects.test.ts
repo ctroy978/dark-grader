@@ -24,7 +24,7 @@ function equip(
 function attackingTeam(relicId: "ember_whetstone" = "ember_whetstone") {
   const team = createTeam("relic-hit", "RH001", "Relic Hit", 31, "class-one");
   const party = team.roster
-    .filter((soldier) => soldier.archetype !== "Healer" && soldier.archetype !== "Runesinger")
+    .filter((soldier) => soldier.archetype !== "Healer" && soldier.archetype !== "Lifebinder")
     .slice(0, 6);
   equip(party[0]!, relicId);
   selectParty(team, party.map((soldier) => soldier.id));
@@ -152,7 +152,7 @@ describe("relic combat effects", () => {
   it("resets deployed relic use at the start of the next fight", () => {
     const team = createTeam("reset-relic", "RST01", "Reset", 5);
     const party = team.roster
-      .filter((soldier) => soldier.archetype !== "Healer" && soldier.archetype !== "Runesinger")
+      .filter((soldier) => soldier.archetype !== "Healer" && soldier.archetype !== "Lifebinder")
       .slice(0, 6);
     equip(party[0]!, "bulwark_sigil");
     party[0]!.relic!.usedThisFight = true;

@@ -398,5 +398,6 @@ The first implementation will report performance; it will not modify an external
 - Direct gradebook integration.
 - Manual teacher bonus-point assignment.
 - Magic items.
-- Warden/Runesinger redesign.
+- Lifebinder/Runesinger role split (implemented separately; see
+  `LIFEBINDER_RUNESINGER_REWORK_PLAN.md`).
 - Centurion.

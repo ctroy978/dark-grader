@@ -20,12 +20,13 @@ const ARCHETYPE_KEY: Record<Archetype, string> = {
   Vanguard: "vanguard",
   ShieldMaiden: "shieldmaiden",
   FireMage: "firemage",
-  Healer: "healer",
+  Healer: "thornmender",
   Archer: "archer",
   Spearman: "spearman",
   Necromancer: "necromancer",
   Thundercaller: "thundercaller",
   Runesinger: "runesinger",
+  Lifebinder: "grovekeeper",
 };
 
 const ARCHETYPE_TINT: Record<Archetype, string> = {
@@ -38,18 +39,20 @@ const ARCHETYPE_TINT: Record<Archetype, string> = {
   Necromancer: "#3a3a48",
   Thundercaller: "#3a5080",
   Runesinger: "#6a5840",
+  Lifebinder: "#3f684f",
 };
 
 const ARCHETYPE_MARK: Record<Archetype, string> = {
   Vanguard: "Vg",
   ShieldMaiden: "Sm",
   FireMage: "Fm",
-  Healer: "Hl",
+  Healer: "Tm",
   Archer: "Ar",
   Spearman: "Sp",
   Necromancer: "Nc",
   Thundercaller: "Th",
   Runesinger: "Rs",
+  Lifebinder: "Gk",
 };
 
 export type PortraitKind =

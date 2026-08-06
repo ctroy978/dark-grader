@@ -18,7 +18,7 @@ const ROUNDS = [
   },
   {
     title: "Drop Tokens",
-    body: "Press Drop (or Space). Specialists resolve their grade effects — Runesinger first (rewrites grades + hymn HoT), then the rest front to back. Then DoTs tick (poison, then gold hymn heals), then the boss and minions strike.",
+    body: "Press Drop (or Space). Runesingers resolve first (rewrite grades, then rune attack), followed by everyone else front to back. Damaging DoTs tick, then Lifebinder renewal heals, then the boss and minions strike.",
   },
   {
     title: "Win, camp, wait",
@@ -172,17 +172,29 @@ export default function HowToPlayPage() {
               (A = front, B = back). Match the DoT color to the right specialist.
             </li>
             <li>
-              <strong className="text-parchment">Healer</strong> — instant triage
+              <strong className="text-parchment">Thornmender</strong> — rescue healing through instant triage
               (A all, B two lowest, C one, D tiny all). Uncharged: no cleanse.
               With Necro Life Power: normal heal still applies; Fire/Poison seats
               also wash (no purple bonus).{" "}
               <strong className="text-parchment">Back seat only</strong> — same
-              slot as Runesinger (pick one support, not both).
+              slot as Grovekeeper (pick one Lifebinder, not both).
+            </li>
+            <li>
+              <strong className="text-parchment">Grovekeeper</strong> — applies
+              three-tick renewal healing (A all, B front, C back, D self). She
+              shares the back seat with Thornmender and can spend Necromancer Life
+              Power on the seats her renewal reaches.
+            </li>
+            <li>
+              <strong className="text-parchment">Runesinger</strong> — any-seat
+              support who always acts first, rewrites the current claims, and
+              follows with a positional rune attack. She no longer heals or
+              receives Life Power.
             </li>
             <li>
               <strong className="text-parchment">Necromancer</strong> — drains
               the boss and grants <strong className="text-parchment">Life Power</strong>{" "}
-              to the Healer or Runesinger. Their next heal/hymn still mends;
+              to the Thornmender or Grovekeeper. Their next heal/renewal still mends;
               Fire/Poison seats also <em>wash</em> (no purple); clean seats get
               purple bonus. Maiden is still the primary one-token cleanse.
             </li>
@@ -219,10 +231,10 @@ export default function HowToPlayPage() {
               them with the <strong className="text-parchment">Shield Maiden</strong>.
             </li>
             <li>
-              Healer and Runesinger share the back seat — only one of them on the
-              line. Healer = instant triage heals; Runesinger = grade rewrite +
-              slow gold hymn HoT. Necromancer Life Power adds wash/purple on top of
-              either’s normal mend.
+              Thornmender and Grovekeeper share the Lifebinder back seat — only one can be on the
+              line. Thornmender gives rescue healing; Grovekeeper applies slow renewal
+              HoTs. Runesinger is an any-seat support who rewrites claims and then
+              attacks. Necromancer Life Power enhances either healer's normal mend.
             </li>
             <li>Ice, Slime, and Frozen → Fire Mage. Match the color on the portrait.</li>
             <li>If the classroom is paused, wait for your teacher to resume.</li>

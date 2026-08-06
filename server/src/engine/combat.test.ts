@@ -40,12 +40,12 @@ function readyTeam() {
 }
 
 describe("combat loop", () => {
-  it("rejects Healer / Runesinger outside the back seat", () => {
+  it("reserves the back seat for Healer/Lifebinder and allows Runesinger anywhere", () => {
     const team = createTeam("t-back", "BACK1", "Back seat", 1);
     expect(() =>
       selectParty(team, [
         "vanguard_1",
-        "healer_1",
+        "lifebinder_1",
         "firemage_1",
         "archer_1",
         "spearman_1",
@@ -55,13 +55,13 @@ describe("combat loop", () => {
     expect(() =>
       selectParty(team, [
         "vanguard_1",
+        "runesinger_1",
         "shieldmaiden_1",
         "firemage_1",
         "archer_1",
-        "healer_1",
-        "runesinger_1",
+        "thundercaller_1",
       ]),
-    ).toThrow(/back seat/i);
+    ).not.toThrow();
     expect(() =>
       selectParty(team, [
         "vanguard_1",
@@ -69,7 +69,7 @@ describe("combat loop", () => {
         "firemage_1",
         "archer_1",
         "spearman_1",
-        "healer_1",
+        "lifebinder_1",
       ]),
     ).not.toThrow();
   });
@@ -231,4 +231,3 @@ describe("combat loop", () => {
     }
   });
 });
-

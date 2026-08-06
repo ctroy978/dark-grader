@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   INTER_ROOM_CAMP_HEAL_MISSING_PCT,
-  isBacklineSupportArchetype,
-  withBacklineSupportLast,
+  isBacklineHealerArchetype,
+  withBacklineHealerLast,
   type Grade,
 } from "@dungeon-grades/shared";
 import {
@@ -13,6 +13,7 @@ import {
   enterBetweenRooms,
   placeMagnet,
   requiredPartySize,
+  resolveBoss,
   returnFromDefeat,
   runAway,
   selectParty,
@@ -23,20 +24,20 @@ const POOL: Grade[] = "AAAABBBBBBCCCCCCDDFF".split("") as Grade[];
 
 /**
  * Build a legal line of up to N living soldiers.
- * Healer/Runesinger only in the back seat (at most one).
+ * Healer/Lifebinder only in the back seat (at most one).
  */
 function livingPartyIds(
   team: ReturnType<typeof createTeam>,
   n = 6,
 ): string[] {
   const living = team.roster.filter((s) => s.alive);
-  const rest = living.filter((s) => !isBacklineSupportArchetype(s.archetype));
-  const supports = living.filter((s) => isBacklineSupportArchetype(s.archetype));
-  if (supports.length === 0) {
+  const rest = living.filter((s) => !isBacklineHealerArchetype(s.archetype));
+  const healers = living.filter((s) => isBacklineHealerArchetype(s.archetype));
+  if (healers.length === 0) {
     return living.slice(0, n).map((s) => s.id);
   }
   const line = rest.slice(0, n - 1);
-  line.push(supports[0]!);
+  line.push(healers[0]!);
   return line.slice(0, n).map((s) => s.id);
 }
 
@@ -178,8 +179,26 @@ describe("campaign progression", () => {
     expect(team.boss?.id).toBe("moss_grub");
     expect(team.minions.filter((m) => m.currentHp > 0)).toHaveLength(1);
     expect(team.minions[0]?.name).toBe("Moss Mite");
-    expect(team.minions[0]?.maxHp).toBe(9);
+    expect(team.minions[0]?.maxHp).toBe(11);
+    expect(team.minions[0]?.damage).toBe(4);
     expect(team.minions[0]?.onHitDot).toEqual({ type: "Slime", stacks: 1 });
+  });
+
+  it("makes the Moss Grub line sweep deal 7 damage per ordinary seat", () => {
+    const team = createTeam("c3g-line", "CAMP3GL", "Camp", 89);
+    selectParty(team, livingPartyIds(team, 6));
+    startFight(team, "moss_grub", POOL);
+    team.minions = [];
+    const back = team.roster.find(
+      (soldier) => soldier.alive && soldier.position === 6,
+    )!;
+    const before = back.currentHp;
+    team.phase = "boss_telegraph";
+    team.pendingBossAttackId = "LightLineAttack";
+
+    resolveBoss(team);
+
+    expect(before - back.currentHp).toBe(7);
   });
 
   it("returns from defeat to lobby without advancing room", () => {
@@ -375,9 +394,9 @@ describe("campaign progression", () => {
         team,
         survivors.slice(0, 3).map((s) => s.id),
       ),
-    ).toThrow(/all of them|Understrength/i);
+    ).toThrow(/largest legal|Understrength/i);
 
-    selectParty(team, withBacklineSupportLast(survivors).map((s) => s.id));
+    selectParty(team, withBacklineHealerLast(survivors).map((s) => s.id));
     expect(team.activePartyIds).toHaveLength(4);
     expect(
       team.activePartyIds.map(
@@ -389,6 +408,34 @@ describe("campaign progression", () => {
     expect(team.phase).toBe("awaiting_magnet");
     expect(team.activePartyIds).toHaveLength(4);
     expect(team.boss?.id).toBe("bone_colossus");
+  });
+
+  it("benches only an overflow Healer/Lifebinder on an understrength roster", () => {
+    const team = createTeam("c7-healers", "C7HLR", "Short healers", 17);
+    for (const soldier of team.roster) {
+      soldier.alive = false;
+      soldier.currentHp = 0;
+    }
+    const unrestricted = team.roster
+      .filter(
+        (soldier) =>
+          soldier.archetype !== "Healer" && soldier.archetype !== "Lifebinder",
+      )
+      .slice(0, 4);
+    const healer = team.roster.find((soldier) => soldier.archetype === "Healer")!;
+    const lifebinder = team.roster.find(
+      (soldier) => soldier.archetype === "Lifebinder",
+    )!;
+    for (const soldier of [...unrestricted, healer, lifebinder]) {
+      soldier.alive = true;
+      soldier.currentHp = soldier.maxHp;
+    }
+
+    expect(requiredPartySize(team)).toBe(5);
+    selectParty(team, [...unrestricted.map((soldier) => soldier.id), lifebinder.id]);
+    expect(team.activePartyIds).toHaveLength(5);
+    expect(team.activePartyIds).not.toContain(healer.id);
+    expect(team.roster.find((soldier) => soldier.id === lifebinder.id)?.position).toBe(5);
   });
 
   it("blocks party formation when the entire roster is dead", () => {

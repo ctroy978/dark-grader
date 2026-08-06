@@ -2,12 +2,14 @@ import {
   GRADE_RANK,
   HEALER_BOSS_HEAL,
   HEALER_HEAL,
+  LIFEBINDER_F_SELF_DAMAGE,
+  LIFEBINDER_HOT_PER_TICK,
+  LIFEBINDER_HOT_TICKS,
   MAIDEN_DAMAGE,
   MAIDEN_SHIELD,
   NECRO_DRAIN,
   NECRO_LIFE_POWER,
-  RUNESINGER_HOT_PER_TICK,
-  RUNESINGER_HOT_TICKS,
+  RUNESINGER_DAMAGE,
   SPEARMAN_DAMAGE,
   SPEARMAN_PARRY_REDUCTION,
   VANGUARD_DAMAGE,
@@ -65,7 +67,7 @@ export function endPartyActionPhase(): void {
 }
 
 /**
- * After Healer/Runesinger base action: purple rain cue.
+ * After Healer/Lifebinder base action: purple rain cue.
  * Base heal/HoT always applies first. Purple rain then:
  * - clean seats → bonus HP
  * - dirty seats (Fire/Poison washed) → purple FX only (no extra HP)
@@ -76,7 +78,7 @@ export type LifePowerFollowUp = {
   healTargetIds: string[];
   /** Dirty seats washed of Fire/Poison — purple FX only, no purple bonus HP */
   cleanseTargetIds: string[];
-  /** Support soldier id (Healer/Runesinger) — Life Power is stripped after pulse */
+  /** Healer id (Healer/Lifebinder) — Life Power is stripped after pulse */
   supportId: string;
 };
 
@@ -126,7 +128,7 @@ export type SpecialistResolveResult = {
   /** Party seats that actually had one or more DoTs removed by this action. */
   cleanseTargetIds?: string[];
   /**
-   * Healer/Runesinger spent a heal while holding Life Power — combat applies
+   * Healer/Lifebinder spent a heal while holding Life Power — combat applies
    * bonus heals and a second purple-rain cue after the base action beat.
    */
   lifePowerFollowUp?: LifePowerFollowUp;
@@ -227,7 +229,10 @@ export function resolveSpecialistAction(
       effectFocusIds = thundercaller(soldier, g, team, random, log, label);
       break;
     case "Runesinger":
-      lifePowerFollowUp = runesinger(soldier, g, team, log, label);
+      runesinger(soldier, g, team, log, label);
+      break;
+    case "Lifebinder":
+      lifePowerFollowUp = lifebinder(soldier, g, team, log, label);
       break;
     default:
       log(`${label}: unknown archetype`);
@@ -256,10 +261,10 @@ export function tickPartyStuns(team: TeamState, log: LogFn): void {
   }
 }
 
-/** Living Healer or Runesinger on the line (back-seat support for Life Power). */
-function livingBackSupport(team: TeamState): Soldier | undefined {
+/** Living Healer or Lifebinder on the line (back-seat Life Power recipient). */
+function livingBackHealer(team: TeamState): Soldier | undefined {
   return livingParty(team).find(
-    (s) => s.archetype === "Healer" || s.archetype === "Runesinger",
+    (s) => s.archetype === "Healer" || s.archetype === "Lifebinder",
   );
 }
 
@@ -671,7 +676,7 @@ function spearman(
 }
 
 /**
- * Necromancer — drain + Life Power on Healer or Runesinger (A–C).
+ * Necromancer — drain + Life Power on Healer or Lifebinder (A–C).
  * No direct ally heal. D self-risk; F hits highest ally.
  * @returns focus ids (support empowered) for presentation.
  */
@@ -717,19 +722,19 @@ function necromancer(
     return focus;
   }
 
-  // A–C: Life Power on living back-seat support (Healer or Runesinger)
+  // A–C: Life Power on the living back-seat healer (Healer or Lifebinder)
   const bonus = NECRO_LIFE_POWER[g];
-  const support = livingBackSupport(team);
+  const support = livingBackHealer(team);
   if (support) {
     // No stacking — replace existing Life Power
     support.statuses = support.statuses.filter((st) => st.kind !== "LifePower");
     support.statuses.push({ kind: "LifePower", bonus });
     focus.push(support.id);
     log(
-      `${label}: drain ${r}; Life Power +${bonus} on ${support.name} (${support.archetype}) — next heal/hymn: normal mend still applies; dirty seats also wash Fire/Poison (no purple); clean seats get purple +${bonus}`,
+      `${label}: drain ${r}; Life Power +${bonus} on ${support.name} (${support.archetype}) — next heal/renewal: normal mend still applies; dirty seats also wash Fire/Poison (no purple); clean seats get purple +${bonus}`,
     );
   } else {
-    log(`${label}: drain ${r}; no Healer/Runesinger to empower`);
+    log(`${label}: drain ${r}; no Healer/Lifebinder to empower`);
   }
   return focus;
 }
@@ -884,10 +889,9 @@ function tryThundercallerRez(
 }
 
 /**
- * Runesinger — always resolves first (see combat action order).
- * Rewrites this drop’s claim grades, then applies slow gold HoT (no cleanse).
- * Mutates `team.lastClaims` / shared ClaimResult objects in place.
- * Life Power (Necro) adds a purple instant bonus on hymn targets after the cast beat.
+ * Runesinger resolves first, rewrites this drop's effective grades, then uses
+ * a normal positional single-target rune attack. She never heals or spends
+ * Life Power.
  */
 function runesinger(
   soldier: Soldier,
@@ -895,163 +899,129 @@ function runesinger(
   team: TeamState,
   log: LogFn,
   label: string,
-): LifePowerFollowUp | undefined {
+): void {
   const claims = team.lastClaims ?? [];
-
   const describeClaims = (): string =>
     claims
-      .map((c) => {
-        const s = team.roster.find((x) => x.id === c.soldierId);
-        return `${s?.name ?? "?"}:${c.effectiveGrade}`;
+      .map((claim) => {
+        const owner = team.roster.find((entry) => entry.id === claim.soldierId);
+        return `${owner?.name ?? "?"}:${claim.effectiveGrade}`;
       })
       .join(", ");
 
-  const charged = soldier.statuses.some((st) => st.kind === "LifePower");
-
-  /**
-   * Life Power: base hymn HoT always applies; dirty seats also wash Fire/Poison.
-   * Purple rain: bonus on clean seats only; wash FX on dirty.
-   * Returns purple-bonus ids and cleanse ids (not "who got HoT").
-   */
-  const applyHymnHot = (
-    targets: Soldier[],
-    perTick: number,
-  ): { healIds: string[]; cleanseIds: string[]; stripCount: number; hotCount: number } => {
-    const healIds: string[] = [];
-    const cleanseIds: string[] = [];
-    let stripCount = 0;
-    let hotCount = 0;
-    for (const t of targets) {
-      if (!t.alive) continue;
-      const dirty = charged && hasFireOrPoison(t);
-      if (dirty) {
-        stripCount += cleanseDots([t], LIFE_POWER_CLEANSE);
-        cleanseIds.push(t.id);
-      }
-      // Base hymn always lands — Life Power never cancels it.
-      applyHot(t, perTick, RUNESINGER_HOT_TICKS, "Runesinger");
-      hotCount += 1;
-      if (!dirty) healIds.push(t.id);
-    }
-    return { healIds, cleanseIds, stripCount, hotCount };
-  };
-
+  let rewrite = "no rewrite";
   if (g === "A") {
-    for (const c of claims) {
-      c.effectiveGrade = upgradeGrade(c.effectiveGrade, 2);
+    for (const claim of claims) {
+      claim.effectiveGrade = upgradeGrade(claim.effectiveGrade, 2);
     }
-    const targets = livingParty(team);
-    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
-      targets,
-      RUNESINGER_HOT_PER_TICK.A,
-    );
-    const wash =
-      stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
-        : "";
-    log(
-      `${label}: all claims +2 — [${describeClaims()}]; hymn HoT all (+${RUNESINGER_HOT_PER_TICK.A}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
-    );
-    return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
-  }
-
-  if (g === "B") {
-    for (const c of claims) {
-      c.effectiveGrade = runesingerBGrade(c.effectiveGrade);
+    rewrite = "all claims +2";
+  } else if (g === "B") {
+    for (const claim of claims) {
+      claim.effectiveGrade = runesingerBGrade(claim.effectiveGrade);
     }
-    const targets = livingParty(team).filter(
-      (x) => x.position != null && x.position <= 3,
-    );
-    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
-      targets,
-      RUNESINGER_HOT_PER_TICK.B,
-    );
-    const wash =
-      stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
-        : "";
-    log(
-      `${label}: F/D→C, C→B — [${describeClaims()}]; hymn HoT front (+${RUNESINGER_HOT_PER_TICK.B}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
-    );
-    return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
-  }
-
-  if (g === "C") {
-    // Worst claim → C; ties → front-most (lowest position)
-    if (claims.length) {
-      let worst = claims[0]!;
-      for (const c of claims) {
-        const wr = GRADE_RANK[worst.effectiveGrade];
-        const cr = GRADE_RANK[c.effectiveGrade];
-        if (cr > wr) {
-          worst = c;
-          continue;
-        }
-        if (cr < wr) continue;
-        const wPos =
-          team.roster.find((s) => s.id === worst.soldierId)?.position ?? 99;
-        const cPos =
-          team.roster.find((s) => s.id === c.soldierId)?.position ?? 99;
-        if (cPos < wPos) worst = c;
+    rewrite = "F/D→C, C→B";
+  } else if (g === "C" && claims.length) {
+    let worst = claims[0]!;
+    for (const claim of claims) {
+      const worstRank = GRADE_RANK[worst.effectiveGrade];
+      const claimRank = GRADE_RANK[claim.effectiveGrade];
+      if (claimRank > worstRank) {
+        worst = claim;
+        continue;
       }
-      const before = worst.effectiveGrade;
-      if (GRADE_RANK[before] > GRADE_RANK.C) {
-        worst.effectiveGrade = "C";
-        const who =
-          team.roster.find((s) => s.id === worst.soldierId)?.name ?? "?";
-        const targets = livingParty(team).filter(
-          (x) => x.position != null && x.position >= 4,
-        );
-        const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
-          targets,
-          RUNESINGER_HOT_PER_TICK.C,
-        );
-        const wash =
-          stripCount > 0
-            ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
-            : "";
-        log(
-          `${label}: worst claim ${who} ${before}→C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
-        );
-        return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
-      }
+      if (claimRank < worstRank) continue;
+      const worstPosition =
+        team.roster.find((entry) => entry.id === worst.soldierId)?.position ?? 99;
+      const claimPosition =
+        team.roster.find((entry) => entry.id === claim.soldierId)?.position ?? 99;
+      if (claimPosition < worstPosition) worst = claim;
     }
-    const targets = livingParty(team).filter(
-      (x) => x.position != null && x.position >= 4,
-    );
-    const { healIds, cleanseIds, stripCount, hotCount } = applyHymnHot(
-      targets,
-      RUNESINGER_HOT_PER_TICK.C,
-    );
-    const wash =
-      stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on those)`
-        : "";
-    log(
-      `${label}: no claim worse than C — [${describeClaims()}]; hymn HoT back (+${RUNESINGER_HOT_PER_TICK.C}×${RUNESINGER_HOT_TICKS} on ${hotCount})${wash}`,
-    );
-    return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
+    const before = worst.effectiveGrade;
+    if (GRADE_RANK[before] > GRADE_RANK.C) {
+      worst.effectiveGrade = "C";
+      const owner = team.roster.find((entry) => entry.id === worst.soldierId);
+      rewrite = `worst claim ${owner?.name ?? "?"} ${before}→C`;
+    } else {
+      rewrite = "no claim worse than C";
+    }
+  } else if (g === "F") {
+    for (const claim of claims) {
+      claim.effectiveGrade = downgradeGrade(claim.effectiveGrade);
+    }
+    rewrite = "all claims shift down";
   }
 
-  if (g === "D") {
-    const { healIds, cleanseIds, stripCount } = applyHymnHot(
-      [soldier],
-      RUNESINGER_HOT_PER_TICK.D,
-    );
-    const wash =
-      stripCount > 0
-        ? `; Life Power wash Fire/Poison (${stripCount}, no purple on self)`
-        : "";
+  const damage = RUNESINGER_DAMAGE[g];
+  const dealt =
+    damage > 0 ? hitEnemies(team, damage, "single", 0, 0, soldier) : 0;
+  log(
+    `${label}: ${rewrite} — [${describeClaims()}]; ${damage > 0 ? `rune attack ${dealt}` : "no attack"}`,
+  );
+}
+
+/** Lifebinder owns the former Runesinger HoT ladder and Life Power spend. */
+function lifebinder(
+  soldier: Soldier,
+  g: Grade,
+  team: TeamState,
+  log: LogFn,
+  label: string,
+): LifePowerFollowUp | undefined {
+  if (g === "F") {
+    const hit = applyPartyDamage(soldier, LIFEBINDER_F_SELF_DAMAGE, team.partyShield, {
+      bypassAbsorb: true,
+      team,
+      source: "friendly_fire",
+    });
     log(
-      `${label}: soft hymn — self HoT +${RUNESINGER_HOT_PER_TICK.D}×${RUNESINGER_HOT_TICKS} (no rewrite)${wash}`,
+      `${label}: thorn backlash — ${formatPartyHit(soldier, hit)}; no renewal`,
     );
-    return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
+    return undefined;
   }
 
-  // F — every token shifts down one grade (F stays F); no HoT — Life Power not spent
-  for (const c of claims) {
-    c.effectiveGrade = downgradeGrade(c.effectiveGrade);
+  const charged = soldier.statuses.some((status) => status.kind === "LifePower");
+  const targets =
+    g === "A"
+      ? livingParty(team)
+      : g === "B"
+        ? livingParty(team).filter(
+            (target) => target.position != null && target.position <= 3,
+          )
+        : g === "C"
+          ? livingParty(team).filter(
+              (target) => target.position != null && target.position >= 4,
+            )
+          : [soldier];
+  const healIds: string[] = [];
+  const cleanseIds: string[] = [];
+  let stripped = 0;
+  let streams = 0;
+
+  for (const target of targets) {
+    if (!target.alive) continue;
+    const dirty = charged && hasFireOrPoison(target);
+    if (dirty) {
+      stripped += cleanseDots([target], LIFE_POWER_CLEANSE);
+      cleanseIds.push(target.id);
+    } else {
+      healIds.push(target.id);
+    }
+    applyHot(
+      target,
+      LIFEBINDER_HOT_PER_TICK[g],
+      LIFEBINDER_HOT_TICKS,
+      "Lifebinder",
+    );
+    streams += 1;
   }
-  log(`${label}: corrupted hymn — all claims shift down — [${describeClaims()}]`);
-  return undefined;
+
+  const scope = g === "A" ? "all" : g === "B" ? "front" : g === "C" ? "back" : "self";
+  const wash =
+    stripped > 0
+      ? `; Life Power wash Fire/Poison (${stripped}, no purple on those)`
+      : "";
+  log(
+    `${label}: renewal ${scope} (+${LIFEBINDER_HOT_PER_TICK[g]}×${LIFEBINDER_HOT_TICKS} on ${streams})${wash}`,
+  );
+  return lifePowerFollowUpIfReady(soldier, healIds, cleanseIds);
 }

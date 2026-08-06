@@ -15,6 +15,8 @@ import {
   MAX_LOG_ENTRIES,
   PARTY_HURT_LAYER_DELAY_MS,
   PARTY_SIZE,
+  isBacklineHealerArchetype,
+  largestLegalPartySize,
   partyFormationError,
   type Grade,
   type Position,
@@ -296,14 +298,11 @@ export function createTeam(
 }
 
 /**
- * How many soldiers must be in the line right now.
- * Full roster → always 6. Attrition → field every living soldier (1–5).
- * Zero living → 0 (cannot enter a room).
+ * Largest legal line right now. At most one Healer/Lifebinder may deploy, so
+ * an overflow backline healer may remain benched on an understrength roster.
  */
 export function requiredPartySize(team: TeamState): number {
-  const living = livingRosterCount(team);
-  if (living <= 0) return 0;
-  return Math.min(PARTY_SIZE, living);
+  return largestLegalPartySize(team.roster.filter((soldier) => soldier.alive));
 }
 
 export function selectParty(team: TeamState, soldierIds: string[]): void {
@@ -320,7 +319,7 @@ export function selectParty(team: TeamState, soldierIds: string[]): void {
   if (soldierIds.length !== need) {
     throw new Error(
       need < PARTY_SIZE
-        ? `Only ${need} living — field all of them (got ${soldierIds.length})`
+        ? `Form the largest legal line of ${need} living soldiers (got ${soldierIds.length})`
         : `Party must be exactly ${PARTY_SIZE} soldiers`,
     );
   }
@@ -335,19 +334,20 @@ export function selectParty(team: TeamState, soldierIds: string[]): void {
     ordered.push({ id: s.id, archetype: s.archetype });
   }
 
-  // Healer / Runesinger: back seat only (also caps at one support)
+  // Healer / Lifebinder: back seat only (also caps at one healer)
   const formationErr = partyFormationError(ordered);
   if (formationErr) throw new Error(formationErr);
 
-  // Understrength: every living soldier must be in the line (no bench while short)
+  // Understrength: every unrestricted-seat soldier must be in the line. Only
+  // an overflow Healer/Lifebinder may remain benched to avoid a seat soft-lock.
   if (need < PARTY_SIZE) {
-    const livingIds = new Set(
-      team.roster.filter((s) => s.alive).map((s) => s.id),
-    );
-    for (const id of livingIds) {
-      if (!unique.has(id)) {
+    for (const living of team.roster.filter((soldier) => soldier.alive)) {
+      if (
+        !unique.has(living.id) &&
+        !isBacklineHealerArchetype(living.archetype)
+      ) {
         throw new Error(
-          "Understrength party must include every living soldier",
+          "Understrength party must include every living unrestricted-seat soldier",
         );
       }
     }
@@ -382,7 +382,7 @@ export function startFight(
   if (team.activePartyIds.length !== need) {
     throw new Error(
       need < PARTY_SIZE
-        ? `Understrength roster (${need} living) — reform the line with all living soldiers before starting.`
+        ? `Understrength roster — reform the largest legal line of ${need} soldiers before starting.`
         : "This team has not formed a party yet. Students must pick 6 soldiers and order them in the lobby before the fight can start.",
     );
   }
@@ -395,6 +395,12 @@ export function startFight(
     }
     s.position = (i + 1) as Position;
   }
+  const formationErr = partyFormationError(
+    team.activePartyIds.map((id) => ({
+      archetype: team.roster.find((soldier) => soldier.id === id)!.archetype,
+    })),
+  );
+  if (formationErr) throw new Error(formationErr);
   if (!gradePool.length) throw new Error("Token pool is empty — teacher must enter grades");
 
   // Clear transient death flags for the new fight
@@ -695,7 +701,12 @@ export function commitRound(team: TeamState): TeamState {
 
       const fx: string[] = [];
       if (soldier.archetype === "Healer") fx.push("heal-glow");
-      if (soldier.archetype === "Runesinger") fx.push("heal-glow");
+      if (
+        soldier.archetype === "Lifebinder" &&
+        claim.effectiveGrade !== "F"
+      ) {
+        fx.push("lifebinder-glow", "heal-glow");
+      }
       if (soldier.archetype === "FireMage") {
         fx.push("fire-flash");
         if (partyDamaged) fx.push("fire-tint");
@@ -713,14 +724,14 @@ export function commitRound(team: TeamState): TeamState {
       if (partyDamaged) fx.push("hurt-flash");
       // Soft tag: heals landing on party or boss (client uses for pose + impact)
       if (partyHealed || bossHealed) fx.push("heal-glow");
-      // Necro Life Power on Healer/Runesinger — buff, not a hit (client: no hit.png)
+      // Necro Life Power on Healer/Lifebinder — buff, not a hit (client: no hit.png)
       if (
         soldier.archetype === "Necromancer" &&
         (effectFocusIds ?? []).some((id) => {
           const s = team.roster.find((x) => x.id === id);
           return (
             !!s &&
-            (s.archetype === "Healer" || s.archetype === "Runesinger") &&
+            (s.archetype === "Healer" || s.archetype === "Lifebinder") &&
             s.statuses.some((st) => st.kind === "LifePower")
           );
         })
@@ -731,6 +742,7 @@ export function commitRound(team: TeamState): TeamState {
       if (cleanseTargetIds?.length) {
         fx.push("cleanse-glow");
         if (soldier.archetype === "ShieldMaiden") fx.push("maiden-cleanse");
+        if (soldier.archetype === "FireMage") fx.push("fire-cleanse");
       }
       const maidenCleanseOnly =
         soldier.archetype === "ShieldMaiden" &&
@@ -954,15 +966,18 @@ export function commitRound(team: TeamState): TeamState {
     });
   }
 
-  // Runesinger hymn HoT — own beat (gold rain on recipients + heal SFX)
-  const hymnTargets = tickHots(team, (text) => pushLog(team, text, ["dot", "hymn"]));
-  if (hymnTargets.length) {
+  // Lifebinder renewal HoT — own beat after damaging DoTs.
+  const renewalTargets = tickHots(team, (text) =>
+    pushLog(team, text, ["dot", "renewal"]),
+  );
+  if (renewalTargets.length) {
     pushCue(team, {
       kind: "dot",
-      focusIds: hymnTargets,
-      fx: ["hymn-tick", "hymn-glow", "heal-glow"],
-      // Prefer hymn_tick.mp3; resolveSfx falls back if missing
-      sfxId: resolveSfxId(["hymn_tick", "heal", "act_healer"]) ?? "heal",
+      focusIds: renewalTargets,
+      fx: ["lifebinder-tick", "lifebinder-glow", "heal-glow"],
+      sfxId:
+        resolveSfxId(["lifebinder_tick", "hymn_tick", "heal", "act_healer"]) ??
+        "heal",
       durationMs: 950,
     });
   }

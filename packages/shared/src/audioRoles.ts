@@ -3,7 +3,7 @@ import type { Archetype, Grade } from "./types.js";
 /**
  * Art-presenting gender (names + portrait art).
  * Male: Vanguard, Spearman, FireMage, Necromancer, Thundercaller
- * Female: ShieldMaiden, Healer, Archer, Runesinger
+ * Female: ShieldMaiden, Healer, Archer, Runesinger, Lifebinder
  */
 export type ArtGender = "male" | "female";
 
@@ -13,6 +13,7 @@ export function archetypeArtGender(archetype: Archetype | string): ArtGender {
     case "Healer":
     case "Archer":
     case "Runesinger":
+    case "Lifebinder":
       return "female";
     default:
       return "male";
@@ -32,8 +33,8 @@ export const ARCHETYPE_ATTACK_SFX: Record<Archetype, string> = {
   Spearman: "act_spearman",
   Necromancer: "act_necromancer",
   Thundercaller: "act_thundercaller",
-  /** Prefer hymn_cast.mp3 when present; falls back to act_runesinger / heal */
-  Runesinger: "hymn_cast",
+  Runesinger: "act_runesinger",
+  Lifebinder: "act_lifebinder",
 };
 
 /** Candidates in preference order (first existing file wins on server). */
@@ -45,12 +46,12 @@ export function attackSfxCandidates(
   // the backfire; comic fizzle made party hits look like the caster "failed."
   const preferred =
     ARCHETYPE_ATTACK_SFX[archetype as Archetype] ?? "hit_light";
-  // Healer: act_healer → heal. Runesinger cast: hymn_cast → act_runesinger → heal.
+  // Healer: act_healer → heal. Lifebinder: act_lifebinder → legacy hymn → heal.
   if (preferred === "act_healer") {
     return [preferred, "heal", "hit_light"];
   }
-  if (preferred === "hymn_cast" || preferred === "act_runesinger") {
-    return ["hymn_cast", "act_runesinger", "heal", "hit_light"];
+  if (preferred === "act_lifebinder") {
+    return ["act_lifebinder", "hymn_cast", "heal", "hit_light"];
   }
   return [preferred, "hit_light"];
 }

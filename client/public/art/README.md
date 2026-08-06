@@ -38,12 +38,16 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 | `vanguard` | Vanguard |
 | `shieldmaiden` | ShieldMaiden |
 | `firemage` | FireMage |
-| `healer` | Healer |
+| `thornmender` | Thornmender (rescue-healing Lifebinder; internal id `Healer`) |
 | `archer` | Archer |
 | `spearman` | Spearman |
 | `necromancer` | Necromancer |
 | `thundercaller` | Thundercaller |
 | `runesinger` | Runesinger |
+| `grovekeeper` | Grovekeeper (healing-over-time Lifebinder; internal id `Lifebinder`) |
+
+The old `healer/` directory is retained only as a legacy asset source. Current
+portrait lookup uses `thornmender/` and `grovekeeper/`.
 
 **Bosses:**
 
@@ -53,6 +57,7 @@ If a pose file is missing, the client falls back to the SVG placeholder for that
 | `ash_wraith` | Ash Wraith |
 | `cinder_herald` | Cinder Herald (room 3 add lesson) |
 | `rattle_captain` | Rattle Captain (room 4 electric magnet tax) |
+| `barrow_warden` | Barrow Warden (boss; distinct from Lifebinder) |
 | `ohm` | Ohm (Rattle Captain weak electric add) |
 | `bone_colossus` | Bone Colossus |
 

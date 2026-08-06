@@ -43,7 +43,7 @@ The magnet is the **only tactical lever**. Students aim high-value claim probabi
 | Clients per team | **One shared computer** — whoever presses 1–6 moves the magnet |
 | Combat fairness | **Server-authoritative** rolls and resolution |
 | Balance numbers | **§6 approved as v1 starting numbers** (rebalance after playtest) |
-| Roster size | **~22 soldiers** (Archers trimmed to 6; see §6.0) |
+| Roster size | **23 soldiers** (see §6.0) |
 | Round advance | **Explicit Commit / Drop Tokens** after magnet placement |
 | Class session | **All teams share the same boss + grade pool** for the test day |
 
@@ -189,16 +189,17 @@ dark-grader/
 export type Grade = "A" | "B" | "C" | "D" | "F";
 export type Archetype =
   | "Vanguard"
+  | "Spearman"
   | "ShieldMaiden"
   | "FireMage"
   | "Healer"
   | "Archer"
-  | "Doomcaller"
   | "Necromancer"
   | "Thundercaller"
-  | "Runesinger";
+  | "Runesinger"
+  | "Lifebinder";
 
-export type DotType = "Fire" | "Ice" | "Poison" | "Slime";
+export type DotType = "Fire" | "Ice" | "Poison" | "Slime" | "Chill";
 
 export interface DotInstance {
   type: DotType;
@@ -315,34 +316,36 @@ v1 may store most of `TeamState` as JSON blobs in SQLite for speed of iteration;
 
 Numbers below are **frozen for v1 implementation**. Tune after classroom playtests.
 
-### 6.0 Roster composition (22 soldiers)
+### 6.0 Roster composition (23 soldiers)
 
 | Archetype | Count |
 |-----------|-------|
 | Vanguard | 2 |
-| Shield Maiden | 3 |
+| Spearman | 2 |
+| Shield Maiden | 2 |
 | Fire Mage | 3 |
 | Healer | 2 |
-| Archer | **6** |
-| Doomcaller | 1 |
-| Necromancer | **1** |
-| Thundercaller | **3** |
-| Runesinger | **1** |
-| **Total** | **22** |
+| Archer | 3 |
+| Necromancer | 2 |
+| Thundercaller | 3 |
+| Runesinger | 2 |
+| Lifebinder | 2 |
+| **Total** | **23** |
 
 ### 6.1 Base HP by archetype
 
 | Archetype | Max HP | Role note |
 |-----------|--------|-----------|
 | Vanguard | 55 | Front tank |
+| Spearman | 52 | Frontline damage / parry |
 | Shield Maiden | 48 | Secondary tank / shield |
 | Fire Mage | 38 | Glass DPS / cleanse |
-| Healer | 40 | Sustain |
+| Healer | 40 | Direct sustain; last seat only |
 | Archer | 36 | Baseline DPS |
-| Doomcaller | 42 | Utility / death payoffs |
-| Necromancer | 40 | Drain sustain |
+| Necromancer | 40 | Drain support / Life Power |
 | Thundercaller | 38 | Burst / chain |
-| Runesinger | 40 | Buff / debuff |
+| Runesinger | 40 | Any-seat token control / damage support |
+| Lifebinder | 40 | Renewal sustain; last seat only |
 
 ### 6.2 Damage / effect tiers (generic scale)
 
@@ -389,15 +392,15 @@ Boss HP targets: **~280–320** for early rooms (≈ 8–14 rounds with mixed gr
 | D | Deal **5** damage. Deal **3** damage to each of positions **1–2**. |
 | F | **Explosion**: **3** damage to **all** party members (shield first). No boss damage. |
 
-**Healer** (heals never exceed max HP.)
+**Healer** (last seat only; heals never exceed max HP.)
 
 | Grade | Effect |
 |-------|--------|
-| A | Heal **all** living party **10**. Remove **Mark** from all. |
-| B | Heal positions **1–3** for **10** each. Remove **Mark** from them. |
-| C | Heal positions **1–3** for **6** each. |
-| D | Heal **self** for **8**. |
-| F | **Backlash**: boss heals **12** (or +12 current HP, capped at max). |
+| A | Heal **all** living party **14** each. |
+| B | Heal the **two lowest-HP** allies **14** each. |
+| C | Heal the single **lowest-HP** ally **18**. |
+| D | Heal **all** living party **3** each. |
+| F | **Backlash**: boss heals **8**. |
 
 **Archer**
 
@@ -409,27 +412,15 @@ Boss HP targets: **~280–320** for early rooms (≈ 8–14 rounds with mixed gr
 | D | **4** damage. |
 | F | **Misfire**: **3** boss damage + **1–2** damage to one random living ally (uniform). |
 
-**Doomcaller** (curse = boss takes **+X%** damage until cleared or N rounds; zombie on death defined below.)
-
-| Grade | Curse | Zombie-on-death (this fight) |
-|-------|-------|------------------------------|
-| A | Boss takes **+25%** damage for **3** rounds | On death: deal **20** to boss, no ally harm |
-| B | **+15%** for **3** rounds | Deal **12** to boss |
-| C | **+10%** for **2** rounds | Deal **6** to boss |
-| D | **+5%** for **2** rounds | **3** damage to random ally on death |
-| F | Boss gains **+10%** damage dealt for **2** rounds | On death: **8** damage to all allies |
-
-Only the **latest** Doomcaller curse applies (replace, don’t stack).
-
 **Necromancer**
 
 | Grade | Effect |
 |-------|--------|
-| A | **12** boss damage + heal lowest-HP ally **10**. |
-| B | **9** boss + heal lowest-HP ally **6**. |
-| C | **6** boss + heal lowest-HP ally **3**. |
-| D | **4** boss + **3** self damage. |
-| F | **Backlash**: boss heals **8** *or* self takes **6** (50/50). |
+| A | Drain **12**; grant **+6 Life Power** to the deployed Healer or Lifebinder. |
+| B | Drain **9**; grant **+4 Life Power** to the deployed Healer or Lifebinder. |
+| C | Drain **6**; grant **+2 Life Power** to the deployed Healer or Lifebinder. |
+| D | Weak drain plus self-damage; no Life Power. |
+| F | **Backlash**: hit the highest-HP ally for **10**. |
 
 **Thundercaller** (chain: primary target boss/adds, bounce to adds first then boss)
 
@@ -441,15 +432,31 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 | D | **6** single + **3** to one random ally. |
 | F | **Overload**: **5** damage to all allies; **0** boss damage. |
 
-**Runesinger**
+**Runesinger** (Support; may occupy any seat and resolves before other claimers.)
 
 | Grade | Effect |
 |-------|--------|
-| A | Party gains **+3** damage on attacks this round *or* boss **−3** damage next attack (player choice default: party buff). |
-| B | Party **+2** damage this round. |
-| C | Party **+1** damage this round. |
-| D | Self only: next action **+4** damage if they act again (usually wasted same round). |
-| F | Boss gains **+4** damage on next attack *or* party **−2** outgoing damage next round (default: boss buff). |
+| A | Raise all remaining claims two grades, then attack for **12**. |
+| B | Rewrite F/D→C and C→B, then attack for **9**. |
+| C | Rewrite the worst remaining claim to C (front wins ties), then attack for **6**. |
+| D | No rewrite; attack for **4**. |
+| F | Lower all remaining claims one grade; **no attack**. |
+
+Two claimed Runesingers resolve front-to-back, so their rewrites stack deterministically.
+
+**Lifebinder** (Healer; shares the last-seat restriction with Healer.)
+
+| Grade | Effect |
+|-------|--------|
+| A | Renew all living allies for **4 HP × 3 ticks**. |
+| B | Renew positions 1–3 for **4 HP × 3 ticks**. |
+| C | Renew positions 4–6 for **3 HP × 3 ticks**. |
+| D | Renew self for **3 HP × 3 ticks**. |
+| F | No renewal; thorn backlash deals **3 self-damage**. |
+
+Healer and Lifebinder are mutually exclusive in a party because only one can
+occupy the last seat. Necromancer Life Power goes to the deployed member of
+that pair; Runesinger neither receives Life Power nor provides healing.
 
 ### 6.4 DoTs
 
@@ -458,7 +465,7 @@ Only the **latest** Doomcaller curse applies (replace, don’t stack).
 | **Fire** | **4** / tick | **3** rounds | High pressure; Fire Mage cannot cleanse |
 | **Ice** | **3** / tick | **3** rounds | Flat; claim downgrade while up. Natural expiry → soft Frozen 1 turn (attack blocked, heals OK). Retained for legacy encounters. |
 | **Poison** | **3** / tick | **4** rounds | Damage split: magnet **30%**, adjacent **20%** each, remaining **30%** split among the other three (equal shares). Tick total = 3 × stacks. |
-| **Slime** | **2** / tick | **Until cleansed** | Flat chip only (no token slow). Stack cap 1. Fire Mage A/B or Doomcaller strip. Moss Mite on-hit. |
+| **Slime** | **2** / tick | **Until cleansed** | Flat chip only (no token slow). Stack cap 1. Fire Mage A/B cleanses. Moss Mite on-hit. |
 
 **Order each round after party actions:** apply all DoT ticks → shield absorbs first → then HP. Duration decrements at end of tick phase. Stacks refresh duration on re-apply (simple v1).
 
@@ -494,7 +501,6 @@ Only **Vanguards** still alive: once between rooms, each living Vanguard grants 
 
 ### 6.9 Death
 - `currentHp ≤ 0` → `alive = false`, removed from future room selection.
-- Doomcaller zombie effects fire once on death.
 
 ---
 
@@ -512,9 +518,9 @@ onAdvanceRound(teamId)  // teacher force OR auto after short lock OR student "Co
   → draw tokens by living count (6/5/4→3, 3→2, 2/1→1)
   → resolve claims (per-token weighted RNG, max 1 per soldier)
   → apply Ice downgrades to effective grades
-  → party actions front→back
-  → DoT ticks
-  → deaths / Doomcaller
+  → Runesingers act first, front→back; other party actions front→back
+  → damaging DoT ticks, then Lifebinder renewal ticks
+  → deaths
   → if minions: party already targeted them during actions
   → boss attack + add attacks
   → deaths again
@@ -628,7 +634,7 @@ Theme tokens (Tailwind): navy `#0b1220`, crimson `#7a1f2b`, parchment `#e6d3b3`,
 | Magnet control | Last input wins, no roles | Matches “whoever hits the button” |
 | Backend services | No cloud BaaS | Simplicity over elastic scale |
 | Balance | §6 approved as v1 starting numbers | Spec was qualitative; code needs numbers |
-| Roster | 22 soldiers; Archers 6; fewer late specialists | Fits ~20–24 band |
+| Roster | 23 soldiers; frontline/support/healer ×2, damage ×3 | Fits ~20–24 band |
 | Commit step | Explicit “Drop Tokens” after magnet | Allows table discussion before RNG |
 | Class coupling | Shared boss + grade pool for all teams | One test day = one dungeon room setup |
 | Teacher auth | Shared PIN | Enough for trusted LAN |
@@ -642,7 +648,7 @@ Theme tokens (Tailwind): navy `#0b1220`, crimson `#7a1f2b`, parchment `#e6d3b3`,
 | Topic | Decision |
 |-------|----------|
 | Balance §6 | Approved as starting numbers |
-| Roster | 22 soldiers (see §6.0) |
+| Roster | 23 soldiers (see §6.0) |
 | Round advance | Explicit Commit / Drop Tokens |
 | Same-day fights | All teams same boss + same grade pool |
 
@@ -652,7 +658,7 @@ Theme tokens (Tailwind): navy `#0b1220`, crimson `#7a1f2b`, parchment `#e6d3b3`,
 |-------|---------------------------|
 | Soldier names | Fantasy placeholder names in seed data |
 | Deploy OS | Linux server scripts first |
-| Runesinger A/F choice | Automatic defaults in §6 (party buff / boss buff) |
+| Multiple Runesingers | Resolve front-to-back; rewrites stack deterministically |
 
 ---
 
