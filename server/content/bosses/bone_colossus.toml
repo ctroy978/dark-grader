@@ -10,6 +10,7 @@ difficulty = "Hard"
 summary = "A towering skeleton sealed by a Bone Ward. It swings the remains of ancient giants as weapons while something restless stirs inside its frame."
 encounter_hint = "The Colossus does not stand alone. Old battles stir beneath its ribs, and its Bone Ward may have to be broken before the giant can be fully harmed."
 recommended_rounds = "12–18"
+tempo_round_limit = 18
 enrage_hp_pct = 0.4
 enrage_damage_mult = 1.3
 

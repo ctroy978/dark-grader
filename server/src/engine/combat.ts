@@ -5,6 +5,8 @@ import {
   bossTelegraphDurationMs,
   bossThreatTier,
   bossWindupTheme,
+  awardRoomVictory,
+  createEmptyScoringState,
   createRng,
   defaultTelegraphLines,
   DEFAULT_CAMPAIGN_LENGTH,
@@ -17,6 +19,9 @@ import {
   type Position,
   type Soldier,
   type TeamState,
+  type AttemptOutcome,
+  type AttemptScoreRecord,
+  type RoomScoreRecord,
 } from "@dungeon-grades/shared";
 import { instantiateBoss } from "../seed/bosses.js";
 import { getBossTemplate } from "../seed/bossLoader.js";
@@ -79,6 +84,91 @@ function pushLog(team: TeamState, text: string, tags?: string[]): void {
   if (team.log.length > MAX_LOG_ENTRIES) {
     team.log = team.log.slice(-MAX_LOG_ENTRIES);
   }
+}
+
+function livingRosterIds(team: TeamState): string[] {
+  return team.roster.filter((soldier) => soldier.alive).map((soldier) => soldier.id);
+}
+
+function scoringRoom(team: TeamState): RoomScoreRecord | undefined {
+  return team.scoring.rooms.find((room) => room.roomIndex === team.roomIndex);
+}
+
+function beginScoringAttempt(team: TeamState): void {
+  const boss = team.boss;
+  if (!boss) return;
+  let room = scoringRoom(team);
+  const livingIds = livingRosterIds(team);
+  if (!room) {
+    room = {
+      roomIndex: team.roomIndex,
+      bossId: boss.id,
+      firstEntryLivingIds: [...livingIds],
+      attempts: [],
+      cleared: false,
+      permanentLossOccurred: false,
+      campaignAwarded: false,
+      preservationAwarded: false,
+      tempoAwarded: false,
+      victoryRound: null,
+      tempoRoundLimit: boss.tempoRoundLimit ?? null,
+    };
+    team.scoring.rooms.push(room);
+  }
+  const dangling = room.attempts.find((attempt) => attempt.outcome === "active");
+  if (dangling) return;
+  const attempt: AttemptScoreRecord = {
+    attemptNumber: room.attempts.length + 1,
+    startingPartyIds: [...team.activePartyIds],
+    startingLivingIds: [...livingIds],
+    endingLivingIds: null,
+    endingRound: null,
+    outcome: "active",
+  };
+  room.attempts.push(attempt);
+  team.lastScoreAwards = null;
+}
+
+function finalizeScoringAttempt(
+  team: TeamState,
+  outcome: Exclude<AttemptOutcome, "active">,
+): void {
+  const room = scoringRoom(team);
+  if (!room) return;
+  const attempt = [...room.attempts]
+    .reverse()
+    .find((candidate) => candidate.outcome === "active");
+  if (!attempt) return;
+
+  const endingIds = livingRosterIds(team);
+  const endingSet = new Set(endingIds);
+  attempt.endingLivingIds = endingIds;
+  attempt.endingRound = team.round;
+  attempt.outcome = outcome;
+  if (attempt.startingLivingIds.some((id) => !endingSet.has(id))) {
+    room.permanentLossOccurred = true;
+  }
+
+  if (outcome !== "victory") return;
+  const awards = awardRoomVictory(
+    team.scoring,
+    room,
+    team.round,
+    team.boss?.tempoRoundLimit ?? room.tempoRoundLimit,
+  );
+  team.lastScoreAwards = awards;
+  const earned = [
+    awards.campaignAwarded ? "Campaign" : null,
+    awards.preservationAwarded ? "Preservation" : null,
+    awards.tempoAwarded ? "Tempo" : null,
+  ].filter((value): value is string => value !== null);
+  pushLog(
+    team,
+    earned.length
+      ? `Academic Honors earned: ${earned.join(", ")}.`
+      : "Academic Honors unchanged.",
+    ["system", "score"],
+  );
 }
 
 function memoryFx(theme: string): string[] {
@@ -193,6 +283,8 @@ export function createTeam(
     partyDamageBonus: 0,
     rngSeed,
     lastClearedBossName: null,
+    scoring: createEmptyScoringState(),
+    lastScoreAwards: null,
   };
 }
 
@@ -326,6 +418,7 @@ export function startFight(
   team.revivedSoldierIdsThisFight = [];
   team.boneColossus = null;
   team.playback = [];
+  beginScoringAttempt(team);
 
   const openingMemory = initializeBoneColossusEncounter(team);
 
@@ -872,6 +965,7 @@ export function commitRound(team: TeamState): TeamState {
   );
 
   if (livingParty(team).length === 0) {
+    finalizeScoringAttempt(team, "defeat");
     team.phase = "defeat";
     pushLog(team, "The party has fallen…", ["system"]);
     pushCue(team, {
@@ -882,6 +976,7 @@ export function commitRound(team: TeamState): TeamState {
     return team;
   }
   if (team.boss && team.boss.currentHp <= 0) {
+    finalizeScoringAttempt(team, "victory");
     team.phase = "victory";
     team.minions = [];
     pushLog(team, `${team.boss.name} is defeated!`, ["system"]);
@@ -1210,12 +1305,14 @@ export function resolveBoss(team: TeamState): TeamState {
   processDeaths(team);
 
   if (livingParty(team).length === 0) {
+    finalizeScoringAttempt(team, "defeat");
     team.phase = "defeat";
     pushLog(team, "The party has fallen…", ["system"]);
     pushCue(team, { kind: "system", sfxId: "defeat", durationMs: 900 });
     return team;
   }
   if (team.boss && team.boss.currentHp <= 0) {
+    finalizeScoringAttempt(team, "victory");
     team.phase = "victory";
     team.minions = [];
     pushLog(team, `${team.boss.name} is defeated!`, ["system"]);
@@ -1479,6 +1576,7 @@ export function runAway(team: TeamState): void {
       "Can only run away while planning the magnet — wait for the boss attack to finish",
     );
   }
+  finalizeScoringAttempt(team, "retreat");
   returnToCampAfterRoomAttempt(team, "run_away");
 }
 

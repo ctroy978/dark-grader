@@ -86,6 +86,12 @@ README.md            Full ability reference for design review (keep in sync with
 
 Phases: `lobby` | `between_rooms` | `awaiting_magnet` | `resolving` | `boss_telegraph` | `victory` | `defeat` | `campaign_complete`
 
+## Academic Honors scoring
+
+Source of truth: [`SCORING_SYSTEM_PLAN.md`](./SCORING_SYSTEM_PLAN.md). Each team persists three 0–6 ranks: Campaign (boss clear), Preservation (no permanent roster loss across all attempts in that room), and Tempo (victorious attempt within the boss TOML `tempo_round_limit`). Total score is their sum, max 18 for six rooms. Attempts finalize on victory, defeat, or retreat; awards are idempotent. Old saves inherit Campaign rank from `roomIndex` but do not invent Preservation/Tempo history.
+
+Shared rules: `packages/shared/src/scoring.ts`. Engine lifecycle: `server/src/engine/combat.ts`. Student panel: `client/src/scoring/AcademicHonors.tsx`. Badge art contract: `client/public/art/badges/README.md`.
+
 ### Post-fight
 
 | Outcome | Flow |

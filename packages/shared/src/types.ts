@@ -1,4 +1,5 @@
 import type { PresentationCue } from "./presentation.js";
+import type { ScoreAwardResult, TeamScoringState } from "./scoring.js";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
@@ -292,6 +293,8 @@ export interface BossState {
   /** Lowest HP this boss can reach while a phase gate is active. */
   damageFloor?: number;
   damageFloorLabel?: string;
+  /** Numeric upper round bound used by Tempo Honors scoring. */
+  tempoRoundLimit?: number;
 }
 
 export type FightPhase =
@@ -381,6 +384,10 @@ export interface TeamState {
    * Cleared on startFight.
    */
   revivedSoldierIdsThisFight?: string[];
+  /** Persistent academic badge progress and room-attempt history. */
+  scoring: TeamScoringState;
+  /** Upgrades earned on the latest victory; cleared when the next fight starts. */
+  lastScoreAwards?: ScoreAwardResult | null;
 }
 
 /** Per-room grade pool + teacher open gate for one classroom. */

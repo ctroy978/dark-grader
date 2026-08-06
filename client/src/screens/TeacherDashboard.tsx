@@ -662,6 +662,7 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                   <th className="py-2 pr-3">Room</th>
                   <th className="py-2 pr-3">Round</th>
                   <th className="py-2 pr-3">Alive</th>
+                  <th className="py-2 pr-3">Score</th>
                   <th className="py-2 pr-3">Boss HP</th>
                   <th className="py-2">Actions</th>
                 </tr>
@@ -688,6 +689,50 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                     <td className="py-2 pr-3">{t.round}</td>
                     <td className="py-2 pr-3">
                       {t.alive}/{t.rosterSize}
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      <span className="font-semibold text-rune">
+                        {t.score.total}/{t.score.maximum}
+                      </span>
+                      <span
+                        className="block text-[10px] text-parchment-dim"
+                        title={`Campaign: ${t.score.campaignTitle}\nPreservation: ${t.score.preservationTitle}\nTempo: ${t.score.tempoTitle}`}
+                      >
+                        C{t.score.campaignRank} · P{t.score.preservationRank} · T{t.score.tempoRank}
+                      </span>
+                      <div className="mt-1 grid grid-cols-[auto_repeat(6,0.55rem)] gap-x-0.5 gap-y-0.5 items-center text-[8px] text-parchment-dim">
+                        {(
+                          [
+                            ["C", "campaignAwarded"],
+                            ["P", "preservationAwarded"],
+                            ["T", "tempoAwarded"],
+                          ] as const
+                        ).map(([label, field]) => (
+                          <div key={field} className="contents">
+                            <span>{label}</span>
+                            {Array.from({ length: 6 }).map((_, roomIndex) => {
+                              const room = t.scoring.rooms.find(
+                                (record) => record.roomIndex === roomIndex,
+                              );
+                              const earned = Boolean(room?.[field]);
+                              const title = room
+                                ? `Room ${roomIndex + 1} · ${room.bossId} · ${room.attempts.length} attempt${room.attempts.length === 1 ? "" : "s"}${room.victoryRound == null ? "" : ` · won R${room.victoryRound}`}`
+                                : `Room ${roomIndex + 1} · not attempted`;
+                              return (
+                                <span
+                                  key={roomIndex}
+                                  title={title}
+                                  className={`h-2 w-2 rounded-full border ${
+                                    earned
+                                      ? "bg-rune border-rune"
+                                      : "bg-transparent border-parchment/20"
+                                  }`}
+                                />
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="py-2 pr-3">{t.bossHp ?? "—"}</td>
                     <td className="py-2 space-x-1 whitespace-nowrap">
@@ -741,7 +786,7 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
                 ))}
                 {!overview?.teams.length && (
                   <tr>
-                    <td colSpan={8} className="py-4 text-parchment-dim">
+                    <td colSpan={9} className="py-4 text-parchment-dim">
                       No teams yet — create one and share the invite code.
                     </td>
                   </tr>

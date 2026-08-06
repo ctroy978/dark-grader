@@ -5,6 +5,7 @@ traits = ["Volatile"]
 difficulty = "Standard"
 summary = "Fights alone, swinging a massive cinder hammer through ash-choked air. His Cinderquake hits the front hardest, while Choking Ash and Beacon Breaker punish the whole formation."
 recommended_rounds = "8–12"
+tempo_round_limit = 12
 enrage_hp_pct = 0.25
 enrage_damage_mult = 1.15
 

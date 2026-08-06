@@ -11,6 +11,7 @@ export * from "./presentation.js";
 export * from "./bossPresentation.js";
 export * from "./audioRoles.js";
 export * from "./partyRules.js";
+export * from "./scoring.js";
 
 export function currentRoomNumber(roomsCleared: number): number {
   return roomsCleared + 1;

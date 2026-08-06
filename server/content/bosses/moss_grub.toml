@@ -9,6 +9,7 @@ traits = ["Tutorial"]
 difficulty = "Easy"
 summary = "Opening fight that can still kill. Front slams and line sweeps only — no cascade, poison, or regen. Moss Mites nibble and leave sticky slime until Fire Mage burns it off."
 recommended_rounds = "5–8"
+tempo_round_limit = 8
 # No enrage (mult 1.0 = never amplifies)
 enrage_hp_pct = 0.2
 enrage_damage_mult = 1.0

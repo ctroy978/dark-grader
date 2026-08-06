@@ -136,7 +136,7 @@ describe("GameStore multi-classroom", () => {
         log: [],
         playback: [],
         lastClaims: [],
-        roomIndex: 0,
+        roomIndex: 2,
         partyDamageBonus: 0,
 
         rngSeed: 1,
@@ -149,6 +149,10 @@ describe("GameStore multi-classroom", () => {
     expect(list.length).toBe(1);
     const team = store.getTeam("team_legacy");
     expect(team?.classroomId).toBeTruthy();
+    expect(team?.scoring.campaignRank).toBe(2);
+    expect(team?.scoring.preservationRank).toBe(0);
+    expect(team?.scoring.tempoRank).toBe(0);
+    expect(team?.scoring.rooms).toHaveLength(2);
     const c = store.getClassroom(team!.classroomId);
     expect(c?.rooms[0].tokenPool).toEqual(["A", "A", "B"]);
     expect(c?.rooms[0].open).toBe(true);

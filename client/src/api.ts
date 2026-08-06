@@ -180,6 +180,9 @@ export type EnrichedTeam = {
   rooms?: RoomGateInfo[];
   canStartCurrentRoom?: boolean;
   startBlockedReason?: string | null;
+  scoring: import("@dungeon-grades/shared").TeamScoringState;
+  score: import("@dungeon-grades/shared").ScoringSummary;
+  lastScoreAwards?: import("@dungeon-grades/shared").ScoreAwardResult | null;
 };
 
 export type ClassroomSummary = {
@@ -214,6 +217,7 @@ export type Overview = {
     difficulty: string;
     summary: string;
     recommendedRounds: string;
+    tempoRoundLimit: number;
   }[];
   teams: {
     teamId: string;
@@ -230,6 +234,8 @@ export type Overview = {
     bossHp: string | null;
     nextBoss: string;
     canStartCurrentRoom?: boolean;
+    score: import("@dungeon-grades/shared").ScoringSummary;
+    scoring: import("@dungeon-grades/shared").TeamScoringState;
   }[];
 };
 

@@ -52,6 +52,7 @@ import {
 import { poseForUnit, type CombatPose } from "../combat/poses";
 import { StageBubble } from "../combat/SpeechBubble";
 import { BossStatusRow } from "../combat/StatusChips";
+import { AcademicHonorsPanel } from "../scoring/AcademicHonors";
 
 const FLOAT_MS = 950;
 
@@ -578,6 +579,13 @@ function FightSummary({ team }: { team: EnrichedTeam }) {
             Fallen stay gone. Living soldiers keep their HP — reform a party of 6
             and retry this room (no camp heal).
           </p>
+        )}
+        {win && team.lastScoreAwards && (
+          <AcademicHonorsPanel
+            summary={team.score}
+            awards={team.lastScoreAwards}
+            compact
+          />
         )}
       </div>
     </div>

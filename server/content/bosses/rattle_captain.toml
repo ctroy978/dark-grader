@@ -9,6 +9,7 @@ traits = ["Shock", "StunImmune", "Summoner"]
 difficulty = "Standard"
 summary = "Rattle Captain's attacks focus on whoever stands over the token magnet. Spark jolts the front of the line and often stuns the fighter under the magnet for their next turn. Grounded is her big one — a surge that hits hardest on the magnet seat and fades as it travels along the line, sometimes stunning nearby seats too. She calls Ohms into the gap; they sometimes raise a short reflect field that bounces hits back at attackers."
 recommended_rounds = "8–12"
+tempo_round_limit = 12
 # Enrages earlier and harder than Cinder so the room curve steps up
 enrage_hp_pct = 0.35
 enrage_damage_mult = 1.25

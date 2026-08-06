@@ -27,6 +27,7 @@ export function listBossTemplatesForApi() {
     difficulty: t.difficulty,
     summary: t.summary,
     recommendedRounds: t.recommendedRounds,
+    tempoRoundLimit: t.tempoRoundLimit,
   }));
 }
 
@@ -117,6 +118,7 @@ export function instantiateBoss(templateId: string): BossState {
     outgoingBuffRoundsLeft: 0,
     stunRoundsLeft: 0,
     nextAttackBonus: 0,
+    tempoRoundLimit: t.tempoRoundLimit,
     enrageHpPct: t.enrageHpPct,
     enrageDamageMult: t.enrageDamageMult,
   };

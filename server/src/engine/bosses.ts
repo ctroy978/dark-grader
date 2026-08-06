@@ -98,6 +98,7 @@ function fallbackTemplateFromBoss(team: TeamState): BossTemplate {
     difficulty: "",
     summary: "",
     recommendedRounds: "",
+    tempoRoundLimit: boss.tempoRoundLimit ?? 99,
     enrageHpPct: 0.4,
     enrageDamageMult: 1.3,
     gruntPool: [],

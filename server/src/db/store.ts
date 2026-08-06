@@ -3,6 +3,8 @@ import path from "node:path";
 import {
   DEFAULT_CAMPAIGN_LENGTH,
   DEFAULT_ROOM_BOSSES,
+  createEmptyScoringState,
+  clampScoreRank,
   type ClassroomRoomSlot,
   type ClassroomState,
   type ClassroomSummary,
@@ -220,6 +222,35 @@ export class GameStore {
     if (!Array.isArray(state.pendingTokens)) state.pendingTokens = [];
     if (typeof state.classroomId !== "string") state.classroomId = "";
     if (state.boss?.id !== "bone_colossus") state.boneColossus = null;
+    if (!state.scoring || state.scoring.version !== 1) {
+      const scoring = createEmptyScoringState();
+      const cleared = clampScoreRank(Number(state.roomIndex) || 0);
+      scoring.campaignRank = cleared;
+      for (let roomIndex = 0; roomIndex < cleared; roomIndex++) {
+        scoring.rooms.push({
+          roomIndex,
+          bossId: DEFAULT_ROOM_BOSSES[roomIndex] ?? `legacy_room_${roomIndex + 1}`,
+          firstEntryLivingIds: [],
+          attempts: [],
+          cleared: true,
+          permanentLossOccurred: false,
+          campaignAwarded: true,
+          preservationAwarded: false,
+          tempoAwarded: false,
+          victoryRound: null,
+          tempoRoundLimit: null,
+        });
+      }
+      state.scoring = scoring;
+    } else {
+      state.scoring.campaignRank = clampScoreRank(state.scoring.campaignRank);
+      state.scoring.preservationRank = clampScoreRank(
+        state.scoring.preservationRank,
+      );
+      state.scoring.tempoRank = clampScoreRank(state.scoring.tempoRank);
+      if (!Array.isArray(state.scoring.rooms)) state.scoring.rooms = [];
+    }
+    if (state.lastScoreAwards === undefined) state.lastScoreAwards = null;
   }
 
   /** Ensure teamIds arrays match teams.classroomId. */

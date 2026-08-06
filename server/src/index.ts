@@ -6,6 +6,7 @@ import {
   currentRoomNumber,
   isFinalRoom,
   parseGradeList,
+  scoringSummary,
   type Grade,
   type Position,
   type TeamState,
@@ -135,6 +136,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
         bossId: c.roomBossIds[i] ?? c.bossTemplateId ?? "bone_colossus",
       }))
     : [];
+  const score = scoringSummary(team.scoring, campaignLength);
 
   return {
     ...team,
@@ -157,6 +159,7 @@ function enrich(team: ReturnType<typeof store.getTeam>) {
     rooms,
     canStartCurrentRoom: blocked === null,
     startBlockedReason: blocked,
+    score,
   };
 }
 
@@ -193,6 +196,8 @@ function classroomOverview(classroomId: string) {
       bossHp: t.boss ? `${t.boss.currentHp}/${t.boss.maxHp}` : null,
       nextBoss: store.bossForRoom(c, t.roomIndex),
       canStartCurrentRoom: startBlockedReason(t) === null,
+      score: scoringSummary(t.scoring, c.campaignLength),
+      scoring: t.scoring,
     })),
   };
 }

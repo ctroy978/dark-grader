@@ -8,6 +8,7 @@ traits = ["Fire", "Herald", "Summoner"]
 difficulty = "Standard"
 summary = "Commands living flame and calls Cinder Imps into the gap. Furnace Fist pressures the front, Searing Wake scorches the line, and Cinderstorm leaves every hero burning."
 recommended_rounds = "8–12"
+tempo_round_limit = 12
 enrage_hp_pct = 0.30
 enrage_damage_mult = 1.2
 

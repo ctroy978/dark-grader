@@ -37,6 +37,7 @@ import {
   saveLogVisible,
 } from "../combat/CombatLogPanel";
 import { PlaceholderPortrait } from "../combat/PlaceholderPortrait";
+import { AcademicHonorsPanel } from "../scoring/AcademicHonors";
 
 const PARTY_SIZE = 6;
 
@@ -876,6 +877,8 @@ export default function LobbyScreen({
           </p>
         )}
       </section>
+
+      <AcademicHonorsPanel summary={team.score} />
 
       <section className="rounded-xl border border-rune/30 bg-navy-light/50 p-4 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">

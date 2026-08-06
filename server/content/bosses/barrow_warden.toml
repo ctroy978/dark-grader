@@ -9,6 +9,7 @@ traits = ["Frost"]
 difficulty = "Hard"
 summary = "Weather and ice. North/South Wind chill the front or back; Spreading Frost always freezes someone up front — crack free with an A before it shatters."
 recommended_rounds = "10–14"
+tempo_round_limit = 14
 enrage_hp_pct = 0.25
 enrage_damage_mult = 1.15
 

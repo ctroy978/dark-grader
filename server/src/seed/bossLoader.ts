@@ -93,6 +93,7 @@ export interface BossTemplate {
   /** Vague pre-fight foreshadowing without revealing hidden encounter pieces. */
   encounterHint?: string;
   recommendedRounds: string;
+  tempoRoundLimit: number;
   enrageHpPct: number;
   enrageDamageMult: number;
   gruntPool: string[];
@@ -113,6 +114,7 @@ interface RawBossToml {
   summary?: string;
   encounter_hint?: string;
   recommended_rounds?: string;
+  tempo_round_limit?: number;
   enrage_hp_pct?: number;
   enrage_damage_mult?: number;
   grunt_pool?: string[];
@@ -267,6 +269,7 @@ function parseBossFile(filePath: string): BossTemplate {
     summary: raw.summary ?? "",
     encounterHint: raw.encounter_hint,
     recommendedRounds: raw.recommended_rounds ?? "?",
+    tempoRoundLimit: Math.max(1, Math.trunc(raw.tempo_round_limit ?? 99)),
     enrageHpPct: raw.enrage_hp_pct ?? 0.4,
     enrageDamageMult: raw.enrage_damage_mult ?? 1.3,
     gruntPool: raw.grunt_pool ?? [],

@@ -83,6 +83,18 @@ If a clip is missing and a key is configured, the server can also generate it on
 5. Victory → camp → next room stays **locked** until the teacher enters the next test’s grades and opens it.
 6. Each classroom has its own grades, open rooms, pause flag, and teams.
 
+### Academic Honors scoring
+
+Each cleared room can advance three persistent team badge tracks:
+
+- **Campaign Honors** — defeat the room boss.
+- **Preservation Honors** — clear without a permanent roster loss across all attempts at that room.
+- **Tempo Honors** — win on or before the boss's configured Tempo round limit.
+
+The running score is the sum of the three ranks (maximum **18** in the default six-room campaign). Students see their current badges in the lobby and their upgrades on victory; the teacher dashboard shows totals plus a room-by-room award matrix. Award names and exact rules are defined in [`docs/SCORING_SYSTEM_PLAN.md`](docs/SCORING_SYSTEM_PLAN.md).
+
+Badge PNGs are drop-in assets under `client/public/art/badges/{campaign,preservation,tempo}/`: `base.png` for unranked, then `1.png` through `6.png`. Missing images use a CSS fallback.
+
 Default path: **Moss Grub → Ash → Herald → Rattle Captain → Barrow Warden (placeholder) → Bone Colossus** (6 rooms).
 
 See [`docs/MULTI_CLASSROOM_PLAN.md`](docs/MULTI_CLASSROOM_PLAN.md) for the full multi-classroom design.
