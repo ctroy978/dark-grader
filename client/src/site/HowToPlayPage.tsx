@@ -130,7 +130,7 @@ export default function HowToPlayPage() {
           <h2 className="text-xl font-bold">The gap and the magnet</h2>
           <ul className="space-y-2 text-sm text-parchment-dim">
             <li>
-              Only the <strong className="text-parchment">front seat (position 1)</strong> and{" "}
+              The <strong className="text-parchment">front three positions (1–3)</strong> and{" "}
               <strong className="text-parchment">Archers</strong> can hit minions in the gap.
               Everyone else only hits the boss.
             </li>
@@ -187,10 +187,18 @@ export default function HowToPlayPage() {
               purple bonus. Maiden is still the primary one-token cleanse.
             </li>
             <li>
-              <strong className="text-parchment">Vanguard / Spearman A–B</strong>{" "}
-              — <strong className="text-parchment">Last Stand</strong>: the next
-              lethal hit leaves allies at 1 HP once (A = all, B = front). Survives
-              the boss window, then expires.
+              <strong className="text-parchment">Vanguard A–B</strong> — grants{" "}
+              <strong className="text-parchment">Last Stand</strong>: the next
+              lethal hit leaves allies at 1 HP once (A = all living, B = front
+              positions 1–3). A–D also grant the Vanguard personal block. Both
+              defenses expire after the boss window if unused.
+            </li>
+            <li>
+              <strong className="text-parchment">Spearman A–D</strong> —{" "}
+              <strong className="text-parchment">Penetrate</strong> carries minion
+              overkill into the boss and Parry reduces boss damage to the Spearman
+              that round. A Spearman in position 1 without Parry takes extra boss
+              damage.
             </li>
             <li>
               <strong className="text-parchment">Thundercaller A</strong> — hits
