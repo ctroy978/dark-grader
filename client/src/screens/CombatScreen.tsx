@@ -28,7 +28,6 @@ import {
 import {
   isMusicEnabled,
   isMuted,
-  isVoEnabled,
   loadAudioManifest,
   loadAudioPrefs,
   play,
@@ -40,7 +39,6 @@ import {
   setAmbientDesired,
   setMusicEnabled,
   setMuted,
-  setVoEnabled,
   unlockAudioFromGesture,
 } from "../audio";
 import { CombatActor } from "../combat/CombatActor";
@@ -526,7 +524,7 @@ function playCueAudio(cue: PresentationCue): void {
     const delay = cue.secondarySfxDelayMs ?? 200;
     window.setTimeout(() => play(cue.secondarySfxId!), delay);
   }
-  if (cue.playVo && cue.voId) play(cue.voId);
+  // Character TTS (voId / playVo) intentionally not played — keep SFX only.
 }
 
 /** Short breath after wind-up playback before impact resolve (wind-up duration is already in the cue). */
@@ -699,7 +697,6 @@ export default function CombatScreen({
   const [busy, setBusy] = useState(false);
   const [flashTokens, setFlashTokens] = useState(false);
   const [mute, setMuteState] = useState(false);
-  const [voOn, setVoOn] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
   const [logOpen, setLogOpen] = useState(false);
   const [honorsOpen, setHonorsOpen] = useState(false);
@@ -845,7 +842,6 @@ export default function CombatScreen({
   useEffect(() => {
     loadAudioPrefs();
     setMuteState(isMuted());
-    setVoOn(isVoEnabled());
     setMusicOn(isMusicEnabled());
     setLogOpen(loadLogVisible());
     // Combat: stop ambient so SFX stay clear; music pref still toggles for lobby.
@@ -970,9 +966,6 @@ export default function CombatScreen({
         play(team.phase === "victory" ? "victory" : "defeat");
       }
       if (team.phase === "boss_telegraph" && !hasStory) play("boss_attack");
-      if (team.phase === "awaiting_magnet" && team.round === 1) {
-        play("vo_round_start");
-      }
       phaseRef.current = team.phase;
     }
   }, [team.log, team.phase, team.round, playing, visualHold, team.playback]);
@@ -1992,20 +1985,6 @@ export default function CombatScreen({
               className="rounded-lg border border-parchment/20 px-2 py-1.5 text-sm"
             >
               {mute ? "🔇" : "🔊"}
-            </button>
-            <button
-              type="button"
-              title="Toggle short voice lines"
-              onClick={() => {
-                const next = !voOn;
-                setVoEnabled(next);
-                setVoOn(next);
-              }}
-              className={`rounded-lg border px-2 py-1.5 text-xs ${
-                voOn ? "border-rune text-rune" : "border-parchment/20"
-              }`}
-            >
-              VO
             </button>
             <LogToggleButton
               open={logOpen}

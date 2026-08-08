@@ -288,7 +288,8 @@ const CORE_CATALOG: AudioClipDef[] = [
     volume: 0.55,
   },
 
-  // --- Short VO (optional; muted by default in UI) ---
+  // --- Short VO (catalog kept for disk files / tools; client never plays these) ---
+  // Generic TTS claim/act/hurt lines were retired — wrong gender for party art.
   {
     id: "vo_round_start",
     kind: "vo",
@@ -307,19 +308,16 @@ const CORE_CATALOG: AudioClipDef[] = [
     text: "The party has fallen.",
     volume: 0.7,
   },
-  // Occasional claim yells (token holders)
   { id: "vo_claim_a", kind: "vo", text: "A! Mine!", volume: 0.75 },
   { id: "vo_claim_b", kind: "vo", text: "B, got it!", volume: 0.75 },
   { id: "vo_claim_c", kind: "vo", text: "C token!", volume: 0.75 },
   { id: "vo_claim_d", kind: "vo", text: "Uh, D?", volume: 0.75 },
   { id: "vo_claim_f", kind: "vo", text: "F? Oh no!", volume: 0.75 },
-  // Occasional action yells
   { id: "vo_act_a", kind: "vo", text: "Here we go!", volume: 0.7 },
   { id: "vo_act_b", kind: "vo", text: "Hit them!", volume: 0.7 },
   { id: "vo_act_c", kind: "vo", text: "Now!", volume: 0.7 },
   { id: "vo_act_d", kind: "vo", text: "Careful…", volume: 0.7 },
   { id: "vo_act_f", kind: "vo", text: "This is bad!", volume: 0.75 },
-  // Hurt reactions
   { id: "vo_hurt_1", kind: "vo", text: "Ow!", volume: 0.7 },
   { id: "vo_hurt_2", kind: "vo", text: "I'm hit!", volume: 0.7 },
   { id: "vo_hurt_3", kind: "vo", text: "Hold on!", volume: 0.7 },

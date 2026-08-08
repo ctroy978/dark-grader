@@ -427,8 +427,8 @@ export default function LobbyScreen({
     setMuteState(isMuted());
     setMusicOn(isMusicEnabled());
     setLogOpen(loadLogVisible());
-    // Warm the full SFX/VO bank in the background (~3.6 MB) so combat hits
-    // do not pay network RTT on remote student machines.
+    // Warm the SFX bank in the background so combat hits do not pay
+    // network RTT on remote student machines (character TTS VO is skipped).
     // Guard setAmbientDesired(true): a late .then after lobby→combat unmount
     // used to restart camp music during the fight.
     void loadAudioManifest()

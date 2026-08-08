@@ -87,9 +87,13 @@ export function pushCue(
   list.push(withId);
 }
 
-/** ~30% of token-holder lines get real VO when VO toggle is on. */
-export function maybePlayVo(random: () => number, chance = 0.32): boolean {
-  return random() < chance;
+/**
+ * Character TTS VO is retired (wrong gender / generic ElevenLabs lines).
+ * Always false so cues keep optional voId fields for older clients without
+ * scheduling speech. SFX (act_*, hit_*, etc.) are unaffected.
+ */
+export function maybePlayVo(_random: () => number, _chance = 0.32): boolean {
+  return false;
 }
 
 /** Map grade to catalog VO id (pre-generated short lines). */

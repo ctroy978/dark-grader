@@ -98,7 +98,7 @@ export interface PresentationCue {
   secondarySfxDelayMs?: number;
   /** Catalog VO id — only play when VO enabled / occasional */
   voId?: string;
-  /** Whether server wants VO this time (client still respects VO toggle) */
+  /** Legacy flag; character TTS is disabled client-side (SFX only). */
   playVo?: boolean;
   /** Suggested duration; client may clamp */
   durationMs?: number;

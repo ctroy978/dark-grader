@@ -1,9 +1,12 @@
 /**
- * Client audio: lobby ambient (HTMLAudio loop) + combat SFX/VO (Web Audio).
+ * Client audio: lobby ambient (HTMLAudio loop) + combat SFX (Web Audio).
  *
  * One-shot clips are fetch→decodeAudioData'd during preload so play() starts
  * from memory with no network RTT. HTMLAudioElement reuse was lagging / going
  * silent on remote machines (interrupted play(), cold fetch mid-cue).
+ *
+ * Character TTS VO (vo_claim_*, vo_act_*, etc.) is intentionally disabled —
+ * generic ElevenLabs lines sound wrong for mixed gender party art.
  */
 
 export type AudioManifestClip = {
@@ -40,7 +43,6 @@ const PRELOAD_CONCURRENCY = 6;
 
 let manifest: Manifest | null = null;
 let muted = false;
-let voEnabled = false;
 /** Soft dark music under lobby/camp. Default on; independent of SFX mute. */
 let musicEnabled = true;
 /**
@@ -315,9 +317,12 @@ export async function preloadAudio(options?: {
     }
 
     preloadPromise = (async () => {
+      // Skip kind "vo" — do not download unused character TTS.
       const ids = [
         ...new Set(
-          (manifest?.clips ?? []).filter((c) => c.cached).map((c) => c.id),
+          (manifest?.clips ?? [])
+            .filter((c) => c.cached && c.kind !== "vo")
+            .map((c) => c.id),
         ),
       ];
       const total = ids.length;
@@ -374,17 +379,18 @@ export function isMuted(): boolean {
   return muted;
 }
 
-export function setVoEnabled(value: boolean): void {
-  voEnabled = value;
+/** No-op: character VO is disabled for the product. */
+export function setVoEnabled(_value: boolean): void {
   try {
-    localStorage.setItem("dg_vo", value ? "1" : "0");
+    localStorage.setItem("dg_vo", "0");
   } catch {
     /* ignore */
   }
 }
 
+/** Always false — character TTS lines are not used. */
 export function isVoEnabled(): boolean {
-  return voEnabled;
+  return false;
 }
 
 export function setMusicEnabled(value: boolean): void {
@@ -420,7 +426,8 @@ export function isAmbientDesired(): boolean {
 export function loadAudioPrefs(): void {
   try {
     muted = localStorage.getItem("dg_mute") === "1";
-    voEnabled = localStorage.getItem("dg_vo") === "1";
+    // Force-clear any legacy VO preference so remote machines stay silent
+    localStorage.setItem("dg_vo", "0");
     // Default music ON when unset
     const m = localStorage.getItem("dg_music");
     musicEnabled = m === null ? true : m === "1";
@@ -593,8 +600,7 @@ function playWebAudio(id: string, buffer: AudioBuffer): void {
   const ctx = getAudioContext();
   const kick = () => {
     if (muted || isExclusiveActive()) return;
-    const clip = manifest?.clips.find((c) => c.id === id);
-    if (clip?.kind === "vo" && !voEnabled) return;
+    if (isVoClip(id, manifest?.clips.find((c) => c.id === id))) return;
     startBufferSource(id, buffer);
   };
 
@@ -623,11 +629,18 @@ function playHtmlFallback(id: string): void {
   }
 }
 
+function isVoClip(id: string, clip?: AudioManifestClip): boolean {
+  if (clip?.kind === "vo") return true;
+  // Belt-and-suspenders if manifest is missing or stale
+  return id.startsWith("vo_");
+}
+
 export function play(id: string): void {
   if (muted) return;
   if (isExclusiveActive()) return;
   const clip = manifest?.clips.find((c) => c.id === id);
-  if (clip?.kind === "vo" && !voEnabled) return;
+  // Character TTS retired — never play, even if an old client toggled VO on
+  if (isVoClip(id, clip)) return;
   if (clip?.kind === "music") return;
 
   const v = clipVersion(id);
@@ -641,8 +654,7 @@ export function play(id: string): void {
   // May land slightly late; better than silent.
   void ensureDecoded(id).then((buffer) => {
     if (muted || isExclusiveActive()) return;
-    const c = manifest?.clips.find((x) => x.id === id);
-    if (c?.kind === "vo" && !voEnabled) return;
+    if (isVoClip(id, manifest?.clips.find((x) => x.id === id))) return;
     if (buffer) {
       playWebAudio(id, buffer);
     } else {
@@ -659,7 +671,7 @@ export function play(id: string): void {
 export function playExclusive(id: string, durationSeconds = 4.5): void {
   if (muted) return;
   const clip = manifest?.clips.find((c) => c.id === id);
-  if (clip?.kind === "vo" && !voEnabled) return;
+  if (isVoClip(id, clip)) return;
   if (clip?.kind === "music") return;
 
   stopAllSfx();
