@@ -1,4 +1,10 @@
-/** Lightweight client audio player for cached clips served by the API. */
+/**
+ * Client audio: lobby ambient (HTMLAudio loop) + combat SFX/VO (Web Audio).
+ *
+ * One-shot clips are fetch→decodeAudioData'd during preload so play() starts
+ * from memory with no network RTT. HTMLAudioElement reuse was lagging / going
+ * silent on remote machines (interrupted play(), cold fetch mid-cue).
+ */
 
 export type AudioManifestClip = {
   id: string;
@@ -10,18 +16,27 @@ export type AudioManifestClip = {
   volume: number;
 };
 
+export type AudioPreloadProgress = {
+  loaded: number;
+  total: number;
+  done: boolean;
+};
+
 type Manifest = {
   clips: AudioManifestClip[];
   elevenlabsConfigured: boolean;
 };
 
-type BufferedClip = {
-  el: HTMLAudioElement;
+type DecodedClip = {
+  buffer: AudioBuffer;
   v: number;
 };
 
 /** Lobby / camp ambient bed — hand-authored loop at server/data/audio/ */
 export const MUSIC_AMBIENT_ID = "music_ambient_lobby";
+
+/** Parallel fetch/decode cap — keeps school Wi‑Fi from being flooded. */
+const PRELOAD_CONCURRENCY = 6;
 
 let manifest: Manifest | null = null;
 let muted = false;
@@ -34,10 +49,20 @@ let musicEnabled = true;
  */
 let ambientDesired = false;
 let masterVolume = 0.7;
-const buffers = new Map<string, BufferedClip>();
-/** Separate looping element for music (not the one-shot SFX map). */
+
+/** Decoded one-shot SFX/VO (Web Audio). */
+const decoded = new Map<string, DecodedClip>();
+/** In-flight decode jobs so concurrent play/preload share one fetch. */
+const decodeJobs = new Map<string, Promise<AudioBuffer | null>>();
+
+let audioCtx: AudioContext | null = null;
+/** Live one-shot sources — stopped by stopAllSfx / exclusive. */
+const activeSources = new Set<AudioBufferSourceNode>();
+
+/** Separate looping element for music (not Web Audio one-shots). */
 let musicEl: HTMLAudioElement | null = null;
 let musicV = -1;
+let musicObjectUrl: string | null = null;
 /** Browser blocked autoplay — retry on next user gesture. */
 let ambientNeedsGesture = false;
 /**
@@ -48,6 +73,21 @@ let exclusiveUntilMs = 0;
 let exclusiveEndTimer: ReturnType<typeof setTimeout> | null = null;
 /** Clip currently owned by playExclusive — cleared when it ends or is superseded. */
 let exclusiveClipId: string | null = null;
+
+/** Shared in-flight preload so lobby + combat share one job. */
+let preloadPromise: Promise<void> | null = null;
+/** Manifest fingerprint that completed preload (skip re-download). */
+let preloadedKey: string | null = null;
+let lastPreloadProgress: AudioPreloadProgress = {
+  loaded: 0,
+  total: 0,
+  done: false,
+};
+/**
+ * Bumps on every syncAmbientMusic entry so stale async .play() calls cannot
+ * restart the bed after combat/mute/music-off has already paused it.
+ */
+let ambientSyncGen = 0;
 
 /** URL for a clip; includes ?v=<mtime> when the server reported a version. */
 function clipUrl(id: string): string {
@@ -60,6 +100,265 @@ function clipVersion(id: string): number {
   return manifest?.clips.find((c) => c.id === id)?.v ?? 0;
 }
 
+function manifestKey(m: Manifest | null): string {
+  if (!m) return "";
+  return m.clips
+    .map((c) => `${c.id}:${c.v}:${c.cached ? 1 : 0}`)
+    .join("|");
+}
+
+function getAudioContext(): AudioContext {
+  if (!audioCtx) {
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    audioCtx = new AC();
+  }
+  return audioCtx;
+}
+
+/**
+ * Resume Web Audio after a user gesture (required on Chrome / remote browsers).
+ * Also retries ambient if autoplay was blocked earlier.
+ */
+export async function unlockAudioFromGesture(): Promise<void> {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+  } catch {
+    /* ignore */
+  }
+  if (ambientNeedsGesture) {
+    ambientNeedsGesture = false;
+    void syncAmbientMusic();
+  }
+}
+
+/** Alias — lobby pointer handlers historically called this name. */
+export function unlockAmbientFromGesture(): void {
+  void unlockAudioFromGesture();
+}
+
+function disposeMusic(): void {
+  if (musicEl) {
+    try {
+      if (!musicEl.paused) musicEl.pause();
+    } catch {
+      /* ignore */
+    }
+  }
+  if (musicObjectUrl) {
+    try {
+      URL.revokeObjectURL(musicObjectUrl);
+    } catch {
+      /* ignore */
+    }
+    musicObjectUrl = null;
+  }
+  musicEl = null;
+  musicV = -1;
+}
+
+/** Drop decoded / music buffers whose on-disk version changed. */
+function dropStaleBuffers(): void {
+  for (const [id, entry] of decoded) {
+    if (entry.v !== clipVersion(id)) {
+      decoded.delete(id);
+      decodeJobs.delete(id);
+    }
+  }
+  const mv = clipVersion(MUSIC_AMBIENT_ID);
+  if (musicEl && musicV !== mv) {
+    disposeMusic();
+  }
+}
+
+async function fetchClipArrayBuffer(id: string): Promise<ArrayBuffer | null> {
+  try {
+    const res = await fetch(clipUrl(id));
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch + decode a one-shot clip into an AudioBuffer (shared in-flight job).
+ */
+async function ensureDecoded(id: string): Promise<AudioBuffer | null> {
+  const clip = manifest?.clips.find((c) => c.id === id);
+  if (!clip?.cached) return null;
+  if (clip.kind === "music") return null;
+
+  const v = clip.v ?? 0;
+  const hit = decoded.get(id);
+  if (hit && hit.v === v) return hit.buffer;
+
+  const existingJob = decodeJobs.get(id);
+  if (existingJob) return existingJob;
+
+  const job = (async (): Promise<AudioBuffer | null> => {
+    try {
+      const ab = await fetchClipArrayBuffer(id);
+      if (!ab || ab.byteLength < 64) return null;
+      const ctx = getAudioContext();
+      // decodeAudioData may detach the buffer — pass a copy
+      const buffer = await ctx.decodeAudioData(ab.slice(0));
+      decoded.set(id, { buffer, v });
+      return buffer;
+    } catch {
+      return null;
+    } finally {
+      decodeJobs.delete(id);
+    }
+  })();
+
+  decodeJobs.set(id, job);
+  return job;
+}
+
+/** True when the lobby ambient bed is allowed to audibly run. */
+function shouldPlayAmbient(): boolean {
+  return ambientDesired && !muted && musicEnabled && !isExclusiveActive();
+}
+
+async function ensureMusicBuffered(): Promise<boolean> {
+  const clip = manifest?.clips.find((c) => c.id === MUSIC_AMBIENT_ID);
+  if (!clip?.cached) return false;
+  const v = clip.v ?? 0;
+  if (musicEl && musicV === v && musicEl.readyState >= 3) {
+    return true;
+  }
+
+  const wasPlaying = Boolean(musicEl && !musicEl.paused);
+  disposeMusic();
+
+  const ab = await fetchClipArrayBuffer(MUSIC_AMBIENT_ID);
+  if (!ab) {
+    musicEl = new Audio(clipUrl(MUSIC_AMBIENT_ID));
+    musicEl.loop = true;
+    musicEl.preload = "auto";
+    musicV = v;
+    musicEl.load();
+  } else {
+    const blob = new Blob([ab], { type: "audio/mpeg" });
+    musicObjectUrl = URL.createObjectURL(blob);
+    musicEl = new Audio(musicObjectUrl);
+    musicEl.loop = true;
+    musicEl.preload = "auto";
+    musicV = v;
+    musicEl.load();
+  }
+  musicEl.volume = musicVolume();
+
+  // Warm decode without requiring canplaythrough (blob is local)
+  if (wasPlaying && shouldPlayAmbient()) {
+    try {
+      await musicEl.play();
+      if (!shouldPlayAmbient()) {
+        pauseAmbient();
+        return true;
+      }
+      ambientNeedsGesture = false;
+    } catch {
+      ambientNeedsGesture = true;
+    }
+  }
+  return true;
+}
+
+/** Snapshot of the latest preload pass (for optional UI). */
+export function getAudioPreloadProgress(): AudioPreloadProgress {
+  return { ...lastPreloadProgress };
+}
+
+export function isAudioPreloadDone(): boolean {
+  return lastPreloadProgress.done;
+}
+
+/**
+ * Download and decode every cached clip from the manifest into memory.
+ * Safe to call from lobby and combat — shares one in-flight job and skips
+ * when the current manifest was already preloaded.
+ *
+ * Failures are soft: missing clips do not reject the promise.
+ */
+export async function preloadAudio(options?: {
+  onProgress?: (p: AudioPreloadProgress) => void;
+}): Promise<void> {
+  if (!manifest) {
+    try {
+      await loadAudioManifest();
+    } catch {
+      lastPreloadProgress = { loaded: 0, total: 0, done: true };
+      options?.onProgress?.(lastPreloadProgress);
+      return;
+    }
+  }
+
+  const key = manifestKey(manifest);
+  if (preloadedKey === key && lastPreloadProgress.done) {
+    options?.onProgress?.({ ...lastPreloadProgress });
+    return;
+  }
+
+  if (!preloadPromise) {
+    // Create context early (still suspended until user gesture)
+    try {
+      getAudioContext();
+    } catch {
+      /* Web Audio unavailable — play() will soft-fail */
+    }
+
+    preloadPromise = (async () => {
+      const ids = [
+        ...new Set(
+          (manifest?.clips ?? []).filter((c) => c.cached).map((c) => c.id),
+        ),
+      ];
+      const total = ids.length;
+      let loaded = 0;
+      lastPreloadProgress = { loaded: 0, total, done: false };
+      options?.onProgress?.(lastPreloadProgress);
+
+      let next = 0;
+      const worker = async () => {
+        while (next < ids.length) {
+          const i = next++;
+          const id = ids[i]!;
+          try {
+            if (id === MUSIC_AMBIENT_ID) {
+              await ensureMusicBuffered();
+            } else {
+              await ensureDecoded(id);
+            }
+          } catch {
+            /* soft-fail individual clips */
+          }
+          loaded += 1;
+          lastPreloadProgress = { loaded, total, done: false };
+          options?.onProgress?.(lastPreloadProgress);
+        }
+      };
+
+      const n = Math.min(PRELOAD_CONCURRENCY, Math.max(1, ids.length));
+      await Promise.all(Array.from({ length: n }, () => worker()));
+
+      lastPreloadProgress = { loaded: total, total, done: true };
+      options?.onProgress?.(lastPreloadProgress);
+      preloadedKey = key;
+    })().finally(() => {
+      preloadPromise = null;
+    });
+  }
+
+  await preloadPromise;
+}
+
 export function setMuted(value: boolean): void {
   muted = value;
   try {
@@ -67,6 +366,7 @@ export function setMuted(value: boolean): void {
   } catch {
     /* ignore */
   }
+  if (value) stopAllSfx();
   void syncAmbientMusic();
 }
 
@@ -94,8 +394,9 @@ export function setMusicEnabled(value: boolean): void {
   } catch {
     /* ignore */
   }
-  // User gesture on the Music button — clear autoplay hold
+  // User gesture on the Music button — clear autoplay hold + unlock Web Audio
   if (value) ambientNeedsGesture = false;
+  void unlockAudioFromGesture();
   void syncAmbientMusic();
 }
 
@@ -131,11 +432,16 @@ export function loadAudioPrefs(): void {
 export async function loadAudioManifest(): Promise<Manifest> {
   // Bypass HTTP cache so mtime versions stay accurate after replacing mp3s.
   const res = await fetch("/api/audio/manifest", { cache: "no-store" });
-  manifest = (await res.json()) as Manifest;
-  // Drop one-shot buffers whose on-disk version changed.
-  for (const [id, buf] of buffers) {
-    if (buf.v !== clipVersion(id)) {
-      buffers.delete(id);
+  const next = (await res.json()) as Manifest;
+  const prevKey = manifestKey(manifest);
+  manifest = next;
+  dropStaleBuffers();
+  const nextKey = manifestKey(manifest);
+  if (prevKey !== nextKey) {
+    // Force a new preload pass when clips/versions change.
+    preloadedKey = null;
+    if (!preloadPromise) {
+      lastPreloadProgress = { loaded: 0, total: 0, done: false };
     }
   }
   return manifest;
@@ -154,19 +460,18 @@ function musicVolume(): number {
 function ensureMusicElement(): HTMLAudioElement | null {
   const clip = manifest?.clips.find((c) => c.id === MUSIC_AMBIENT_ID);
   if (!clip?.cached) {
-    // No file installed yet — silent no-op
     return null;
   }
   const v = clip.v ?? 0;
-  if (!musicEl || musicV !== v) {
-    if (musicEl && !musicEl.paused) {
-      musicEl.pause();
-    }
-    musicEl = new Audio(clipUrl(MUSIC_AMBIENT_ID));
-    musicEl.loop = true;
-    musicEl.preload = "auto";
-    musicV = v;
+  if (musicEl && musicV === v) {
+    musicEl.volume = musicVolume();
+    return musicEl;
   }
+  disposeMusic();
+  musicEl = new Audio(clipUrl(MUSIC_AMBIENT_ID));
+  musicEl.loop = true;
+  musicEl.preload = "auto";
+  musicV = v;
   musicEl.volume = musicVolume();
   return musicEl;
 }
@@ -190,32 +495,34 @@ function isExclusiveActive(): boolean {
   return Date.now() < exclusiveUntilMs;
 }
 
-/** Stop every one-shot SFX buffer (does not touch the ambient music element). */
+/** Stop every one-shot SFX (does not touch the ambient music element). */
 export function stopAllSfx(): void {
-  for (const buf of buffers.values()) {
-    const el = buf.el;
-    if (!el.paused) {
-      el.pause();
+  for (const src of activeSources) {
+    try {
+      src.stop();
+    } catch {
+      /* already stopped */
     }
     try {
-      el.currentTime = 0;
+      src.disconnect();
     } catch {
-      /* ignore seek errors on unloaded media */
+      /* ignore */
     }
   }
+  activeSources.clear();
 }
 
 /**
  * Apply mute / music / ambient-desired to the looping bed.
  * Safe to call often; missing file is a no-op.
+ *
+ * After every await, re-checks flags so a slow load/play cannot restart
+ * music after combat entry, Music-off, or mute.
  */
 export async function syncAmbientMusic(): Promise<void> {
-  // Exclusive stings own the bus — do not re-open ambient under them
-  if (isExclusiveActive()) {
-    pauseAmbient();
-    return;
-  }
-  if (!ambientDesired || muted || !musicEnabled) {
+  const gen = ++ambientSyncGen;
+
+  if (!shouldPlayAmbient()) {
     pauseAmbient();
     return;
   }
@@ -226,48 +533,121 @@ export async function syncAmbientMusic(): Promise<void> {
       return;
     }
   }
+  if (gen !== ambientSyncGen) return;
+  if (!shouldPlayAmbient()) {
+    pauseAmbient();
+    return;
+  }
+
   const el = ensureMusicElement();
   if (!el) return;
+  if (gen !== ambientSyncGen || !shouldPlayAmbient()) {
+    pauseAmbient();
+    return;
+  }
+
   el.volume = musicVolume();
   if (!el.paused) return;
   try {
     await el.play();
+    if (gen !== ambientSyncGen || !shouldPlayAmbient()) {
+      pauseAmbient();
+      return;
+    }
     ambientNeedsGesture = false;
   } catch {
-    // Autoplay policy — wait for Music toggle or unlockAmbientFromGesture
-    ambientNeedsGesture = true;
+    if (gen === ambientSyncGen) ambientNeedsGesture = true;
   }
 }
 
-/** Call from a click/tap if autoplay blocked (e.g. first lobby interaction). */
-export function unlockAmbientFromGesture(): void {
-  if (!ambientNeedsGesture) return;
-  ambientNeedsGesture = false;
-  void syncAmbientMusic();
+function startBufferSource(id: string, buffer: AudioBuffer): void {
+  const ctx = getAudioContext();
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.value = Math.min(1, Math.max(0, volumeFor(id)));
+  src.connect(gain);
+  gain.connect(ctx.destination);
+  activeSources.add(src);
+  src.onended = () => {
+    activeSources.delete(src);
+    try {
+      src.disconnect();
+      gain.disconnect();
+    } catch {
+      /* ignore */
+    }
+  };
+  try {
+    src.start(0);
+  } catch {
+    activeSources.delete(src);
+  }
+}
+
+/**
+ * Play a decoded one-shot. Resumes AudioContext if suspended (post-gesture).
+ * If still suspended after resume attempt, schedules start after resume.
+ */
+function playWebAudio(id: string, buffer: AudioBuffer): void {
+  const ctx = getAudioContext();
+  const kick = () => {
+    if (muted || isExclusiveActive()) return;
+    const clip = manifest?.clips.find((c) => c.id === id);
+    if (clip?.kind === "vo" && !voEnabled) return;
+    startBufferSource(id, buffer);
+  };
+
+  if (ctx.state === "suspended") {
+    void ctx
+      .resume()
+      .then(kick)
+      .catch(() => {
+        /* still locked — need a real user gesture via unlockAudioFromGesture */
+      });
+    return;
+  }
+  kick();
+}
+
+/** HTMLAudio fallback when Web Audio decode failed for a clip. */
+function playHtmlFallback(id: string): void {
+  try {
+    const el = new Audio(clipUrl(id));
+    el.volume = Math.min(1, Math.max(0, volumeFor(id)));
+    void el.play().catch(() => {
+      /* autoplay / network */
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 export function play(id: string): void {
   if (muted) return;
-  // Long exclusive stings (run away) suppress everything else until they finish
   if (isExclusiveActive()) return;
   const clip = manifest?.clips.find((c) => c.id === id);
   if (clip?.kind === "vo" && !voEnabled) return;
-  if (clip?.kind === "music") {
-    // Music is loop-managed — never one-shot via play()
+  if (clip?.kind === "music") return;
+
+  const v = clipVersion(id);
+  const hit = decoded.get(id);
+  if (hit && hit.v === v) {
+    playWebAudio(id, hit.buffer);
     return;
   }
 
-  const v = clipVersion(id);
-  let buf = buffers.get(id);
-  if (!buf || buf.v !== v) {
-    buf = { el: new Audio(clipUrl(id)), v };
-    buffers.set(id, buf);
-  }
-  const el = buf.el;
-  el.volume = Math.min(1, Math.max(0, volumeFor(id)));
-  el.currentTime = 0;
-  void el.play().catch(() => {
-    /* autoplay policies — ignore */
+  // Not decoded yet (preload still running or missed) — decode then play.
+  // May land slightly late; better than silent.
+  void ensureDecoded(id).then((buffer) => {
+    if (muted || isExclusiveActive()) return;
+    const c = manifest?.clips.find((x) => x.id === id);
+    if (c?.kind === "vo" && !voEnabled) return;
+    if (buffer) {
+      playWebAudio(id, buffer);
+    } else {
+      playHtmlFallback(id);
+    }
   });
 }
 
@@ -282,9 +662,9 @@ export function playExclusive(id: string, durationSeconds = 4.5): void {
   if (clip?.kind === "vo" && !voEnabled) return;
   if (clip?.kind === "music") return;
 
-  // Cut everything currently sounding
   stopAllSfx();
   pauseAmbient();
+  void unlockAudioFromGesture();
 
   const holdMs = Math.max(500, Math.round(durationSeconds * 1000) + 200);
   exclusiveUntilMs = Date.now() + holdMs;
@@ -299,22 +679,15 @@ export function playExclusive(id: string, durationSeconds = 4.5): void {
   }, holdMs);
 
   const v = clipVersion(id);
-  let buf = buffers.get(id);
-  if (!buf || buf.v !== v) {
-    buf = { el: new Audio(clipUrl(id)), v };
-    buffers.set(id, buf);
+  const hit = decoded.get(id);
+  if (hit && hit.v === v) {
+    playWebAudio(id, hit.buffer);
+    return;
   }
-  const el = buf.el;
-  el.onended = null;
-  el.volume = Math.min(1, Math.max(0, volumeFor(id)));
-  el.currentTime = 0;
-  el.onended = () => {
+  void ensureDecoded(id).then((buffer) => {
     if (exclusiveClipId !== id) return;
-    clearExclusiveHold();
-    void syncAmbientMusic();
-  };
-  void el.play().catch(() => {
-    /* autoplay policies — still hold exclusive briefly so lobby don't stack */
+    if (buffer) playWebAudio(id, buffer);
+    else playHtmlFallback(id);
   });
 }
 

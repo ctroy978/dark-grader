@@ -27,6 +27,7 @@ import {
   isMuted,
   loadAudioManifest,
   loadAudioPrefs,
+  preloadAudio,
   setAmbientDesired,
   setMusicEnabled,
   setMuted,
@@ -421,14 +422,26 @@ export default function LobbyScreen({
   const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     loadAudioPrefs();
     setMuteState(isMuted());
     setMusicOn(isMusicEnabled());
     setLogOpen(loadLogVisible());
-    void loadAudioManifest().then(() => {
-      setAmbientDesired(true);
-    });
+    // Warm the full SFX/VO bank in the background (~3.6 MB) so combat hits
+    // do not pay network RTT on remote student machines.
+    // Guard setAmbientDesired(true): a late .then after lobby→combat unmount
+    // used to restart camp music during the fight.
+    void loadAudioManifest()
+      .then(() => {
+        if (cancelled) return;
+        setAmbientDesired(true);
+        return preloadAudio();
+      })
+      .catch(() => {
+        /* audio optional — lobby still works */
+      });
     return () => {
+      cancelled = true;
       setAmbientDesired(false);
     };
   }, []);

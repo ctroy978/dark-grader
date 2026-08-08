@@ -36,10 +36,12 @@ import {
   playExclusive,
   playForLogLine,
   playMagnetMove,
+  preloadAudio,
   setAmbientDesired,
   setMusicEnabled,
   setMuted,
   setVoEnabled,
+  unlockAudioFromGesture,
 } from "../audio";
 import { CombatActor } from "../combat/CombatActor";
 import { RelicIcon } from "../relics/RelicIcon";
@@ -582,7 +584,7 @@ function FightSummary({
           <p className="text-xs text-parchment-dim">
             {team.isFinalRoom
               ? "Continue to finish the campaign and see your final roster."
-              : "HP carries over. Continue to camp recovery, choose one reward, and reform for the next room."}
+              : "HP carries over without automatic healing. Continue to rewards, then reform for the next room."}
             {onViewHonors && (
               <>
                 {" "}
@@ -846,10 +848,22 @@ export default function CombatScreen({
     setVoOn(isVoEnabled());
     setMusicOn(isMusicEnabled());
     setLogOpen(loadLogVisible());
-    // Combat: stop ambient so SFX stay clear; music pref still toggles for lobby
+    // Combat: stop ambient so SFX stay clear; music pref still toggles for lobby.
+    // Finish (or join) preload so first-hit SFX are already in memory.
+    // Re-assert ambient off after async preload so a late lobby callback cannot
+    // leave camp music running through the fight.
     setAmbientDesired(false);
-    void loadAudioManifest();
+    void unlockAudioFromGesture();
+    void loadAudioManifest()
+      .then(() => preloadAudio())
+      .catch(() => {
+        /* soft-fail — play() still falls back to on-demand fetch */
+      })
+      .finally(() => {
+        setAmbientDesired(false);
+      });
     return () => {
+      setAmbientDesired(false);
       /* lobby remount will re-enable ambient */
     };
   }, []);
@@ -1339,7 +1353,13 @@ export default function CombatScreen({
   ) as Grade[];
 
   return (
-    <div className="h-dvh max-h-dvh flex flex-col relative overflow-hidden">
+    <div
+      className="h-dvh max-h-dvh flex flex-col relative overflow-hidden"
+      onPointerDown={() => {
+        // Unlock Web Audio (Chrome blocks SFX until a gesture resumes the context)
+        void unlockAudioFromGesture();
+      }}
+    >
       {activeBeat?.bubble &&
         (activeBeat.bubble.side !== "party" ||
           !activeBeat.bubble.speakerId) && (
