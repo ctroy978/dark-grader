@@ -88,7 +88,7 @@ export function pushCue(
 }
 
 /**
- * Character TTS VO is retired (wrong gender / generic ElevenLabs lines).
+ * Character TTS VO is retired.
  * Always false so cues keep optional voId fields for older clients without
  * scheduling speech. SFX (act_*, hit_*, etc.) are unaffected.
  */

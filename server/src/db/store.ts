@@ -13,10 +13,11 @@ import {
   type TeamState,
 } from "@dungeon-grades/shared";
 import { createTeam } from "../engine/combat.js";
+import { resolveDataDir } from "../paths.js";
 
-/** Resolve under cwd at call time (tests chdir into temp dirs). */
+/** Resolve at call time (tests chdir into temp dirs; DATA_DIR overrides). */
 function dataPaths() {
-  const DATA_DIR = path.resolve(process.cwd(), "data");
+  const DATA_DIR = resolveDataDir();
   return {
     DATA_DIR,
     CLASSROOMS_DIR: path.join(DATA_DIR, "classrooms"),

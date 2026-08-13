@@ -14,7 +14,7 @@ Read this first after a context restart. Specs: `Dungeon_Grades_Game_Spec.md`, `
 
 Browser classroom game: **test letter grades (A–F)** become **power tokens**. Students share **one Chromebook per team**. Only control each round: **Token Magnet (1–6)** then **Drop Tokens**. Server is authoritative for RNG and combat.
 
-**Art direction:** Darkest Dungeon–style — pose images (`standing` / `attack` / `hit` / `death`), labels under portraits, short comic bubbles, occasional ElevenLabs VO. Real PNGs under `client/public/art/`; SVG placeholders as fallback.
+**Art direction:** Darkest Dungeon–style — pose images (`standing` / `attack` / `hit` / `death`), labels under portraits, short comic bubbles. Real PNGs under `client/public/art/`; SVG placeholders as fallback.
 
 ---
 
@@ -29,8 +29,7 @@ npm run dev:client   # :5173, proxies /api → localhost:3001 and socket.io
 ```
 
 - Teacher PIN default: `teacher` (`TEACHER_PIN` env)
-- ElevenLabs: repo-root `.env` → `ELEVENLABS_API_KEY` (gitignored)
-- Audio cache: `server/data/audio/` — `npm run audio:generate`
+- Audio: checked-in MP3s under `server/data/audio/`
 - Persist: JSON under `server/data/` — **gitignored** runtime data
 - **Combat art is NOT gitignored** — commit under `client/public/art/`
 - **Existing teams keep old roster** until teacher reset / new invite after roster changes

@@ -20,9 +20,7 @@ function bossLabel(bossId: string, bosses: Overview["bosses"]): string {
 }
 
 export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
-  const [pin, setPin] = useState(
-    () => sessionStorage.getItem("dg_teacher_pin") ?? "teacher",
-  );
+  const [pin, setPin] = useState("");
   const [authed, setAuthed] = useState(false);
   const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
   const [classroomId, setClassroomId] = useState<string | null>(null);
@@ -33,11 +31,14 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    sessionStorage.removeItem("dg_teacher_pin");
+  }, []);
+
   const refreshList = useCallback(async () => {
     const r = await api.listClassrooms(pin);
     setClassrooms(r.classrooms);
     setAuthed(true);
-    sessionStorage.setItem("dg_teacher_pin", pin);
   }, [pin]);
 
   const refreshOverview = useCallback(async () => {
@@ -213,17 +214,25 @@ export default function TeacherDashboard({ onBack }: { onBack: () => void }) {
       <div className="min-h-full flex items-center justify-center p-6">
         <form
           onSubmit={login}
+          autoComplete="off"
           className="w-full max-w-sm rounded-xl border border-crimson/30 bg-navy-light p-6 space-y-4"
         >
           <h1 className="text-xl font-bold">
             <span className="text-grade-a">Grade</span>Forge · Teacher
           </h1>
           <p className="text-sm text-parchment-dim">
-            Default PIN is <code className="text-rune">teacher</code> (set{" "}
-            <code>TEACHER_PIN</code> on the server).
+            Enter the teacher PIN configured on the server (
+            <code>TEACHER_PIN</code>).
           </p>
           <input
             type="password"
+            name="classroom-access-code"
+            autoComplete="new-password"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore="true"
+            data-lpignore="true"
             className="w-full rounded-lg bg-navy border border-parchment/20 px-3 py-2"
             value={pin}
             onChange={(e) => setPin(e.target.value)}

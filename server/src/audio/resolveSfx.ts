@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { clipPath } from "./elevenlabs.js";
+import { clipPath } from "./files.js";
 
 /**
  * Pick the first catalog id that has a file on disk.

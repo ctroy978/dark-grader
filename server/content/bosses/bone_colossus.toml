@@ -1,6 +1,6 @@
 # Boss definition — add new bosses by copying this file.
 # Attack *mechanics* live in code (attack id registry); this file picks which
-# attacks the boss uses, weights, lines, and ElevenLabs audio.
+# attacks the boss uses, weights, lines, and audio clip ids.
 
 id = "bone_colossus"
 name = "Bone Colossus"

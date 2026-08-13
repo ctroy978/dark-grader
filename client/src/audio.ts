@@ -1,3 +1,5 @@
+import { apiUrl } from "./baseUrl";
+
 /**
  * Client audio: lobby ambient (HTMLAudio loop) + combat SFX (Web Audio).
  *
@@ -5,8 +7,7 @@
  * from memory with no network RTT. HTMLAudioElement reuse was lagging / going
  * silent on remote machines (interrupted play(), cold fetch mid-cue).
  *
- * Character TTS VO (vo_claim_*, vo_act_*, etc.) is intentionally disabled —
- * generic ElevenLabs lines sound wrong for mixed gender party art.
+ * Character TTS VO (vo_claim_*, vo_act_*, etc.) is intentionally disabled.
  */
 
 export type AudioManifestClip = {
@@ -27,7 +28,6 @@ export type AudioPreloadProgress = {
 
 type Manifest = {
   clips: AudioManifestClip[];
-  elevenlabsConfigured: boolean;
 };
 
 type DecodedClip = {
@@ -95,7 +95,8 @@ let ambientSyncGen = 0;
 function clipUrl(id: string): string {
   const clip = manifest?.clips.find((c) => c.id === id);
   const v = clip?.v ?? 0;
-  return v > 0 ? `/api/audio/${id}?v=${v}` : `/api/audio/${id}`;
+  const path = v > 0 ? `/api/audio/${id}?v=${v}` : `/api/audio/${id}`;
+  return apiUrl(path);
 }
 
 function clipVersion(id: string): number {
@@ -438,7 +439,7 @@ export function loadAudioPrefs(): void {
 
 export async function loadAudioManifest(): Promise<Manifest> {
   // Bypass HTTP cache so mtime versions stay accurate after replacing mp3s.
-  const res = await fetch("/api/audio/manifest", { cache: "no-store" });
+  const res = await fetch(apiUrl("/api/audio/manifest"), { cache: "no-store" });
   const next = (await res.json()) as Manifest;
   const prevKey = manifestKey(manifest);
   manifest = next;

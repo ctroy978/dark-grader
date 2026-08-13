@@ -351,7 +351,7 @@ Do **not** ship all six fantasy kits + Dominated in one PR.
 ### Slice D — Polish
 
 - Art under `client/public/art/{key}/`  
-- Audio packs / ElevenLabs  
+- Audio packs 
 - FX tags — **not optional for DoTs** (see below)  
 - Balance sim pass per room targets in §4  
 

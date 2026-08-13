@@ -1,4 +1,5 @@
 import type { BossScout } from "@dungeon-grades/shared";
+import { apiUrl } from "../baseUrl";
 
 export type CodexBoss = {
   id: string;
@@ -19,7 +20,7 @@ export type CodexBossesResponse = {
 };
 
 export async function fetchCodexBosses(): Promise<CodexBossesResponse> {
-  const res = await fetch("/api/codex/bosses");
+  const res = await fetch(apiUrl("/api/codex/bosses"));
   if (!res.ok) {
     throw new Error("Could not load boss codex");
   }

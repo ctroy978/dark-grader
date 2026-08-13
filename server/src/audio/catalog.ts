@@ -1,7 +1,6 @@
 /**
- * Classroom-friendly audio catalog for Dungeon Grades.
- * SFX use ElevenLabs text-to-sound; VO uses text-to-speech.
- * Boss-specific clips are merged from content/bosses/*.toml at load time.
+ * Classroom audio catalog. Clips are checked-in MP3s under server/data/audio/.
+ * Boss-specific clip ids are merged from content/bosses/*.toml at load time.
  */
 import { allBossAudioClips } from "../seed/bossLoader.js";
 
@@ -19,7 +18,7 @@ export interface AudioClipDef {
 }
 
 const CORE_CATALOG: AudioClipDef[] = [
-  // --- Ambient music (hand-authored loops only; not ElevenLabs) ---
+  // --- Ambient music (hand-authored loops) ---
   {
     id: "music_ambient_lobby",
     kind: "music",

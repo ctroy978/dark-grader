@@ -101,7 +101,7 @@ export interface BossTemplate {
   telegraphSfx?: string;
   attacks: BossAttackDef[];
   memories: BossMemoryDef[];
-  /** Extra ElevenLabs clips declared in this boss file */
+  /** Extra clip ids declared in this boss file */
   audio: AudioClipDef[];
 }
 

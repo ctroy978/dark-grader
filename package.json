@@ -16,8 +16,7 @@
     "test": "npm run test -w @dungeon-grades/shared && npm run test -w server",
     "playtest:bosses": "node scripts/playtest-boss-matrix.mjs",
     "start": "npm run start -w server",
-    "audio:generate": "npm run audio:generate -w server",
-    "audio:generate:force": "npm run audio:generate:force -w server"
+    "deploy:check": "node scripts/deploy-check.mjs"
   },
   "engines": {
     "node": ">=20"

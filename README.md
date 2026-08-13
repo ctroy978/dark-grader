@@ -51,28 +51,11 @@ Then open **http://localhost:5173**. The Vite dev server proxies `/api` and Sock
 | Need | How |
 |------|-----|
 | Teacher PIN / other env | Put vars in a repo-root `.env` (same as other platforms), or set them in the shell before starting the server |
-| Production | `npm run build` then `npm start` (serves the compiled server; client is built under `client/dist`) |
-| Classroom LAN | Server listens on `0.0.0.0:3001` by default; allow Node through Windows Firewall on ports **3001** and **5173** (dev) if stations cannot connect |
+| Production | See [`docs/DEPLOY.md`](docs/DEPLOY.md). `npm run build` then `npm start` (Node serves the API, Socket.IO, **and** `client/dist`) |
+| Classroom LAN | Dev listens on `0.0.0.0:3001`; production behind nginx binds `127.0.0.1:3001` |
 | Same workflow as Linux | Optional: run the repo under **WSL** and follow the Quick start section as written |
 
-No ElevenLabs key is required to run the game. SFX/VO are served from the checked-in files under `server/data/audio/`.
-
-### Audio generation (development only)
-
-Classroom runtime does **not** need an ElevenLabs API key. Clips live on disk under `server/data/audio/` and are served as static MP3s.
-
-Use a key only when **authoring or regenerating** those assets:
-
-```bash
-# repo-root .env (see .env.example) — developers only
-ELEVENLABS_API_KEY=...
-# optional:
-# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
-
-npm run audio:generate
-```
-
-If a clip is missing and a key is configured, the server can also generate it on first request. Without a key, missing clips simply 404; the game still runs.
+Combat SFX are static MP3s under `server/data/audio/`. Missing clips 404; the game still runs.
 
 ### Classroom flow
 
@@ -114,6 +97,22 @@ Default path: **Moss Grub → Ash → Herald → Rattle Captain → Barrow Warde
 
 See [`docs/MULTI_CLASSROOM_PLAN.md`](docs/MULTI_CLASSROOM_PLAN.md) for the full multi-classroom design.
 
+## Production (nginx classroom server)
+
+The game is meant to sit on one building server behind nginx at **`/gradeforge/`**.
+Students open `http://<server>/gradeforge/#/join`; the teacher opens
+`http://<server>/gradeforge/#/teacher`.
+
+Full walkthrough (env, systemd, nginx WebSocket proxy, backups, pull/rebuild):
+[`docs/DEPLOY.md`](docs/DEPLOY.md). Copy-ready files live in `deploy/`.
+
+```bash
+cp .env.example .env          # set TEACHER_PIN on the classroom server
+npm install && npm run build
+node scripts/deploy-check.mjs
+# then install deploy/gradeforge.service + deploy/nginx.conf
+```
+
 ## Scripts
 
 | Command | Purpose |
@@ -122,7 +121,8 @@ See [`docs/MULTI_CLASSROOM_PLAN.md`](docs/MULTI_CLASSROOM_PLAN.md) for the full 
 | `npm run dev:client` | UI with proxy to API |
 | `npm test` | Magnet + combat unit tests |
 | `npm run build` | Production build all packages |
-| `npm start` | Run compiled server |
+| `npm start` | Run compiled server (also serves `client/dist`) |
+| `npm run deploy:check` | Verify the tree is ready to start behind nginx |
 
 ## Docs
 

@@ -10,8 +10,8 @@ Each file defines one boss for the classroom campaign.
 | `name`, `max_hp`, `traits` | Display + combat stats |
 | `difficulty`, `summary`, `recommended_rounds` | Teacher dashboard |
 | `enrage_hp_pct`, `enrage_damage_mult` | Optional enrage |
-| `grunt_pool`, `laugh_pool`, `telegraph_sfx` | ElevenLabs SFX clip ids |
-| `[[audio]]` | Clip definitions (merged into the audio catalog for generation) |
+| `grunt_pool`, `laugh_pool`, `telegraph_sfx` | SFX clip ids (MP3s under `server/data/audio/`) |
+| `[[audio]]` | Clip definitions (merged into the audio catalog) |
 | `[[attacks]]` | Attack ids (must exist in code), weights, bubbles, sfx |
 
 **TOML order:** put scalar fields and `*_pool` **before** any `[[audio]]` / `[[attacks]]` tables, or TOML will attach those keys to the last table row.
@@ -23,10 +23,6 @@ Shared DoT clouds: `PoisonCloud` (party Poison), `FireCloud` (party Fire — Cin
 **Bone Memories:** the Bone Colossus uses ordered `[[memories]]` rows. Identity, death-art key, HP, two-step charge, signature effect, gate percentage, detonation damage, and impact SFX remain content-tunable; encounter sequencing lives in `boneMemories.ts`.
 **New attack type:** implement once in the registry, then reference it from any TOML.
 
-Regenerate audio after adding `[[audio]]` entries:
+New `[[audio]]` ids need a matching MP3 dropped in `server/data/audio/`.
 
-```bash
-npm run audio:generate
-```
-
-Presentation: short comic bubbles + SFX; occasional party VO (`vo_claim_*`, `vo_act_*`, `vo_hurt_*`). Boss grunts/laughs/attacks are SFX from each boss file.
+Presentation: short comic bubbles + SFX. Boss grunts/laughs/attacks are SFX from each boss file.

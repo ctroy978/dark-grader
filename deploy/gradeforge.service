@@ -1,0 +1,48 @@
+# GradeForge systemd unit.
+#
+#   sudo cp deploy/gradeforge.service /etc/systemd/system/gradeforge.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now gradeforge
+#
+# Edit User, WorkingDirectory, and EnvironmentFile to match the clone path.
+
+[Unit]
+Description=GradeForge classroom game
+Documentation=file:///opt/gradeforge/docs/DEPLOY.md
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_LINUX_USER
+Group=YOUR_LINUX_USER
+
+# Must be the `server/` package so cwd/data resolves to server/data
+# (classroom JSON + checked-in audio). Override with DATA_DIR if needed.
+WorkingDirectory=/opt/gradeforge/server
+
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3001
+Environment=BASE_PATH=/gradeforge
+EnvironmentFile=/opt/gradeforge/.env
+
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+KillSignal=SIGTERM
+
+# Classroom state is JSON under server/data — keep the process from
+# filling the disk if something loops, but leave room for audio + saves.
+LimitNOFILE=4096
+
+# Hardening that still lets Node read the repo and write server/data.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/gradeforge/server/data
+
+[Install]
+WantedBy=multi-user.target

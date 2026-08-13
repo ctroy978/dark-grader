@@ -12,16 +12,7 @@ import {
   type Position,
   type TeamState,
 } from "@dungeon-grades/shared";
-import { getClip } from "./audio/catalog.js";
-import {
-  audioCacheDir,
-  clipPath,
-  ensureAllClips,
-  ensureClip,
-  hasApiKey,
-  listCachedClips,
-  probePermissions,
-} from "./audio/elevenlabs.js";
+import { clipPath, listCachedClips } from "./audio/files.js";
 import {
   buildBossScout,
   listBossTemplatesForApi,
@@ -45,20 +36,49 @@ import {
   chooseRelicReward,
 } from "./engine/rewards.js";
 import { loadEnv } from "./loadEnv.js";
+import {
+  resolveAudioDir,
+  resolveBasePath,
+  resolveDataDir,
+  stripBasePath,
+} from "./paths.js";
+import { registerClientStatic } from "./serveClient.js";
+import { pinFromRequest, pinsMatch } from "./teacherAuth.js";
 
 loadEnv();
 
 const PORT = Number(process.env.PORT ?? 3001);
 const TEACHER_PIN = process.env.TEACHER_PIN ?? "teacher";
 const HOST = process.env.HOST ?? "0.0.0.0";
+const PRODUCTION = process.env.NODE_ENV === "production";
+const ALLOW_DEFAULT_PIN = process.env.ALLOW_DEFAULT_TEACHER_PIN === "1";
+const BASE_PATH = resolveBasePath();
+
+if (PRODUCTION && !ALLOW_DEFAULT_PIN && (!TEACHER_PIN || TEACHER_PIN === "teacher")) {
+  console.error(
+    "Refusing to start: set TEACHER_PIN in .env to something other than the default 'teacher'.",
+  );
+  process.exit(1);
+}
 
 const store = new GameStore();
 
-const app = Fastify({ logger: true });
+const app = Fastify({
+  logger: true,
+  // nginx sets X-Forwarded-* ; needed for correct proto/IP behind the proxy
+  trustProxy: true,
+  rewriteUrl(req) {
+    return stripBasePath(req.url ?? "/", BASE_PATH);
+  },
+});
 await app.register(cors, { origin: true });
 
-function requireTeacher(pin: unknown): void {
-  if (pin !== TEACHER_PIN) {
+function requireTeacher(req: {
+  headers: Record<string, unknown>;
+  body?: unknown;
+  query?: unknown;
+}): void {
+  if (!pinsMatch(pinFromRequest(req), TEACHER_PIN)) {
     const err = new Error("Invalid teacher PIN") as Error & { statusCode: number };
     err.statusCode = 401;
     throw err;
@@ -235,7 +255,6 @@ function beginFight(team: TeamState): void {
 app.get("/api/health", async () => ({
   ok: true,
   service: "gradeforge",
-  elevenlabs: hasApiKey(),
 }));
 
 /** Public codex for the marketing site (no PIN). Campaign bosses + scouts. */
@@ -276,11 +295,10 @@ app.get("/api/codex/bosses", async () => {
   };
 });
 
-// --- Audio (ElevenLabs-generated, cached on disk) ---
+// --- Audio (checked-in MP3s under server/data/audio) ---
 app.get("/api/audio/manifest", async (_req, reply) => {
   return reply.header("Cache-Control", "no-store").send({
     clips: listCachedClips(),
-    elevenlabsConfigured: hasApiKey(),
   });
 });
 
@@ -288,51 +306,24 @@ app.get<{ Params: { id: string } }>("/api/audio/:id", async (req, reply) => {
   const id = req.params.id.replace(/[^a-z0-9_]/gi, "");
   const file = clipPath(id);
   if (!fs.existsSync(file)) {
-    const def = getClip(id);
-    if (def?.kind === "music" || !hasApiKey()) {
-      httpError("Clip not found", 404);
-    }
-    try {
-      await ensureClip(id);
-    } catch (e) {
-      httpError(
-        e instanceof Error ? e.message : "Audio generate failed",
-        502,
-      );
-    }
+    httpError("Clip not found", 404);
   }
-  const buf = fs.readFileSync(file);
   return reply
     .header("Content-Type", "audio/mpeg")
     .header("Cache-Control", "public, max-age=31536000, immutable")
-    .send(buf);
+    .send(fs.createReadStream(file));
 });
-
-app.get("/api/audio/status", async () => probePermissions());
-
-app.post<{ Body: { pin: string; force?: boolean } }>(
-  "/api/teacher/audio/generate",
-  async (req) => {
-    requireTeacher(req.body?.pin);
-    if (!hasApiKey()) {
-      httpError("ELEVENLABS_API_KEY not configured", 503);
-    }
-    const results = await ensureAllClips(Boolean(req.body?.force));
-    return { results, cacheDir: audioCacheDir() };
-  },
-);
 
 // --- Teacher: classroom list / CRUD ---
 app.get("/api/teacher/classrooms", async (req) => {
-  const q = req.query as { pin?: string };
-  requireTeacher(q.pin);
+  requireTeacher(req);
   return { classrooms: store.listClassroomSummaries() };
 });
 
 app.post<{ Body: { pin: string; name?: string } }>(
   "/api/teacher/classrooms",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const classroom = store.createClassroom(req.body.name ?? "");
     io.to("teacher").emit("teacher:classrooms", store.listClassroomSummaries());
     return classroomOverview(classroom.classroomId);
@@ -342,7 +333,7 @@ app.post<{ Body: { pin: string; name?: string } }>(
 app.patch<{ Body: { pin: string; name: string }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     try {
       store.renameClassroom(req.params.cid, req.body.name ?? "");
     } catch (e) {
@@ -356,7 +347,7 @@ app.patch<{ Body: { pin: string; name: string }; Params: { cid: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/delete",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const c = store.getClassroom(req.params.cid);
     if (!c) httpError("Classroom not found", 404);
     const teamIds = [...c.teamIds];
@@ -376,8 +367,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string } }>(
 app.get<{ Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/overview",
   async (req) => {
-    const q = req.query as { pin?: string };
-    requireTeacher(q.pin);
+    requireTeacher(req);
     const o = classroomOverview(req.params.cid);
     if (!o) httpError("Classroom not found", 404);
     return o;
@@ -388,7 +378,7 @@ app.post<{
   Body: { pin: string; roomIndex: number; grades: string | Grade[] };
   Params: { cid: string };
 }>("/api/teacher/classrooms/:cid/grades", async (req) => {
-  requireTeacher(req.body.pin);
+  requireTeacher(req);
   const grades = Array.isArray(req.body.grades)
     ? req.body.grades
     : parseGradeList(String(req.body.grades ?? ""));
@@ -421,7 +411,7 @@ app.post<{
   Body: { pin: string; open: boolean };
   Params: { cid: string; roomIndex: string };
 }>("/api/teacher/classrooms/:cid/rooms/:roomIndex/open", async (req) => {
-  requireTeacher(req.body.pin);
+  requireTeacher(req);
   const roomIndex = Number(req.params.roomIndex);
   if (!Number.isFinite(roomIndex)) {
     httpError("Invalid room index", 400);
@@ -441,7 +431,7 @@ app.post<{
 app.post<{ Body: { pin: string; bossTemplateId: string }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/boss",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const id = req.body.bossTemplateId;
     if (!loadBossTemplates().some((b) => b.id === id)) {
       httpError("Unknown boss", 400);
@@ -460,7 +450,7 @@ app.post<{
   Body: { pin: string; campaignLength?: number; roomBossIds?: string[] };
   Params: { cid: string };
 }>("/api/teacher/classrooms/:cid/campaign", async (req) => {
-  requireTeacher(req.body.pin);
+  requireTeacher(req);
   if (req.body.roomBossIds) {
     for (const id of req.body.roomBossIds) {
       if (!loadBossTemplates().some((b) => b.id === id)) {
@@ -486,7 +476,7 @@ app.post<{
 app.post<{ Body: { pin: string }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/campaign/default",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     try {
       store.resetDefaultCampaign(req.params.cid);
     } catch (e) {
@@ -503,7 +493,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string } }>(
 app.post<{ Body: { pin: string; paused: boolean }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/pause",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     try {
       store.setPaused(req.params.cid, Boolean(req.body.paused));
     } catch (e) {
@@ -520,7 +510,7 @@ app.post<{ Body: { pin: string; paused: boolean }; Params: { cid: string } }>(
 app.post<{ Body: { pin: string; name?: string }; Params: { cid: string } }>(
   "/api/teacher/classrooms/:cid/teams",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     try {
       const team = store.createTeam(req.params.cid, req.body.name ?? "");
       emitClassroomOverview(req.params.cid);
@@ -534,7 +524,7 @@ app.post<{ Body: { pin: string; name?: string }; Params: { cid: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
   "/api/teacher/classrooms/:cid/teams/:id/invite-code",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const team = store.getTeam(req.params.id);
     if (!team || team.classroomId !== req.params.cid) {
       httpError("Team not found", 404);
@@ -549,7 +539,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
   "/api/teacher/classrooms/:cid/teams/:id/delete",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const team = store.getTeam(req.params.id);
     if (!team || team.classroomId !== req.params.cid) {
       httpError("Team not found", 404);
@@ -566,7 +556,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
   "/api/teacher/classrooms/:cid/teams/:id/reset",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const existing = store.getTeam(req.params.id);
     if (!existing || existing.classroomId !== req.params.cid) {
       httpError("Team not found", 404);
@@ -580,7 +570,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
   "/api/teacher/classrooms/:cid/teams/:id/force-round",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const team = store.getTeam(req.params.id);
     if (!team || team.classroomId !== req.params.cid) {
       httpError("Team not found", 404);
@@ -601,7 +591,7 @@ app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
 app.post<{ Body: { pin: string }; Params: { cid: string; id: string } }>(
   "/api/teacher/classrooms/:cid/teams/:id/start-fight",
   async (req) => {
-    requireTeacher(req.body.pin);
+    requireTeacher(req);
     const team = store.getTeam(req.params.id);
     if (!team || team.classroomId !== req.params.cid) {
       httpError("Team not found", 404);
@@ -748,6 +738,7 @@ app.post<{ Params: { id: string } }>("/api/team/:id/run-away", async (req) => {
 
 const io = new SocketServer({
   cors: { origin: true },
+  path: `${BASE_PATH}/socket.io`,
 });
 
 io.on("connection", (socket) => {
@@ -757,14 +748,14 @@ io.on("connection", (socket) => {
     if (team) socket.emit("team:state", enrich(team));
   });
   socket.on("subscribe:teacher", (pin: string) => {
-    if (pin !== TEACHER_PIN) return;
+    if (!pinsMatch(pin, TEACHER_PIN)) return;
     socket.join("teacher");
     socket.emit("teacher:classrooms", store.listClassroomSummaries());
   });
   socket.on(
     "subscribe:classroom",
     (payload: { pin?: string; classroomId?: string }) => {
-      if (payload?.pin !== TEACHER_PIN || !payload.classroomId) return;
+      if (!pinsMatch(payload?.pin, TEACHER_PIN) || !payload.classroomId) return;
       const c = store.getClassroom(payload.classroomId);
       if (!c) return;
       socket.join(teacherClassroomRoom(payload.classroomId));
@@ -780,9 +771,33 @@ app.setErrorHandler((error, _req, reply) => {
   reply.status(status).send({ error: err.message ?? "Internal error" });
 });
 
+const clientDist = await registerClientStatic(app);
+
 await app.ready();
 io.attach(app.server);
 
+const shutdown = async (signal: string) => {
+  app.log.info({ signal }, "shutting down");
+  io.close();
+  await app.close();
+  process.exit(0);
+};
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));
+
 await app.listen({ port: PORT, host: HOST });
-console.log(`GradeForge server on http://${HOST}:${PORT}`);
-console.log(`Teacher PIN: ${TEACHER_PIN}`);
+app.log.info(
+  {
+    host: HOST,
+    port: PORT,
+    basePath: BASE_PATH || "/",
+    dataDir: resolveDataDir(),
+    audioDir: resolveAudioDir(),
+    clientDist: clientDist ?? "(none — point nginx at client/dist or run npm run build)",
+    production: PRODUCTION,
+  },
+  "GradeForge listening",
+);
+if (!PRODUCTION) {
+  console.log(`Teacher PIN: ${TEACHER_PIN}`);
+}

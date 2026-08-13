@@ -1,7 +1,8 @@
 import type { Grade } from "@dungeon-grades/shared";
 import { io, type Socket } from "socket.io-client";
+import { apiUrl, BASE_PATH } from "./baseUrl";
 
-const API = "";
+const TEACHER_PIN_HEADER = "X-Teacher-Pin";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -16,7 +17,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers.set("Content-Type", "application/json");
     }
   }
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(apiUrl(path), {
     ...init,
     headers,
     body,
@@ -246,6 +247,12 @@ function cls(cid: string, path: string) {
   return `/api/teacher/classrooms/${encodeURIComponent(cid)}${path}`;
 }
 
+function withTeacherPin(pin: string, init?: RequestInit): RequestInit {
+  const headers = new Headers(init?.headers);
+  headers.set(TEACHER_PIN_HEADER, pin);
+  return { ...init, headers };
+}
+
 export const api = {
   join: (code: string) =>
     request<EnrichedTeam>("/api/join", {
@@ -294,26 +301,37 @@ export const api = {
 
   listClassrooms: (pin: string) =>
     request<{ classrooms: ClassroomSummary[] }>(
-      `/api/teacher/classrooms?pin=${encodeURIComponent(pin)}`,
+      "/api/teacher/classrooms",
+      withTeacherPin(pin),
     ),
   createClassroom: (pin: string, name: string) =>
-    request<Overview>("/api/teacher/classrooms", {
-      method: "POST",
-      body: JSON.stringify({ pin, name }),
-    }),
+    request<Overview>(
+      "/api/teacher/classrooms",
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, name }),
+      }),
+    ),
   renameClassroom: (pin: string, classroomId: string, name: string) =>
-    request<Overview>(cls(classroomId, ""), {
-      method: "PATCH",
-      body: JSON.stringify({ pin, name }),
-    }),
+    request<Overview>(
+      cls(classroomId, ""),
+      withTeacherPin(pin, {
+        method: "PATCH",
+        body: JSON.stringify({ pin, name }),
+      }),
+    ),
   deleteClassroom: (pin: string, classroomId: string) =>
-    request<{ ok: boolean }>(cls(classroomId, "/delete"), {
-      method: "POST",
-      body: JSON.stringify({ pin }),
-    }),
+    request<{ ok: boolean }>(
+      cls(classroomId, "/delete"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    ),
   teacherOverview: (pin: string, classroomId: string) =>
     request<Overview>(
-      `${cls(classroomId, "/overview")}?pin=${encodeURIComponent(pin)}`,
+      cls(classroomId, "/overview"),
+      withTeacherPin(pin),
     ),
   setRoomGrades: (
     pin: string,
@@ -323,10 +341,10 @@ export const api = {
   ) =>
     request<{ count: number; grades: Grade[]; classroom: Overview }>(
       cls(classroomId, "/grades"),
-      {
+      withTeacherPin(pin, {
         method: "POST",
         body: JSON.stringify({ pin, roomIndex, grades }),
-      },
+      }),
     ),
   setRoomOpen: (
     pin: string,
@@ -334,61 +352,88 @@ export const api = {
     roomIndex: number,
     open: boolean,
   ) =>
-    request<Overview>(cls(classroomId, `/rooms/${roomIndex}/open`), {
-      method: "POST",
-      body: JSON.stringify({ pin, open }),
-    }),
+    request<Overview>(
+      cls(classroomId, `/rooms/${roomIndex}/open`),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, open }),
+      }),
+    ),
   setBoss: (pin: string, classroomId: string, bossTemplateId: string) =>
-    request(cls(classroomId, "/boss"), {
-      method: "POST",
-      body: JSON.stringify({ pin, bossTemplateId }),
-    }),
+    request(
+      cls(classroomId, "/boss"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, bossTemplateId }),
+      }),
+    ),
   setCampaign: (
     pin: string,
     classroomId: string,
     opts: { campaignLength?: number; roomBossIds?: string[] },
   ) =>
-    request<Overview>(cls(classroomId, "/campaign"), {
-      method: "POST",
-      body: JSON.stringify({ pin, ...opts }),
-    }),
+    request<Overview>(
+      cls(classroomId, "/campaign"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, ...opts }),
+      }),
+    ),
   resetDefaultCampaign: (pin: string, classroomId: string) =>
-    request<Overview>(cls(classroomId, "/campaign/default"), {
-      method: "POST",
-      body: JSON.stringify({ pin }),
-    }),
+    request<Overview>(
+      cls(classroomId, "/campaign/default"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    ),
   createTeam: (pin: string, classroomId: string, name: string) =>
-    request<EnrichedTeam>(cls(classroomId, "/teams"), {
-      method: "POST",
-      body: JSON.stringify({ pin, name }),
-    }),
+    request<EnrichedTeam>(
+      cls(classroomId, "/teams"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, name }),
+      }),
+    ),
   resetTeam: (pin: string, classroomId: string, id: string) =>
-    request(cls(classroomId, `/teams/${id}/reset`), {
-      method: "POST",
-      body: JSON.stringify({ pin }),
-    }),
+    request(
+      cls(classroomId, `/teams/${id}/reset`),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    ),
   deleteTeam: (pin: string, classroomId: string, id: string) =>
-    request(cls(classroomId, `/teams/${id}/delete`), {
-      method: "POST",
-      body: JSON.stringify({ pin }),
-    }),
+    request(
+      cls(classroomId, `/teams/${id}/delete`),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    ),
   setClassroomPaused: (pin: string, classroomId: string, paused: boolean) =>
-    request<{ paused: boolean }>(cls(classroomId, "/pause"), {
-      method: "POST",
-      body: JSON.stringify({ pin, paused }),
-    }),
+    request<{ paused: boolean }>(
+      cls(classroomId, "/pause"),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin, paused }),
+      }),
+    ),
   changeInviteCode: (pin: string, classroomId: string, teamId: string) =>
-    request<EnrichedTeam>(cls(classroomId, `/teams/${teamId}/invite-code`), {
-      method: "POST",
-      body: JSON.stringify({ pin }),
-    }),
+    request<EnrichedTeam>(
+      cls(classroomId, `/teams/${teamId}/invite-code`),
+      withTeacherPin(pin, {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    ),
 };
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io({ path: "/socket.io" });
+    socket = io({ path: `${BASE_PATH}/socket.io` });
   }
   return socket;
 }

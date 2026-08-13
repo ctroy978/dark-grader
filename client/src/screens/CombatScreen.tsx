@@ -25,6 +25,7 @@ import {
   type PresentationCue,
   type EnrichedTeam,
 } from "../api";
+import { apiUrl } from "../baseUrl";
 import {
   isMusicEnabled,
   isMuted,
@@ -1087,7 +1088,7 @@ export default function CombatScreen({
       try {
         if (opts?.keepalive) {
           // Must outlive the page; ignore body (server mutates from store).
-          await fetch(`/api/team/${encodeURIComponent(teamId)}/resolve-boss`, {
+          await fetch(apiUrl(`/api/team/${encodeURIComponent(teamId)}/resolve-boss`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: "{}",
@@ -1121,7 +1122,7 @@ export default function CombatScreen({
       if (bossResolveLock.current) return;
       bossResolveLock.current = true;
       void fetch(
-        `/api/team/${encodeURIComponent(team.teamId)}/resolve-boss`,
+        apiUrl(`/api/team/${encodeURIComponent(team.teamId)}/resolve-boss`),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
